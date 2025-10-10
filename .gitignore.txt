@@ -1,4 +1,0 @@
-**/.idea/
-**/.mvn/
-**/.vscode/
-**/node_modules/
