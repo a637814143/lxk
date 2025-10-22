@@ -30,6 +30,11 @@ public class AuditLogController {
         return auditLogService.findAll();
     }
 
+    @GetMapping("/admin/{adminId}")
+    public List<AuditLogResponse> findByAdmin(@PathVariable Long adminId) {
+        return auditLogService.findByAdminId(adminId);
+    }
+
     @GetMapping("/{id}")
     public AuditLogResponse get(@PathVariable Long id) {
         return auditLogService.findById(id);

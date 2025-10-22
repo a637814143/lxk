@@ -131,7 +131,10 @@ public class TsukiUserService {
     }
 
     private String normalizeNullable(String value) {
-        String normalized = normalize(value);
-        return (normalized == null || normalized.isEmpty()) ? null : normalized;
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 }

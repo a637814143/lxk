@@ -30,6 +30,13 @@ public class AdminController {
         return adminService.findAll();
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<AdminResponse> findByUser(@PathVariable Long userId) {
+        return adminService.findByUserId(userId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{id}")
     public AdminResponse get(@PathVariable Long id) {
         return adminService.findById(id);

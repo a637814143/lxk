@@ -66,7 +66,7 @@ public class AuthService {
         }
 
         UserRole role = user.getRole();
-        return new LoginResult(username, role, role.getDisplayName(), role.getRedirectPath());
+        return new LoginResult(user.getId(), username, role, role.getDisplayName(), role.getRedirectPath());
     }
 
     private String normalize(String value) {
@@ -90,6 +90,6 @@ public class AuthService {
         }
     }
 
-    public record LoginResult(String username, UserRole role, String roleDisplayName, String redirectPath) {
+    public record LoginResult(Long userId, String username, UserRole role, String roleDisplayName, String redirectPath) {
     }
 }

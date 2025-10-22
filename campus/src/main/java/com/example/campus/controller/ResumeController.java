@@ -30,6 +30,11 @@ public class ResumeController {
         return resumeService.findAll();
     }
 
+    @GetMapping("/student/{studentId}")
+    public List<ResumeResponse> findByStudent(@PathVariable Long studentId) {
+        return resumeService.findByStudentId(studentId);
+    }
+
     @GetMapping("/{id}")
     public ResumeResponse get(@PathVariable Long id) {
         return resumeService.findById(id);

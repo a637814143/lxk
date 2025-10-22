@@ -30,6 +30,16 @@ public class MessageController {
         return messageService.findAll();
     }
 
+    @GetMapping("/receiver/{receiverId}")
+    public List<MessageResponse> findByReceiver(@PathVariable Long receiverId) {
+        return messageService.findByReceiverId(receiverId);
+    }
+
+    @GetMapping("/sender/{senderId}")
+    public List<MessageResponse> findBySender(@PathVariable Long senderId) {
+        return messageService.findBySenderId(senderId);
+    }
+
     @GetMapping("/{id}")
     public MessageResponse get(@PathVariable Long id) {
         return messageService.findById(id);

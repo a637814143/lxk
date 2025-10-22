@@ -32,6 +32,13 @@ public class JobService {
     }
 
     @Transactional(readOnly = true)
+    public List<JobResponse> findByCompanyId(Long companyId) {
+        return jobRepository.findByCompany_Id(companyId).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public JobResponse findById(Long id) {
         return toResponse(getJob(id));
     }

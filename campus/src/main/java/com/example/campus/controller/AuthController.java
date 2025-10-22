@@ -32,6 +32,8 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthService.LoginResult result = authService.login(request);
         LoginResponse response = new LoginResponse(
+                result.userId(),
+                result.username(),
                 "登录成功",
                 result.role(),
                 result.roleDisplayName(),

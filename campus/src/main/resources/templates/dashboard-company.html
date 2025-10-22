@@ -5,102 +5,680 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${title}">企业工作台</title>
     <style>
+        :root {
+            color-scheme: light;
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-            background: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+            background: linear-gradient(135deg, #a7ffeb 0%, #64b5f6 100%);
             color: #0f172a;
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.92);
-            width: min(720px, 94vw);
+            background: rgba(255, 255, 255, 0.97);
+            width: min(1000px, 96vw);
             padding: 38px;
-            border-radius: 24px;
-            box-shadow: 0 16px 44px rgba(15, 23, 42, 0.22);
-            display: grid;
-            gap: 20px;
+            border-radius: 28px;
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.24);
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         h1 {
             margin: 0;
-            font-size: clamp(26px, 4vw, 34px);
+            font-size: clamp(28px, 4vw, 36px);
             font-weight: 700;
         }
 
-        p {
+        .subtitle {
             margin: 0;
-            line-height: 1.6;
+            color: #475569;
             white-space: pre-line;
         }
 
-        .feature-list {
+        .section {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 22px 24px;
+            box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.18);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .section h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #1d4ed8;
+        }
+
+        form {
+            display: grid;
+            gap: 12px;
+        }
+
+        .grid-two {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 14px;
+            gap: 12px;
         }
 
-        .feature {
-            border-radius: 16px;
-            background: rgba(226, 232, 240, 0.55);
-            padding: 16px;
-            box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.3);
-        }
-
-        .feature h2 {
-            margin: 0 0 10px;
-            font-size: 16px;
-            color: #1e3a8a;
-        }
-
-        .feature p {
-            margin: 0;
+        label {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
             font-size: 14px;
             color: #475569;
-            line-height: 1.5;
-            white-space: normal;
+            font-weight: 600;
         }
 
-        a.button {
+        input, select, textarea {
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(59, 130, 246, 0.35);
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        textarea {
+            min-height: 80px;
+        }
+
+        button {
             justify-self: flex-start;
-            padding: 10px 18px;
+            padding: 10px 20px;
             border-radius: 999px;
-            background: #2563eb;
-            color: #ffffff;
-            text-decoration: none;
+            border: none;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
             font-weight: 600;
+            cursor: pointer;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
 
-        a.button:hover {
+        button:hover {
             transform: translateY(-1px);
-            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.35);
+            box-shadow: 0 10px 26px rgba(37, 99, 235, 0.35);
+        }
+
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .item {
+            border-radius: 16px;
+            background: rgba(219, 234, 254, 0.65);
+            padding: 16px;
+            display: grid;
+            gap: 8px;
+            box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.28);
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: rgba(37, 99, 235, 0.12);
+            color: #1e3a8a;
+        }
+
+        .empty {
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        #toast {
+            display: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(59, 130, 246, 0.12);
+            color: #1d4ed8;
+            font-size: 14px;
+        }
+
+        #toast.error {
+            background: rgba(248, 113, 113, 0.15);
+            color: #991b1b;
+        }
+
+        a.button-link {
+            align-self: flex-start;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 999px;
+            background: #1d4ed8;
+            color: #fff;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
 <div class="card">
-    <h1 th:text="${title}">企业工作台</h1>
-    <p th:text="${description}">在这里可以发布校招岗位、查看投递情况，并与学生保持沟通。\n如需切换账号，请回到登录页。</p>
-    <div class="feature-list">
-        <div class="feature">
-            <h2>岗位管理</h2>
-            <p>发布校招岗位、设置招聘计划，并实时掌握招聘进度。</p>
-        </div>
-        <div class="feature">
-            <h2>简历筛选</h2>
-            <p>快速筛选、收藏、导出学生简历，高效开展面试安排。</p>
-        </div>
-        <div class="feature">
-            <h2>沟通协作</h2>
-            <p>与学生建立私信沟通，及时反馈面试结果，提升候选人体验。</p>
-        </div>
-    </div>
-    <a class="button" href="/login">返回登录</a>
+    <header>
+        <h1 th:text="${title}">企业工作台</h1>
+        <p class="subtitle" th:text="${description}">在这里可以发布校招岗位、查看投递情况，并与学生保持沟通。\n如需切换账号，请回到登录页。</p>
+        <div id="toast"></div>
+    </header>
+
+    <section class="section">
+        <h2>企业资料</h2>
+        <form id="company-form">
+            <div class="grid-two">
+                <label>企业名称
+                    <input id="company-name" type="text" required placeholder="法定企业名称">
+                </label>
+                <label>行业类别
+                    <input id="company-industry" type="text" placeholder="所在行业">
+                </label>
+                <label>营业执照号
+                    <input id="company-license" type="text" placeholder="营业执照编号">
+                </label>
+                <label>企业官网
+                    <input id="company-website" type="text" placeholder="https://example.com">
+                </label>
+                <label>联系方式地址
+                    <input id="company-address" type="text" placeholder="办公地址">
+                </label>
+                <label>LOGO 链接
+                    <input id="company-logo" type="text" placeholder="公司Logo图片URL">
+                </label>
+            </div>
+            <label>企业简介
+                <textarea id="company-description" placeholder="一句话介绍公司、产品与愿景"></textarea>
+            </label>
+            <button type="submit">保存企业资料</button>
+        </form>
+        <p class="empty" id="company-hint">完善资料后即可发布岗位。</p>
+        <div class="pill" id="company-status"></div>
+    </section>
+
+    <section class="section">
+        <h2>岗位管理</h2>
+        <form id="job-form">
+            <div class="grid-two">
+                <label>职位名称
+                    <input id="job-title" type="text" required placeholder="例如：Java开发实习生">
+                </label>
+                <label>职位类别
+                    <input id="job-type" type="text" placeholder="职位类别，例如 技术 / 产品">
+                </label>
+                <label>薪资范围
+                    <input id="job-salary" type="text" placeholder="如 8k-12k">
+                </label>
+                <label>工作地点
+                    <input id="job-location" type="text" placeholder="城市或地区">
+                </label>
+            </div>
+            <label>岗位要求
+                <textarea id="job-requirement" placeholder="对候选人的技能要求"></textarea>
+            </label>
+            <label>职位描述
+                <textarea id="job-description" placeholder="岗位职责描述"></textarea>
+            </label>
+            <button type="submit">保存岗位</button>
+        </form>
+        <div class="list" id="job-list"></div>
+    </section>
+
+    <section class="section">
+        <h2>投递管理</h2>
+        <div class="list" id="application-list"></div>
+    </section>
+
+    <section class="section">
+        <h2>消息沟通</h2>
+        <form id="message-form">
+            <div class="grid-two">
+                <label>接收方用户ID
+                    <input id="message-receiver" type="number" min="1" required placeholder="学生的用户ID">
+                </label>
+                <label>消息标题
+                    <input id="message-title" type="text" required placeholder="面试邀请 / 回复等">
+                </label>
+            </div>
+            <label>消息内容
+                <textarea id="message-content" required placeholder="输入具体沟通内容"></textarea>
+            </label>
+            <button type="submit">发送消息</button>
+        </form>
+        <div class="list" id="message-list"></div>
+    </section>
+
+    <a class="button-link" href="/login">返回登录</a>
 </div>
+
+<script>
+    const sessionUser = (() => {
+        const raw = sessionStorage.getItem('tsukiUser');
+        if (!raw) {
+            return null;
+        }
+        try {
+            return JSON.parse(raw);
+        } catch (e) {
+            return null;
+        }
+    })();
+
+    if (!sessionUser || sessionUser.role !== 'COMPANY') {
+        sessionStorage.removeItem('tsukiUser');
+        window.location.replace('/login');
+    }
+
+    const toast = document.getElementById('toast');
+    const companyForm = document.getElementById('company-form');
+    const jobForm = document.getElementById('job-form');
+    const messageForm = document.getElementById('message-form');
+
+    const companyNameInput = document.getElementById('company-name');
+    const companyIndustryInput = document.getElementById('company-industry');
+    const companyLicenseInput = document.getElementById('company-license');
+    const companyWebsiteInput = document.getElementById('company-website');
+    const companyAddressInput = document.getElementById('company-address');
+    const companyDescriptionInput = document.getElementById('company-description');
+    const companyLogoInput = document.getElementById('company-logo');
+
+    const jobTitleInput = document.getElementById('job-title');
+    const jobTypeInput = document.getElementById('job-type');
+    const jobSalaryInput = document.getElementById('job-salary');
+    const jobLocationInput = document.getElementById('job-location');
+    const jobRequirementInput = document.getElementById('job-requirement');
+    const jobDescriptionInput = document.getElementById('job-description');
+
+    const messageReceiverInput = document.getElementById('message-receiver');
+    const messageTitleInput = document.getElementById('message-title');
+    const messageContentInput = document.getElementById('message-content');
+    const jobList = document.getElementById('job-list');
+    const applicationList = document.getElementById('application-list');
+    const messageList = document.getElementById('message-list');
+    const companyHint = document.getElementById('company-hint');
+    const companyStatus = document.getElementById('company-status');
+
+    const JOB_STATUSES = ['pending', 'approved', 'rejected', 'closed'];
+    const APPLICATION_STATUSES = ['待查看', '已查看', '面试中', '录用', '拒绝'];
+
+    const state = {
+        company: null,
+        jobs: [],
+        applications: [],
+        messages: []
+    };
+
+    initialize();
+
+    function showToast(message, isError = false) {
+        toast.textContent = message;
+        toast.className = isError ? 'error' : '';
+        toast.style.display = 'block';
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => toast.style.display = 'none', 3200);
+    }
+
+    async function initialize() {
+        await loadCompany();
+        if (state.company) {
+            await Promise.all([
+                loadJobs(),
+                loadApplications()
+            ]);
+        }
+        await loadMessages();
+        attachHandlers();
+    }
+
+    function attachHandlers() {
+        companyForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const payload = collectCompanyPayload();
+            if (!payload) {
+                return;
+            }
+            try {
+                if (state.company) {
+                    await api(`/api/companies/${state.company.id}`, 'PUT', payload);
+                } else {
+                    await api('/api/companies', 'POST', { ...payload, userId: sessionUser.userId });
+                }
+                showToast('企业资料已保存');
+                await loadCompany();
+            } catch (error) {
+                showToast(error.message, true);
+            }
+        });
+
+        jobForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!state.company) {
+                showToast('请先完善企业资料', true);
+                return;
+            }
+            const payload = collectJobPayload();
+            if (!payload) {
+                return;
+            }
+            const jobId = jobForm.dataset.editingId;
+            try {
+                if (jobId) {
+                    await api(`/api/jobs/${jobId}`, 'PUT', payload);
+                    showToast('岗位已更新');
+                } else {
+                    await api('/api/jobs', 'POST', { ...payload, companyId: state.company.id });
+                    showToast('岗位已发布');
+                }
+                jobForm.reset();
+                delete jobForm.dataset.editingId;
+                await loadJobs();
+            } catch (error) {
+                showToast(error.message, true);
+            }
+        });
+
+        messageForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const receiverId = Number(messageReceiverInput.value);
+            if (!receiverId) {
+                showToast('请填写接收方用户ID', true);
+                return;
+            }
+            const payload = {
+                senderId: sessionUser.userId,
+                receiverId,
+                title: messageTitleInput.value.trim(),
+                content: messageContentInput.value.trim()
+            };
+            if (!payload.title || !payload.content) {
+                showToast('标题和内容不能为空', true);
+                return;
+            }
+            try {
+                await api('/api/messages', 'POST', payload);
+                showToast('消息发送成功');
+                messageForm.reset();
+                messageReceiverInput.value = '';
+                messageTitleInput.value = '';
+                messageContentInput.value = '';
+                await loadMessages();
+            } catch (error) {
+                showToast(error.message, true);
+            }
+        });
+    }
+
+    function collectCompanyPayload() {
+        const name = companyNameInput.value.trim();
+        if (!name) {
+            showToast('企业名称不能为空', true);
+            return null;
+        }
+        return {
+            companyName: name,
+            industry: blankToNull(companyIndustryInput.value),
+            licenseNumber: blankToNull(companyLicenseInput.value),
+            website: blankToNull(companyWebsiteInput.value),
+            address: blankToNull(companyAddressInput.value),
+            description: blankToNull(companyDescriptionInput.value),
+            logo: blankToNull(companyLogoInput.value)
+        };
+    }
+
+    function collectJobPayload() {
+        const title = jobTitleInput.value.trim();
+        if (!title) {
+            showToast('职位名称不能为空', true);
+            return null;
+        }
+        return {
+            jobTitle: title,
+            jobType: blankToNull(jobTypeInput.value),
+            salaryRange: blankToNull(jobSalaryInput.value),
+            location: blankToNull(jobLocationInput.value),
+            requirement: blankToNull(jobRequirementInput.value),
+            description: blankToNull(jobDescriptionInput.value)
+        };
+    }
+
+    function blankToNull(value) {
+        return value && value.trim() ? value.trim() : null;
+    }
+
+    async function loadCompany() {
+        try {
+            const company = await api(`/api/companies/user/${sessionUser.userId}`);
+            state.company = company;
+            populateCompany(company);
+            companyHint.textContent = '资料已完善，可继续发布岗位并查看投递。';
+            companyStatus.textContent = `审核状态：${company.auditStatus}`;
+        } catch (error) {
+            if (error.status === 404) {
+                state.company = null;
+                companyForm.reset();
+                companyStatus.textContent = '';
+                companyHint.textContent = '完善资料后即可发布岗位。';
+            } else {
+                showToast(error.message, true);
+            }
+        }
+    }
+
+    async function loadJobs() {
+        state.jobs = await api(`/api/jobs/company/${state.company.id}`);
+        renderJobs();
+    }
+
+    async function loadApplications() {
+        state.applications = await api(`/api/applications/company/${state.company.id}`);
+        renderApplications();
+    }
+
+    async function loadMessages() {
+        state.messages = await api(`/api/messages/sender/${sessionUser.userId}`);
+        renderMessages();
+    }
+
+    function populateCompany(company) {
+        companyNameInput.value = company.companyName ?? '';
+        companyIndustryInput.value = company.industry ?? '';
+        companyLicenseInput.value = company.licenseNumber ?? '';
+        companyWebsiteInput.value = company.website ?? '';
+        companyAddressInput.value = company.address ?? '';
+        companyDescriptionInput.value = company.description ?? '';
+        companyLogoInput.value = company.logo ?? '';
+    }
+
+    function renderJobs() {
+        jobList.innerHTML = '';
+        if (!state.jobs.length) {
+            jobList.innerHTML = '<p class="empty">还没有发布职位</p>';
+            return;
+        }
+        state.jobs.forEach((job) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'item';
+            wrapper.innerHTML = `
+                <div class="pill">职位ID：${job.id}</div>
+                <div><strong>${job.jobTitle}</strong> · ${job.location ?? '地点待定'}</div>
+                <div>类别：${job.jobType ?? '不限'} · 薪资：${job.salaryRange ?? '面议'}</div>
+                <div>状态：${job.status}</div>
+                <div>要求：${job.requirement ?? '暂无'}</div>
+                <div>描述：${job.description ?? '暂无'}</div>
+            `;
+            const actions = document.createElement('div');
+            actions.className = 'item-actions';
+
+            const statusSelect = document.createElement('select');
+            JOB_STATUSES.forEach((status) => {
+                statusSelect.add(new Option(status, status, false, status === job.status));
+            });
+
+            const updateBtn = document.createElement('button');
+            updateBtn.type = 'button';
+            updateBtn.textContent = '更新状态';
+            updateBtn.addEventListener('click', async () => {
+                try {
+                    await api(`/api/jobs/${job.id}`, 'PUT', { status: statusSelect.value });
+                    showToast('岗位状态已更新');
+                    await loadJobs();
+                } catch (error) {
+                    showToast(error.message, true);
+                }
+            });
+
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.textContent = '编辑';
+            editBtn.addEventListener('click', () => {
+                jobTitleInput.value = job.jobTitle ?? '';
+                jobTypeInput.value = job.jobType ?? '';
+                jobSalaryInput.value = job.salaryRange ?? '';
+                jobLocationInput.value = job.location ?? '';
+                jobRequirementInput.value = job.requirement ?? '';
+                jobDescriptionInput.value = job.description ?? '';
+                jobForm.dataset.editingId = job.id;
+                showToast(`已加载职位「${job.jobTitle}」进行编辑`);
+            });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.textContent = '删除';
+            deleteBtn.addEventListener('click', async () => {
+                if (!confirm('确定删除该职位吗？')) {
+                    return;
+                }
+                try {
+                    await api(`/api/jobs/${job.id}`, 'DELETE');
+                    showToast('职位已删除');
+                    await loadJobs();
+                } catch (error) {
+                    showToast(error.message, true);
+                }
+            });
+
+            actions.append(statusSelect, updateBtn, editBtn, deleteBtn);
+            wrapper.append(actions);
+            jobList.append(wrapper);
+        });
+    }
+
+    async function renderApplications() {
+        applicationList.innerHTML = '';
+        if (!state.applications.length) {
+            applicationList.innerHTML = '<p class="empty">暂无投递记录</p>';
+            return;
+        }
+        for (const application of state.applications) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'item';
+            let studentName = `学生ID：${application.studentId}`;
+            try {
+                const student = await api(`/api/students/${application.studentId}`);
+                studentName = `学生：${student.name} (用户ID：${student.userId})`;
+            } catch (e) {
+                // ignore, keep fallback text
+            }
+            wrapper.innerHTML = `
+                <div><strong>申请ID：${application.id}</strong> · ${studentName}</div>
+                <div>职位ID：${application.jobId} · 使用简历：${application.resumeId}</div>
+                <div>当前状态：${application.status} · 投递时间：${formatDate(application.applyTime)}</div>
+            `;
+            const actions = document.createElement('div');
+            actions.className = 'item-actions';
+
+            const select = document.createElement('select');
+            APPLICATION_STATUSES.forEach((status) => {
+                select.add(new Option(status, status, false, status === application.status));
+            });
+
+            const updateBtn = document.createElement('button');
+            updateBtn.type = 'button';
+            updateBtn.textContent = '更新状态';
+            updateBtn.addEventListener('click', async () => {
+                try {
+                    await api(`/api/applications/${application.id}`, 'PUT', { status: select.value });
+                    showToast('投递状态已更新');
+                    await loadApplications();
+                } catch (error) {
+                    showToast(error.message, true);
+                }
+            });
+
+            actions.append(select, updateBtn);
+            wrapper.append(actions);
+            applicationList.append(wrapper);
+        }
+    }
+
+    function renderMessages() {
+        messageList.innerHTML = '';
+        if (!state.messages.length) {
+            messageList.innerHTML = '<p class="empty">暂无发送记录</p>';
+            return;
+        }
+        state.messages.forEach((message) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'item';
+            wrapper.innerHTML = `
+                <div><strong>${message.title}</strong></div>
+                <div>${message.content}</div>
+                <div class="pill">发送给用户：${message.receiverId} · ${formatDate(message.sendTime)}</div>
+            `;
+            messageList.append(wrapper);
+        });
+    }
+
+    async function api(url, method = 'GET', body) {
+        const options = { method, headers: {} };
+        if (body !== undefined) {
+            options.headers['Content-Type'] = 'application/json';
+            options.body = JSON.stringify(body);
+        }
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            const error = new Error(payload.message || '请求失败');
+            error.status = response.status;
+            throw error;
+        }
+        if (response.status === 204) {
+            return null;
+        }
+        return response.json();
+    }
+
+    function formatDate(value) {
+        if (!value) {
+            return '未知时间';
+        }
+        try {
+            return new Date(value).toLocaleString();
+        } catch (e) {
+            return value;
+        }
+    }
+</script>
 </body>
 </html>
