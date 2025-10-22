@@ -365,12 +365,34 @@
     }
 
     async function initialize() {
-        await Promise.all([
-            loadProfile(),
-            loadJobs(),
-            loadMessages()
-        ]);
-        attachHandlers();
+        try {
+            await loadSnapshot();
+            attachHandlers();
+        } catch (error) {
+            showToast(error.message || '初始化失败，请稍后重试', true);
+        }
+    }
+
+    async function loadSnapshot() {
+        const snapshot = await api(`/api/dashboard/student/${userInfo.userId}`);
+        state.student = snapshot.profile ?? null;
+        state.resumes = Array.isArray(snapshot.resumes) ? snapshot.resumes : [];
+        state.applications = Array.isArray(snapshot.applications) ? snapshot.applications : [];
+        state.jobs = Array.isArray(snapshot.jobs) ? snapshot.jobs : [];
+        state.messages = Array.isArray(snapshot.messages) ? snapshot.messages : [];
+
+        if (state.student) {
+            populateProfile(state.student);
+            profileHint.textContent = '档案已完善，可继续管理简历和投递记录。';
+        } else {
+            profileForm.reset();
+            profileHint.textContent = '请先完善个人档案信息。';
+        }
+
+        renderResumes();
+        renderApplications();
+        renderJobs();
+        renderMessages();
     }
 
     function attachHandlers() {

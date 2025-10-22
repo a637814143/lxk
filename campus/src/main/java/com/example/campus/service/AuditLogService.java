@@ -10,7 +10,6 @@ import com.example.campus.repository.TsukiAdminRepository;
 import com.example.campus.repository.TsukiAuditLogRepository;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

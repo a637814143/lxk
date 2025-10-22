@@ -326,7 +326,8 @@
         company: null,
         jobs: [],
         applications: [],
-        messages: []
+        messages: [],
+        inbox: []
     };
 
     initialize();
@@ -340,15 +341,36 @@
     }
 
     async function initialize() {
-        await loadCompany();
-        if (state.company) {
-            await Promise.all([
-                loadJobs(),
-                loadApplications()
-            ]);
+        try {
+            await loadSnapshot();
+            attachHandlers();
+        } catch (error) {
+            showToast(error.message || '初始化失败，请稍后重试', true);
         }
-        await loadMessages();
-        attachHandlers();
+    }
+
+    async function loadSnapshot() {
+        const snapshot = await api(`/api/dashboard/company/${sessionUser.userId}`);
+        state.company = snapshot.company ?? null;
+        state.jobs = Array.isArray(snapshot.jobs) ? snapshot.jobs : [];
+        state.applications = Array.isArray(snapshot.applications) ? snapshot.applications : [];
+        const outgoing = snapshot.sentMessages ?? snapshot.messages;
+        state.messages = Array.isArray(outgoing) ? outgoing : [];
+        state.inbox = Array.isArray(snapshot.inboxMessages) ? snapshot.inboxMessages : [];
+
+        if (state.company) {
+            populateCompany(state.company);
+            companyHint.textContent = '资料已完善，可继续发布岗位并查看投递。';
+            companyStatus.textContent = `审核状态：${state.company.auditStatus}`;
+        } else {
+            companyForm.reset();
+            companyStatus.textContent = '';
+            companyHint.textContent = '完善资料后即可发布岗位。';
+        }
+
+        renderJobs();
+        await renderApplications();
+        renderMessages();
     }
 
     function attachHandlers() {
@@ -496,7 +518,12 @@
     }
 
     async function loadMessages() {
-        state.messages = await api(`/api/messages/sender/${sessionUser.userId}`);
+        const [outbox, inbox] = await Promise.all([
+            api(`/api/messages/sender/${sessionUser.userId}`),
+            api(`/api/messages/receiver/${sessionUser.userId}`)
+        ]);
+        state.messages = Array.isArray(outbox) ? outbox : [];
+        state.inbox = Array.isArray(inbox) ? inbox : [];
         renderMessages();
     }
 
@@ -634,20 +661,50 @@
 
     function renderMessages() {
         messageList.innerHTML = '';
-        if (!state.messages.length) {
-            messageList.innerHTML = '<p class="empty">暂无发送记录</p>';
+        const hasOutbox = state.messages.length > 0;
+        const hasInbox = state.inbox.length > 0;
+
+        if (!hasOutbox && !hasInbox) {
+            messageList.innerHTML = '<p class="empty">暂无消息记录</p>';
             return;
         }
-        state.messages.forEach((message) => {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'item';
-            wrapper.innerHTML = `
-                <div><strong>${message.title}</strong></div>
-                <div>${message.content}</div>
-                <div class="pill">发送给用户：${message.receiverId} · ${formatDate(message.sendTime)}</div>
-            `;
-            messageList.append(wrapper);
-        });
+
+        if (hasOutbox) {
+            const outboxTitle = document.createElement('div');
+            outboxTitle.className = 'pill';
+            outboxTitle.textContent = '已发送消息';
+            messageList.append(outboxTitle);
+
+            state.messages.forEach((message) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'item';
+                wrapper.innerHTML = `
+                    <div><strong>${message.title}</strong></div>
+                    <div>${message.content}</div>
+                    <div class="pill">发送给用户：${message.receiverId} · ${formatDate(message.sendTime)}</div>
+                `;
+                messageList.append(wrapper);
+            });
+        }
+
+        if (hasInbox) {
+            const inboxTitle = document.createElement('div');
+            inboxTitle.className = 'pill';
+            inboxTitle.textContent = '收到的消息';
+            messageList.append(inboxTitle);
+
+            state.inbox.forEach((message) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'item';
+                const senderLabel = message.senderId ? `来自用户：${message.senderId}` : '系统消息';
+                wrapper.innerHTML = `
+                    <div><strong>${message.title}</strong></div>
+                    <div>${message.content}</div>
+                    <div class="pill">${senderLabel} · ${formatDate(message.sendTime)}</div>
+                `;
+                messageList.append(wrapper);
+            });
+        }
     }
 
     async function api(url, method = 'GET', body) {

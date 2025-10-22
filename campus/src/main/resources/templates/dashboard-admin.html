@@ -302,7 +302,13 @@
         admin: null,
         announcements: [],
         companies: [],
-        audits: []
+        audits: [],
+        students: [],
+        jobs: [],
+        applications: [],
+        messages: [],
+        sentMessages: [],
+        admins: []
     };
 
     initialize();
@@ -316,17 +322,38 @@
     }
 
     async function initialize() {
-        await loadAdmin();
-        if (state.admin) {
-            await Promise.all([
-                loadAnnouncements(),
-                loadCompanies(),
-                loadAudits()
-            ]);
-        } else {
-            await loadCompanies();
+        try {
+            await loadSnapshot();
+            attachHandlers();
+        } catch (error) {
+            showToast(error.message || '初始化失败，请稍后重试', true);
         }
-        attachHandlers();
+    }
+
+    async function loadSnapshot() {
+        const snapshot = await api(`/api/dashboard/admin/${sessionUser.userId}`);
+        state.admin = snapshot.profile ?? null;
+        state.announcements = Array.isArray(snapshot.announcements) ? snapshot.announcements : [];
+        state.companies = Array.isArray(snapshot.companies) ? snapshot.companies : [];
+        state.audits = Array.isArray(snapshot.auditLogs) ? snapshot.auditLogs : [];
+        state.students = Array.isArray(snapshot.students) ? snapshot.students : [];
+        state.jobs = Array.isArray(snapshot.jobs) ? snapshot.jobs : [];
+        state.applications = Array.isArray(snapshot.applications) ? snapshot.applications : [];
+        state.messages = Array.isArray(snapshot.inboxMessages) ? snapshot.inboxMessages : [];
+        state.sentMessages = Array.isArray(snapshot.sentMessages) ? snapshot.sentMessages : [];
+        state.admins = Array.isArray(snapshot.admins) ? snapshot.admins : [];
+
+        if (state.admin) {
+            populateAdmin(state.admin);
+            adminHint.textContent = buildAdminSummary();
+        } else {
+            adminForm.reset();
+            adminHint.textContent = '完善资料后可发布公告和记录审核操作。';
+        }
+
+        renderAnnouncements();
+        renderCompanies();
+        renderAudits();
     }
 
     function attachHandlers() {
@@ -443,7 +470,7 @@
             const admin = await api(`/api/admins/user/${sessionUser.userId}`);
             state.admin = admin;
             populateAdmin(admin);
-            adminHint.textContent = '资料已完善，可发布公告并记录平台操作。';
+            adminHint.textContent = buildAdminSummary();
         } catch (error) {
             if (error.status === 404) {
                 state.admin = null;
@@ -468,6 +495,9 @@
     async function loadCompanies() {
         state.companies = await api('/api/companies');
         renderCompanies();
+        if (state.admin) {
+            adminHint.textContent = buildAdminSummary();
+        }
     }
 
     async function loadAudits() {
@@ -602,6 +632,14 @@
             `;
             auditList.append(wrapper);
         });
+    }
+
+    function buildAdminSummary() {
+        const companyCount = state.companies.length;
+        const studentCount = state.students.length;
+        const jobCount = state.jobs.length;
+        const applicationCount = state.applications.length;
+        return `资料已完善，当前平台共有${companyCount}家企业、${studentCount}名学生、${jobCount}个岗位、${applicationCount}条投递记录。`;
     }
 
     function targetLabel(value) {
