@@ -1,4 +1,4 @@
-package com.example.campus.dto;
+package com.example.campus.dto.user;
 
 import com.example.campus.entity.UserRole;
 import jakarta.validation.constraints.Email;
@@ -7,7 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-public record RegisterRequest(
+public record UserCreateRequest(
         @NotBlank(message = "用户名不能为空")
         @Size(max = 50, message = "用户名不能超过50个字符")
         String username,
@@ -26,5 +26,7 @@ public record RegisterRequest(
         String phone,
 
         @NotNull(message = "用户角色不能为空")
-        UserRole role) {
+        UserRole role,
+
+        Integer status) {
 }
