@@ -42,7 +42,7 @@ public class TsukiUser {
     private String phone;
 
     @Convert(converter = UserRoleConverter.class)
-    @Column(name = "role", nullable = false, length = 20)
+    @Column(name = "role", nullable = false, columnDefinition = "enum('student','company','admin')")
     private UserRole role;
 
     @Column(name = "status", nullable = false)

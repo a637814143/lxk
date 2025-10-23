@@ -3,7 +3,7 @@
     <section class="login-card">
       <header class="login-header">
         <h1>Tsuki 校园招聘平台</h1>
-        <p>请输入账号密码，根据角色进入对应的工作台</p>
+        <p>当前仅开放系统管理员登录入口</p>
       </header>
       <form class="login-form" @submit.prevent="handleSubmit">
         <label>
@@ -18,7 +18,7 @@
           {{ loading ? '正在登录…' : '登录' }}
         </button>
       </form>
-      <router-link class="link" :to="{ name: 'register' }">没有账号？注册新用户</router-link>
+      <p class="note">企业与学生用户请通过前端门户提交资料，由管理员统一开通权限。</p>
       <p v-if="feedback.message" :class="['feedback', feedback.type]">
         {{ feedback.message }}
       </p>
@@ -66,22 +66,16 @@ async function handleSubmit() {
       token: data.token
     };
     setAuthInfo(payload);
-    const routeMap = {
-      ADMIN: 'admin-dashboard',
-      COMPANY: 'company-dashboard',
-      STUDENT: 'student-dashboard'
-    };
-    const targetRoute = routeMap[data.role];
-    if (!targetRoute) {
-      throw new Error('当前角色暂不支持登录');
+    if (data.role !== 'ADMIN') {
+      throw new Error('当前系统仅支持系统管理员登录');
     }
-    showFeedback(`登录成功，欢迎 ${data.roleDisplayName} ${data.username}`, 'success');
+    showFeedback(`登录成功，欢迎管理员 ${data.username}`, 'success');
     setTimeout(() => {
       const redirect = router.currentRoute.value.query.redirect;
       if (typeof redirect === 'string' && redirect) {
         router.replace(redirect);
       } else {
-        router.push({ name: targetRoute });
+        router.push({ name: 'admin-dashboard' });
       }
     }, 300);
   } catch (error) {
@@ -197,9 +191,10 @@ button.primary:not(:disabled):hover {
   color: #b91c1c;
 }
 
-.link {
+.note {
+  margin: 0;
   text-align: center;
-  color: #1d4ed8;
-  font-size: 14px;
+  font-size: 13px;
+  color: #4b5563;
 }
 </style>

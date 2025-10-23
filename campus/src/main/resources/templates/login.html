@@ -114,20 +114,11 @@
             color: #b91c1c;
         }
 
-        .switch {
+        .note {
+            margin: 0;
             text-align: center;
-            font-size: 14px;
-            color: #4b5563;
-        }
-
-        .switch a {
-            color: #4f6bed;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .switch a:hover {
-            text-decoration: underline;
+            font-size: 13px;
+            color: #6b7280;
         }
     </style>
 </head>
@@ -135,7 +126,7 @@
 <div class="card">
     <div>
         <h1>校园招聘系统</h1>
-        <p class="subtitle">欢迎回来，请登录继续</p>
+        <p class="subtitle">当前仅开放系统管理员登录，请使用管理员凭证</p>
     </div>
     <form id="login-form">
         <div>
@@ -149,7 +140,7 @@
         <button type="submit">立即登录</button>
     </form>
     <div id="message" class="message"></div>
-    <p class="switch">还没有账号？<a href="/register">立即注册</a></p>
+    <p class="note">企业与学生用户请通过前端门户提交资料，由管理员统一审核。</p>
 </div>
 <script>
     const form = document.getElementById('login-form');

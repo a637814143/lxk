@@ -81,6 +81,9 @@ public class AuthService {
         }
 
         UserRole role = user.getRole();
+        if (role != UserRole.ADMIN) {
+            throw new InvalidCredentialsException("当前系统仅支持系统管理员登录");
+        }
         UserPrincipal principal = UserPrincipal.fromEntity(user);
         String token = jwtService.generateToken(principal);
         return new LoginResult(user.getId(), username, role, role.getDisplayName(), role.getRedirectPath(), token);
