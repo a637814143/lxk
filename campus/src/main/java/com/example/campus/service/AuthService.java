@@ -2,6 +2,9 @@ package com.example.campus.service;
 
 import com.example.campus.dto.LoginRequest;
 import com.example.campus.dto.RegisterRequest;
+import com.example.campus.dto.admin.AdminCreateRequest;
+import com.example.campus.dto.company.CompanyCreateRequest;
+import com.example.campus.dto.student.StudentCreateRequest;
 import com.example.campus.entity.TsukiUser;
 import com.example.campus.entity.UserRole;
 import com.example.campus.exception.InvalidCredentialsException;
@@ -21,6 +24,9 @@ public class AuthService {
     private final TsukiUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final StudentService studentService;
+    private final CompanyService companyService;
+    private final AdminService adminService;
 
     @Transactional
     public void register(RegisterRequest request) {
@@ -29,6 +35,11 @@ public class AuthService {
         String email = normalize(request.email());
         validateEmail(email);
         String phone = normalizeNullable(request.phone());
+        String displayName = normalizeNullable(request.displayName());
+        String companyName = normalizeNullable(request.companyName());
+        UserRole role = request.role();
+
+        validateRoleDetails(role, displayName, companyName);
 
         userRepository.findByUsernameIgnoreCase(username)
                 .ifPresent(existing -> {
@@ -44,11 +55,12 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.password()))
                 .email(email)
                 .phone(phone)
-                .role(request.role())
+                .role(role)
                 .status(1)
                 .build();
 
-        userRepository.save(user);
+        TsukiUser savedUser = userRepository.save(user);
+        initializeRoleProfile(savedUser, role, displayName, companyName);
     }
 
     @Transactional(readOnly = true)
@@ -72,6 +84,64 @@ public class AuthService {
         UserPrincipal principal = UserPrincipal.fromEntity(user);
         String token = jwtService.generateToken(principal);
         return new LoginResult(user.getId(), username, role, role.getDisplayName(), role.getRedirectPath(), token);
+    }
+
+    private void validateRoleDetails(UserRole role, String displayName, String companyName) {
+        if (role == null) {
+            throw new IllegalArgumentException("用户角色不能为空");
+        }
+        switch (role) {
+            case STUDENT -> {
+                if (displayName == null || displayName.isEmpty()) {
+                    throw new IllegalArgumentException("学生姓名不能为空");
+                }
+            }
+            case COMPANY -> {
+                if (companyName == null || companyName.isEmpty()) {
+                    throw new IllegalArgumentException("企业名称不能为空");
+                }
+            }
+            case ADMIN -> {
+                if (displayName == null || displayName.isEmpty()) {
+                    throw new IllegalArgumentException("管理员姓名不能为空");
+                }
+            }
+            default -> {
+            }
+        }
+    }
+
+    private void initializeRoleProfile(TsukiUser user, UserRole role, String displayName, String companyName) {
+        Long userId = user.getId();
+        switch (role) {
+            case STUDENT -> createStudentProfile(userId, displayName);
+            case COMPANY -> createCompanyProfile(userId, companyName);
+            case ADMIN -> createAdminProfile(userId, displayName);
+            default -> {
+            }
+        }
+    }
+
+    private void createStudentProfile(Long userId, String displayName) {
+        if (studentService.findByUserId(userId).isPresent()) {
+            return;
+        }
+        studentService.create(new StudentCreateRequest(userId, displayName, null, null, null, null, null, null));
+    }
+
+    private void createCompanyProfile(Long userId, String companyName) {
+        if (companyService.findByUserId(userId).isPresent()) {
+            return;
+        }
+        companyService.create(new CompanyCreateRequest(userId, companyName, null, null, null, null, null, null, null,
+                "pending", null));
+    }
+
+    private void createAdminProfile(Long userId, String displayName) {
+        if (adminService.findByUserId(userId).isPresent()) {
+            return;
+        }
+        adminService.create(new AdminCreateRequest(userId, displayName, 1));
     }
 
     private String normalize(String value) {

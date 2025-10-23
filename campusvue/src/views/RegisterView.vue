@@ -28,7 +28,16 @@
             <option disabled value="">请选择角色</option>
             <option value="STUDENT">学生</option>
             <option value="COMPANY">企业</option>
+            <option value="ADMIN">系统管理员</option>
           </select>
+        </label>
+        <label v-if="needsDisplayName">
+          <span>{{ form.role === 'ADMIN' ? '管理员姓名' : '学生姓名' }}</span>
+          <input v-model.trim="form.displayName" maxlength="50" required />
+        </label>
+        <label v-if="form.role === 'COMPANY'">
+          <span>企业名称</span>
+          <input v-model.trim="form.companyName" maxlength="100" required />
         </label>
         <button class="primary" type="submit" :disabled="loading">
           {{ loading ? '正在注册…' : '注册并跳转登录' }}
@@ -41,7 +50,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { post } from '../api/http';
 
@@ -54,8 +63,24 @@ const form = reactive({
   email: '',
   phone: '',
   password: '',
-  role: ''
+  role: '',
+  displayName: '',
+  companyName: ''
 });
+
+const needsDisplayName = computed(() => form.role === 'STUDENT' || form.role === 'ADMIN');
+
+watch(
+  () => form.role,
+  role => {
+    if (role !== 'COMPANY') {
+      form.companyName = '';
+    }
+    if (role !== 'STUDENT' && role !== 'ADMIN') {
+      form.displayName = '';
+    }
+  }
+);
 
 function showFeedback(message, type = 'info') {
   feedback.message = message;
@@ -71,12 +96,24 @@ async function handleSubmit() {
   if (loading.value) return;
   loading.value = true;
   try {
+    if (needsDisplayName.value && !form.displayName) {
+      showFeedback('请填写姓名', 'error');
+      loading.value = false;
+      return;
+    }
+    if (form.role === 'COMPANY' && !form.companyName) {
+      showFeedback('请填写企业名称', 'error');
+      loading.value = false;
+      return;
+    }
     await post('/auth/register', {
       username: form.username,
       email: form.email,
       phone: form.phone,
       password: form.password,
-      role: form.role
+      role: form.role,
+      displayName: needsDisplayName.value ? form.displayName : null,
+      companyName: form.role === 'COMPANY' ? form.companyName : null
     });
     showFeedback('注册成功，请使用账号登录', 'success');
     setTimeout(() => {
