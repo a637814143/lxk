@@ -140,7 +140,7 @@
         <button type="submit">立即登录</button>
     </form>
     <div id="message" class="message"></div>
-    <p class="note">企业与学生用户请通过前端门户提交资料，由管理员统一审核。</p>
+    <p class="note">企业与学生用户请前往前端门户注册并登录，所有业务操作均在前端完成。</p>
 </div>
 <script>
     const form = document.getElementById('login-form');
@@ -161,7 +161,7 @@
         showMessage('正在验证，请稍候...', 'info');
 
         try {
-            const response = await fetch('/api/auth/login', {
+            const response = await fetch('/api/auth/admin/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

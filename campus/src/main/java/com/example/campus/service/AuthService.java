@@ -65,6 +65,15 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public LoginResult login(LoginRequest request) {
+        return doLogin(request, false);
+    }
+
+    @Transactional(readOnly = true)
+    public LoginResult loginAdmin(LoginRequest request) {
+        return doLogin(request, true);
+    }
+
+    private LoginResult doLogin(LoginRequest request, boolean adminOnly) {
         String username = normalize(request.username());
         validateUsername(username);
 
@@ -81,9 +90,10 @@ public class AuthService {
         }
 
         UserRole role = user.getRole();
-        if (role != UserRole.ADMIN) {
+        if (adminOnly && role != UserRole.ADMIN) {
             throw new InvalidCredentialsException("当前系统仅支持系统管理员登录");
         }
+
         UserPrincipal principal = UserPrincipal.fromEntity(user);
         String token = jwtService.generateToken(principal);
         return new LoginResult(user.getId(), username, role, role.getDisplayName(), role.getRedirectPath(), token);

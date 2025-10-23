@@ -3,7 +3,7 @@
     <section class="login-card">
       <header class="login-header">
         <h1>Tsuki 校园招聘平台</h1>
-        <p>当前仅开放系统管理员登录入口</p>
+        <p>使用注册账号登录，系统会根据角色跳转到对应工作台</p>
       </header>
       <form class="login-form" @submit.prevent="handleSubmit">
         <label>
@@ -18,7 +18,9 @@
           {{ loading ? '正在登录…' : '登录' }}
         </button>
       </form>
-      <p class="note">企业与学生用户请通过前端门户提交资料，由管理员统一开通权限。</p>
+      <p class="note">
+        还没有账号？<RouterLink :to="{ name: 'register' }">立即注册</RouterLink>
+      </p>
       <p v-if="feedback.message" :class="['feedback', feedback.type]">
         {{ feedback.message }}
       </p>
@@ -28,18 +30,30 @@
 
 <script setup>
 import { reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute, RouterLink } from 'vue-router';
 import { post, setAuthInfo, clearAuthInfo } from '../api/http';
 
 const router = useRouter();
+const route = useRoute();
 const username = ref('');
 const password = ref('');
 const loading = ref(false);
 const feedback = reactive({ message: '', type: 'info' });
 
-const presetUsername = router.currentRoute.value.query.username;
-if (typeof presetUsername === 'string' && presetUsername) {
+const roleRoutes = {
+  ADMIN: { name: 'admin-dashboard' },
+  STUDENT: { name: 'student-dashboard' },
+  COMPANY: { name: 'company-dashboard' }
+};
+
+const presetUsername = typeof route.query.username === 'string' ? route.query.username : '';
+if (presetUsername) {
   username.value = presetUsername;
+}
+
+if (route.query.registered) {
+  feedback.message = '注册成功，请使用新账号登录';
+  feedback.type = 'success';
 }
 
 function showFeedback(message, type = 'info') {
@@ -63,20 +77,24 @@ async function handleSubmit() {
       username: data.username,
       role: data.role,
       roleDisplayName: data.roleDisplayName,
-      token: data.token
+      token: data.token,
+      redirectPath: data.redirectPath
     };
     setAuthInfo(payload);
-    if (data.role !== 'ADMIN') {
-      throw new Error('当前系统仅支持系统管理员登录');
-    }
-    showFeedback(`登录成功，欢迎管理员 ${data.username}`, 'success');
+    showFeedback(`登录成功，欢迎 ${data.roleDisplayName} ${data.username}`, 'success');
     setTimeout(() => {
-      const redirect = router.currentRoute.value.query.redirect;
-      if (typeof redirect === 'string' && redirect) {
+      const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '';
+      if (redirect) {
         router.replace(redirect);
-      } else {
-        router.push({ name: 'admin-dashboard' });
+        return;
       }
+      const target = roleRoutes[data.role];
+      if (!target) {
+        showFeedback('当前角色暂不支持登录，请联系管理员', 'error');
+        clearAuthInfo();
+        return;
+      }
+      router.push(target);
     }, 300);
   } catch (error) {
     console.error(error);
@@ -196,5 +214,15 @@ button.primary:not(:disabled):hover {
   text-align: center;
   font-size: 13px;
   color: #4b5563;
+}
+
+.note a {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.note a:hover {
+  text-decoration: underline;
 }
 </style>
