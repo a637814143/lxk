@@ -100,13 +100,16 @@ public class DashboardService {
 
         AdminResponse profile = adminService.findByUserId(userId).orElse(null);
 
+        List<UserResponse> users = userService.findAll();
         List<AdminResponse> admins = adminService.findAll();
         List<CompanyResponse> companies = companyService.findAll();
         List<StudentResponse> students = studentService.findAll();
         List<JobResponse> jobs = jobService.findAll();
+        List<ResumeResponse> resumes = resumeService.findAll();
         List<ApplicationResponse> applications = applicationService.findAll();
         List<MessageResponse> inboxMessages = messageService.findByReceiverId(userId);
         List<MessageResponse> sentMessages = messageService.findBySenderId(userId);
+        List<MessageResponse> allMessages = messageService.findAll();
 
         List<AnnouncementResponse> announcements = profile != null
                 ? announcementService.findByAdminId(profile.id())
@@ -118,15 +121,18 @@ public class DashboardService {
         return new AdminDashboardResponse(
                 user,
                 profile,
+                List.copyOf(users),
                 List.copyOf(admins),
                 List.copyOf(companies),
                 List.copyOf(students),
                 List.copyOf(jobs),
+                List.copyOf(resumes),
                 List.copyOf(applications),
                 List.copyOf(announcements),
                 List.copyOf(auditLogs),
                 List.copyOf(inboxMessages),
-                List.copyOf(sentMessages));
+                List.copyOf(sentMessages),
+                List.copyOf(allMessages));
     }
 
     private List<StudentResponse> resolveApplicants(List<ApplicationResponse> applications) {
