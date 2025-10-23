@@ -29,6 +29,20 @@ public class MessageService {
     }
 
     @Transactional(readOnly = true)
+    public List<MessageResponse> findByReceiverId(Long receiverId) {
+        return messageRepository.findByReceiver_Id(receiverId).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<MessageResponse> findBySenderId(Long senderId) {
+        return messageRepository.findBySenderId(senderId).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public MessageResponse findById(Long id) {
         return toResponse(getMessage(id));
     }

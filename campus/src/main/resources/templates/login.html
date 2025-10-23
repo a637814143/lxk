@@ -184,6 +184,14 @@
             }
 
             const data = await response.json();
+            const payload = {
+                userId: data.userId,
+                username: data.username,
+                role: data.role,
+                roleDisplayName: data.roleDisplayName,
+                redirectPath: data.redirectPath
+            };
+            sessionStorage.setItem('tsukiUser', JSON.stringify(payload));
             showMessage(`${data.message}，即将前往${data.roleDisplayName}页面...`, 'success');
             setTimeout(() => {
                 window.location.href = data.redirectPath;

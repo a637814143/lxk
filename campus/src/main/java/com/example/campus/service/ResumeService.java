@@ -29,6 +29,13 @@ public class ResumeService {
     }
 
     @Transactional(readOnly = true)
+    public List<ResumeResponse> findByStudentId(Long studentId) {
+        return resumeRepository.findByStudent_Id(studentId).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public ResumeResponse findById(Long id) {
         return toResponse(getResume(id));
     }

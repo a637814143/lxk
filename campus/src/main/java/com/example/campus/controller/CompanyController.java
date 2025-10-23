@@ -30,6 +30,13 @@ public class CompanyController {
         return companyService.findAll();
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<CompanyResponse> findByUser(@PathVariable Long userId) {
+        return companyService.findByUserId(userId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{id}")
     public CompanyResponse get(@PathVariable Long id) {
         return companyService.findById(id);

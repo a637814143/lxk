@@ -5,102 +5,811 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${title}">学生成长空间</title>
     <style>
+        :root {
+            color-scheme: light;
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
             background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
             color: #0f172a;
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.92);
-            width: min(720px, 94vw);
+            background: rgba(255, 255, 255, 0.96);
+            width: min(960px, 96vw);
             padding: 36px;
-            border-radius: 24px;
-            box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
-            display: grid;
-            gap: 20px;
+            border-radius: 26px;
+            box-shadow: 0 22px 48px rgba(15, 23, 42, 0.22);
+            display: flex;
+            flex-direction: column;
+            gap: 26px;
+        }
+
+        header {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         h1 {
             margin: 0;
-            font-size: clamp(26px, 4vw, 34px);
+            font-size: clamp(28px, 4vw, 36px);
             font-weight: 700;
         }
 
-        p {
+        .subtitle {
             margin: 0;
-            line-height: 1.6;
+            color: #475569;
             white-space: pre-line;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-            gap: 14px;
+        .section {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 20px 22px;
+            box-shadow: inset 0 0 0 1px rgba(248, 113, 113, 0.18);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        .tile {
-            border-radius: 16px;
-            background: rgba(254, 215, 170, 0.35);
-            padding: 16px;
-            box-shadow: inset 0 0 0 1px rgba(251, 146, 60, 0.25);
-        }
-
-        .tile h2 {
-            margin: 0 0 10px;
-            font-size: 16px;
+        .section h2 {
+            margin: 0;
+            font-size: 20px;
             color: #c2410c;
         }
 
-        .tile p {
-            margin: 0;
-            font-size: 14px;
-            color: #92400e;
-            line-height: 1.5;
-            white-space: normal;
+        form {
+            display: grid;
+            gap: 12px;
         }
 
-        a.button {
+        .grid-two {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        label {
+            display: flex;
+            flex-direction: column;
+            font-size: 14px;
+            color: #475569;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        input, select, textarea {
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #f8b4b4;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 40px;
+        }
+
+        textarea {
+            min-height: 80px;
+        }
+
+        button {
             justify-self: flex-start;
             padding: 10px 18px;
             border-radius: 999px;
-            background: #ea580c;
-            color: #ffffff;
-            text-decoration: none;
+            border: none;
+            background: linear-gradient(135deg, #fb923c, #f97316);
+            color: #fff;
             font-weight: 600;
+            cursor: pointer;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
 
-        a.button:hover {
+        button:hover {
             transform: translateY(-1px);
-            box-shadow: 0 8px 24px rgba(234, 88, 12, 0.35);
+            box-shadow: 0 10px 24px rgba(234, 88, 12, 0.35);
+        }
+
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .item {
+            border-radius: 16px;
+            background: rgba(254, 243, 199, 0.65);
+            padding: 14px;
+            display: grid;
+            gap: 8px;
+            box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.35);
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: rgba(234, 88, 12, 0.12);
+            color: #9a3412;
+        }
+
+        .empty {
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .toolbar select, .toolbar input {
+            flex: 1;
+        }
+
+        #toast {
+            display: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(34, 197, 94, 0.15);
+            color: #166534;
+            font-size: 14px;
+        }
+
+        #toast.error {
+            background: rgba(248, 113, 113, 0.15);
+            color: #991b1b;
+        }
+
+        a.button-link {
+            align-self: flex-start;
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 999px;
+            background: #ea580c;
+            color: #fff;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
 <div class="card">
-    <h1 th:text="${title}">学生成长空间</h1>
-    <p th:text="${description}">欢迎来到校园招聘系统，可以浏览岗位、完善简历并追踪申请进度。\n如需退出，请返回登录页。</p>
-    <div class="grid">
-        <div class="tile">
-            <h2>岗位广场</h2>
-            <p>浏览企业发布的最新校招岗位，按兴趣或专业快速筛选。</p>
+    <header>
+        <h1 th:text="${title}">学生成长空间</h1>
+        <p class="subtitle" th:text="${description}">欢迎来到校园招聘系统，可以浏览岗位、完善简历并追踪申请进度。\n如需退出，请返回登录页。</p>
+        <div id="toast"></div>
+    </header>
+
+    <section class="section" id="profile-section">
+        <h2>个人档案</h2>
+        <form id="profile-form">
+            <div class="grid-two">
+                <label>姓名
+                    <input id="profile-name" type="text" required placeholder="真实姓名">
+                </label>
+                <label>性别
+                    <select id="profile-gender">
+                        <option value="">请选择</option>
+                        <option value="男">男</option>
+                        <option value="女">女</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </label>
+                <label>学校
+                    <input id="profile-school" type="text" placeholder="学校名称">
+                </label>
+                <label>专业
+                    <input id="profile-major" type="text" placeholder="专业">
+                </label>
+                <label>年级
+                    <input id="profile-grade" type="text" placeholder="年级">
+                </label>
+                <label>学历
+                    <input id="profile-education" type="text" placeholder="如 本科 / 研究生">
+                </label>
+            </div>
+            <label>头像链接
+                <input id="profile-avatar" type="text" placeholder="头像图片URL，可为空">
+            </label>
+            <button type="submit">保存档案</button>
+        </form>
+        <p class="empty" id="profile-hint">完善档案后即可创建简历并投递岗位。</p>
+    </section>
+
+    <section class="section">
+        <h2>我的简历</h2>
+        <form id="resume-form">
+            <div class="grid-two">
+                <label>标题
+                    <input id="resume-title" type="text" required placeholder="例如：产品实习生简历">
+                </label>
+                <label>技能特长
+                    <input id="resume-skills" type="text" placeholder="技能标签，用逗号分隔">
+                </label>
+            </div>
+            <label>教育经历
+                <textarea id="resume-education" placeholder="教育背景"></textarea>
+            </label>
+            <label>实习 / 工作经历
+                <textarea id="resume-work" placeholder="经历描述"></textarea>
+            </label>
+            <label>自我评价
+                <textarea id="resume-self" placeholder="突出亮点"></textarea>
+            </label>
+            <label>附件链接
+                <input id="resume-attachment" type="text" placeholder="可上传在网盘的PDF链接">
+            </label>
+            <button type="submit">保存简历</button>
+        </form>
+        <div class="list" id="resume-list"></div>
+    </section>
+
+    <section class="section">
+        <h2>岗位广场</h2>
+        <div class="toolbar">
+            <label style="flex:1">选择用于快速投递的简历
+                <select id="quick-resume-select">
+                    <option value="">请先创建简历</option>
+                </select>
+            </label>
         </div>
-        <div class="tile">
-            <h2>简历助手</h2>
-            <p>完善个人档案，管理多份简历模板，实时查看完善度。</p>
-        </div>
-        <div class="tile">
-            <h2>申请追踪</h2>
-            <p>随时掌握投递状态，与企业沟通面试安排。</p>
-        </div>
-    </div>
-    <a class="button" href="/login">返回登录</a>
+        <div class="list" id="job-list"></div>
+    </section>
+
+    <section class="section">
+        <h2>投递记录</h2>
+        <form id="application-form" class="grid-two">
+            <label>职位ID
+                <input id="application-job" type="number" min="1" required placeholder="填写想投递的职位ID">
+            </label>
+            <label>使用的简历
+                <select id="application-resume" required>
+                    <option value="">请选择简历</option>
+                </select>
+            </label>
+            <button type="submit">提交申请</button>
+        </form>
+        <div class="list" id="application-list"></div>
+    </section>
+
+    <section class="section">
+        <h2>消息通知</h2>
+        <div class="list" id="message-list"></div>
+    </section>
+
+    <a class="button-link" href="/login" id="back-link">返回登录</a>
 </div>
+
+<script>
+    const userInfo = (() => {
+        const raw = sessionStorage.getItem('tsukiUser');
+        if (!raw) {
+            return null;
+        }
+        try {
+            return JSON.parse(raw);
+        } catch (e) {
+            return null;
+        }
+    })();
+
+    const toast = document.getElementById('toast');
+    const profileHint = document.getElementById('profile-hint');
+    const profileForm = document.getElementById('profile-form');
+    const resumeForm = document.getElementById('resume-form');
+    const applicationForm = document.getElementById('application-form');
+
+    const profileNameInput = document.getElementById('profile-name');
+    const profileGenderSelect = document.getElementById('profile-gender');
+    const profileSchoolInput = document.getElementById('profile-school');
+    const profileMajorInput = document.getElementById('profile-major');
+    const profileGradeInput = document.getElementById('profile-grade');
+    const profileEducationInput = document.getElementById('profile-education');
+    const profileAvatarInput = document.getElementById('profile-avatar');
+
+    const resumeTitleInput = document.getElementById('resume-title');
+    const resumeSkillsInput = document.getElementById('resume-skills');
+    const resumeEducationInput = document.getElementById('resume-education');
+    const resumeWorkInput = document.getElementById('resume-work');
+    const resumeSelfInput = document.getElementById('resume-self');
+    const resumeAttachmentInput = document.getElementById('resume-attachment');
+
+    const applicationJobInput = document.getElementById('application-job');
+
+    const resumeList = document.getElementById('resume-list');
+    const jobList = document.getElementById('job-list');
+    const applicationList = document.getElementById('application-list');
+    const messageList = document.getElementById('message-list');
+    const resumeSelect = document.getElementById('application-resume');
+    const quickResumeSelect = document.getElementById('quick-resume-select');
+
+    const APPLICATION_STATUSES = ['待查看', '已查看', '面试中', '录用', '拒绝'];
+
+    const state = {
+        student: null,
+        resumes: [],
+        applications: [],
+        jobs: [],
+        messages: []
+    };
+
+    if (!userInfo || userInfo.role !== 'STUDENT') {
+        sessionStorage.removeItem('tsukiUser');
+        window.location.replace('/login');
+    } else {
+        initialize();
+    }
+
+    function showToast(message, isError = false) {
+        toast.textContent = message;
+        toast.className = isError ? 'error' : '';
+        toast.style.display = 'block';
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => toast.style.display = 'none', 3200);
+    }
+
+    async function initialize() {
+        try {
+            await loadSnapshot();
+            attachHandlers();
+        } catch (error) {
+            showToast(error.message || '初始化失败，请稍后重试', true);
+        }
+    }
+
+    async function loadSnapshot() {
+        const snapshot = await api(`/api/dashboard/student/${userInfo.userId}`);
+        state.student = snapshot.profile ?? null;
+        state.resumes = Array.isArray(snapshot.resumes) ? snapshot.resumes : [];
+        state.applications = Array.isArray(snapshot.applications) ? snapshot.applications : [];
+        state.jobs = Array.isArray(snapshot.jobs) ? snapshot.jobs : [];
+        state.messages = Array.isArray(snapshot.messages) ? snapshot.messages : [];
+
+        if (state.student) {
+            populateProfile(state.student);
+            profileHint.textContent = '档案已完善，可继续管理简历和投递记录。';
+        } else {
+            profileForm.reset();
+            profileHint.textContent = '请先完善个人档案信息。';
+        }
+
+        renderResumes();
+        renderApplications();
+        renderJobs();
+        renderMessages();
+    }
+
+    function attachHandlers() {
+        profileForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const payload = collectProfilePayload();
+            if (!payload) {
+                return;
+            }
+            try {
+                if (state.student) {
+                    await api(`/api/students/${state.student.id}`, 'PUT', payload);
+                } else {
+                    await api('/api/students', 'POST', { ...payload, userId: userInfo.userId });
+                }
+                showToast('档案信息已保存');
+                await loadProfile();
+            } catch (error) {
+                showToast(error.message, true);
+            }
+        });
+
+        resumeForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!state.student) {
+                showToast('请先完善个人档案', true);
+                return;
+            }
+            const payload = collectResumePayload();
+            if (!payload) {
+                return;
+            }
+            const resumeId = resumeForm.dataset.editingId;
+            try {
+                if (resumeId) {
+                    await api(`/api/resumes/${resumeId}`, 'PUT', payload);
+                    showToast('简历已更新');
+                } else {
+                    await api('/api/resumes', 'POST', { ...payload, studentId: state.student.id });
+                    showToast('简历创建成功');
+                }
+                resumeForm.reset();
+                delete resumeForm.dataset.editingId;
+                await loadResumes();
+            } catch (error) {
+                showToast(error.message, true);
+            }
+        });
+
+        applicationForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!state.student) {
+                showToast('请先完善个人档案', true);
+                return;
+            }
+            if (!state.resumes.length) {
+                showToast('请先创建至少一份简历', true);
+                return;
+            }
+            const resumeId = Number(resumeSelect.value);
+            const jobId = Number(applicationJobInput.value);
+            if (!resumeId || !jobId) {
+                showToast('请选择简历并填写职位ID', true);
+                return;
+            }
+            const job = state.jobs.find((item) => item.id === jobId);
+            if (!job) {
+                showToast('未找到对应的职位，请在岗位广场确认ID', true);
+                return;
+            }
+            const payload = {
+                studentId: state.student.id,
+                resumeId,
+                jobId,
+                companyId: job.companyId,
+                status: '待查看'
+            };
+            try {
+                await api('/api/applications', 'POST', payload);
+                showToast('投递成功，祝你好运！');
+                applicationForm.reset();
+                resumeSelect.value = '';
+                quickResumeSelect.value = '';
+                await loadApplications();
+            } catch (error) {
+                showToast(error.message, true);
+            }
+        });
+
+        quickResumeSelect.addEventListener('change', () => {
+            resumeSelect.value = quickResumeSelect.value;
+            applicationJobInput.focus();
+        });
+    }
+
+    function collectProfilePayload() {
+        const name = profileNameInput.value.trim();
+        if (!name) {
+            showToast('姓名不能为空', true);
+            return null;
+        }
+        return {
+            name,
+            gender: profileGenderSelect.value || null,
+            school: blankToNull(profileSchoolInput.value),
+            major: blankToNull(profileMajorInput.value),
+            grade: blankToNull(profileGradeInput.value),
+            education: blankToNull(profileEducationInput.value),
+            avatar: blankToNull(profileAvatarInput.value)
+        };
+    }
+
+    function collectResumePayload() {
+        const title = resumeTitleInput.value.trim();
+        if (!title) {
+            showToast('请填写简历标题', true);
+            return null;
+        }
+        return {
+            title,
+            educationExperience: blankToNull(resumeEducationInput.value),
+            workExperience: blankToNull(resumeWorkInput.value),
+            skills: blankToNull(resumeSkillsInput.value),
+            selfEvaluation: blankToNull(resumeSelfInput.value),
+            attachment: blankToNull(resumeAttachmentInput.value)
+        };
+    }
+
+    function blankToNull(value) {
+        return value && value.trim() ? value.trim() : null;
+    }
+
+    async function loadProfile() {
+        try {
+            const profile = await api(`/api/students/user/${userInfo.userId}`);
+            state.student = profile;
+            populateProfile(profile);
+            profileHint.textContent = '档案已完善，可继续管理简历和投递记录。';
+            await Promise.all([
+                loadResumes(),
+                loadApplications()
+            ]);
+        } catch (error) {
+            if (error.status === 404) {
+                state.student = null;
+                profileForm.reset();
+                state.resumes = [];
+                state.applications = [];
+                renderResumes();
+                renderApplications();
+            } else {
+                showToast(error.message, true);
+            }
+        }
+    }
+
+    async function loadResumes() {
+        if (!state.student) {
+            state.resumes = [];
+            renderResumes();
+            return;
+        }
+        state.resumes = await api(`/api/resumes/student/${state.student.id}`);
+        renderResumes();
+    }
+
+    async function loadApplications() {
+        if (!state.student) {
+            state.applications = [];
+            renderApplications();
+            return;
+        }
+        state.applications = await api(`/api/applications/student/${state.student.id}`);
+        renderApplications();
+    }
+
+    async function loadJobs() {
+        state.jobs = await api('/api/jobs');
+        renderJobs();
+    }
+
+    async function loadMessages() {
+        state.messages = await api(`/api/messages/receiver/${userInfo.userId}`);
+        renderMessages();
+    }
+
+    function populateProfile(profile) {
+        profileNameInput.value = profile.name ?? '';
+        profileGenderSelect.value = profile.gender ?? '';
+        profileSchoolInput.value = profile.school ?? '';
+        profileMajorInput.value = profile.major ?? '';
+        profileGradeInput.value = profile.grade ?? '';
+        profileEducationInput.value = profile.education ?? '';
+        profileAvatarInput.value = profile.avatar ?? '';
+    }
+
+    function renderResumes() {
+        resumeList.innerHTML = '';
+        resumeSelect.innerHTML = '<option value="">请选择简历</option>';
+        quickResumeSelect.innerHTML = '<option value="">请选择简历</option>';
+
+        if (!state.resumes.length) {
+            resumeList.innerHTML = '<p class="empty">暂未创建简历</p>';
+            return;
+        }
+
+        state.resumes.forEach((resume) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'item';
+            wrapper.innerHTML = `
+                <div><strong>${resume.title}</strong></div>
+                <div>技能：${resume.skills ?? '未填写'}</div>
+                <div>教育经历：${resume.educationExperience ?? '未填写'}</div>
+                <div>工作经历：${resume.workExperience ?? '未填写'}</div>
+                <div>自我评价：${resume.selfEvaluation ?? '未填写'}</div>
+                ${resume.attachment ? `<a href="${resume.attachment}" target="_blank">查看附件</a>` : ''}
+            `;
+            const actions = document.createElement('div');
+            actions.className = 'item-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.textContent = '编辑';
+            editBtn.addEventListener('click', () => {
+                resumeTitleInput.value = resume.title ?? '';
+                resumeSkillsInput.value = resume.skills ?? '';
+                resumeEducationInput.value = resume.educationExperience ?? '';
+                resumeWorkInput.value = resume.workExperience ?? '';
+                resumeSelfInput.value = resume.selfEvaluation ?? '';
+                resumeAttachmentInput.value = resume.attachment ?? '';
+                resumeForm.dataset.editingId = resume.id;
+                showToast(`已加载“${resume.title}”进行编辑`);
+            });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.textContent = '删除';
+            deleteBtn.addEventListener('click', async () => {
+                if (!confirm('确定删除该简历吗？')) {
+                    return;
+                }
+                try {
+                    await api(`/api/resumes/${resume.id}`, 'DELETE');
+                    showToast('简历已删除');
+                    await loadResumes();
+                } catch (error) {
+                    showToast(error.message, true);
+                }
+            });
+
+            actions.append(editBtn, deleteBtn);
+            wrapper.append(actions);
+            resumeList.append(wrapper);
+
+            const option = new Option(resume.title, resume.id);
+            resumeSelect.add(option.cloneNode(true));
+            quickResumeSelect.add(option);
+        });
+    }
+
+    function renderJobs() {
+        jobList.innerHTML = '';
+        if (!state.jobs.length) {
+            jobList.innerHTML = '<p class="empty">暂无岗位信息</p>';
+            return;
+        }
+        state.jobs.forEach((job) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'item';
+            wrapper.innerHTML = `
+                <div class="pill">职位ID：${job.id}</div>
+                <div><strong>${job.jobTitle}</strong>（${job.location ?? '地点待定'}）</div>
+                <div>类型：${job.jobType ?? '不限'} · 薪资：${job.salaryRange ?? '面议'}</div>
+                <div>要求：${job.requirement ?? '暂无'}</div>
+                <div>描述：${job.description ?? '暂无'}</div>
+                <div>状态：${job.status}</div>
+            `;
+            const actions = document.createElement('div');
+            actions.className = 'item-actions';
+            const applyBtn = document.createElement('button');
+            applyBtn.type = 'button';
+            applyBtn.textContent = '快速投递';
+            applyBtn.addEventListener('click', async () => {
+                if (!state.student) {
+                    showToast('请先完善个人档案', true);
+                    return;
+                }
+                const resumeId = Number(quickResumeSelect.value);
+                if (!resumeId) {
+                    showToast('请选择需要投递的简历', true);
+                    return;
+                }
+                const payload = {
+                    studentId: state.student.id,
+                    resumeId,
+                    jobId: job.id,
+                    companyId: job.companyId,
+                    status: '待查看'
+                };
+                try {
+                    await api('/api/applications', 'POST', payload);
+                    showToast('已向企业投递该岗位');
+                    await loadApplications();
+                } catch (error) {
+                    showToast(error.message, true);
+                }
+            });
+            actions.append(applyBtn);
+            wrapper.append(actions);
+            jobList.append(wrapper);
+        });
+    }
+
+    function renderApplications() {
+        applicationList.innerHTML = '';
+        if (!state.applications.length) {
+            applicationList.innerHTML = '<p class="empty">暂未有投递记录</p>';
+            return;
+        }
+        state.applications.forEach((application) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'item';
+            wrapper.innerHTML = `
+                <div><strong>申请ID：${application.id}</strong> · 职位ID：${application.jobId}</div>
+                <div>使用简历：${application.resumeId} · 企业ID：${application.companyId}</div>
+                <div>投递时间：${formatDate(application.applyTime)}</div>
+            `;
+            const actions = document.createElement('div');
+            actions.className = 'item-actions';
+
+            const select = document.createElement('select');
+            APPLICATION_STATUSES.forEach((status) => {
+                select.add(new Option(status, status, false, status === application.status));
+            });
+
+            const updateBtn = document.createElement('button');
+            updateBtn.type = 'button';
+            updateBtn.textContent = '更新状态';
+            updateBtn.addEventListener('click', async () => {
+                try {
+                    await api(`/api/applications/${application.id}`, 'PUT', { status: select.value });
+                    showToast('申请状态已更新');
+                    await loadApplications();
+                } catch (error) {
+                    showToast(error.message, true);
+                }
+            });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.textContent = '撤回申请';
+            deleteBtn.addEventListener('click', async () => {
+                if (!confirm('确定撤回这条申请吗？')) {
+                    return;
+                }
+                try {
+                    await api(`/api/applications/${application.id}`, 'DELETE');
+                    showToast('申请已撤回');
+                    await loadApplications();
+                } catch (error) {
+                    showToast(error.message, true);
+                }
+            });
+
+            actions.append(select, updateBtn, deleteBtn);
+            wrapper.append(actions);
+            applicationList.append(wrapper);
+        });
+    }
+
+    function renderMessages() {
+        messageList.innerHTML = '';
+        if (!state.messages.length) {
+            messageList.innerHTML = '<p class="empty">暂无消息</p>';
+            return;
+        }
+        state.messages.forEach((message) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'item';
+            wrapper.innerHTML = `
+                <div><strong>${message.title}</strong></div>
+                <div>${message.content}</div>
+                <div class="pill">${message.isRead ? '已读' : '未读'} · ${formatDate(message.sendTime)}</div>
+            `;
+            messageList.append(wrapper);
+        });
+    }
+
+    async function api(url, method = 'GET', body) {
+        const options = { method, headers: {} };
+        if (body !== undefined) {
+            options.headers['Content-Type'] = 'application/json';
+            options.body = JSON.stringify(body);
+        }
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            const error = new Error(payload.message || '请求失败');
+            error.status = response.status;
+            throw error;
+        }
+        if (response.status === 204) {
+            return null;
+        }
+        return response.json();
+    }
+
+    function formatDate(value) {
+        if (!value) {
+            return '未知时间';
+        }
+        try {
+            return new Date(value).toLocaleString();
+        } catch (e) {
+            return value;
+        }
+    }
+</script>
 </body>
 </html>

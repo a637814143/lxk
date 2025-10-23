@@ -30,6 +30,11 @@ public class AnnouncementController {
         return announcementService.findAll();
     }
 
+    @GetMapping("/admin/{adminId}")
+    public List<AnnouncementResponse> findByAdmin(@PathVariable Long adminId) {
+        return announcementService.findByAdminId(adminId);
+    }
+
     @GetMapping("/{id}")
     public AnnouncementResponse get(@PathVariable Long id) {
         return announcementService.findById(id);

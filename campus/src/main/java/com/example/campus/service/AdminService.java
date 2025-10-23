@@ -10,6 +10,7 @@ import com.example.campus.exception.ResourceNotFoundException;
 import com.example.campus.repository.TsukiAdminRepository;
 import com.example.campus.repository.TsukiUserRepository;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,12 @@ public class AdminService {
         return adminRepository.findAll().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<AdminResponse> findByUserId(Long userId) {
+        return adminRepository.findByUser_Id(userId)
+                .map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

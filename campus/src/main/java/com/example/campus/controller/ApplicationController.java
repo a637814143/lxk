@@ -30,6 +30,16 @@ public class ApplicationController {
         return applicationService.findAll();
     }
 
+    @GetMapping("/student/{studentId}")
+    public List<ApplicationResponse> findByStudent(@PathVariable Long studentId) {
+        return applicationService.findByStudentId(studentId);
+    }
+
+    @GetMapping("/company/{companyId}")
+    public List<ApplicationResponse> findByCompany(@PathVariable Long companyId) {
+        return applicationService.findByCompanyId(companyId);
+    }
+
     @GetMapping("/{id}")
     public ApplicationResponse get(@PathVariable Long id) {
         return applicationService.findById(id);

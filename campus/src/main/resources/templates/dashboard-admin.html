@@ -5,75 +5,687 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title th:text="${title}">系统管理员控制台</title>
     <style>
+        :root {
+            color-scheme: light;
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+
         body {
             margin: 0;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-            background: radial-gradient(circle at top, #80d0c7 0%, #0093e9 100%);
+            background: linear-gradient(135deg, #ffe29f 0%, #ffa99f 48%, #ff719a 100%);
             color: #0f172a;
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(6px);
-            width: min(720px, 94vw);
+            background: rgba(255, 255, 255, 0.97);
+            width: min(1040px, 96vw);
             padding: 40px;
-            border-radius: 24px;
-            box-shadow: 0 18px 48px rgba(15, 23, 42, 0.25);
+            border-radius: 30px;
+            box-shadow: 0 26px 52px rgba(15, 23, 42, 0.28);
             display: flex;
             flex-direction: column;
-            gap: 22px;
+            gap: 30px;
+        }
+
+        header {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         h1 {
             margin: 0;
-            font-size: clamp(26px, 4vw, 34px);
+            font-size: clamp(30px, 4vw, 38px);
             font-weight: 700;
         }
 
-        p {
+        .subtitle {
             margin: 0;
-            line-height: 1.6;
+            color: #475569;
             white-space: pre-line;
         }
 
-        ul {
-            margin: 12px 0 0;
-            padding-left: 20px;
-            color: #1f2937;
+        .section {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 22px;
+            padding: 24px 26px;
+            box-shadow: inset 0 0 0 1px rgba(236, 72, 153, 0.18);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        a.button {
-            align-self: flex-start;
-            padding: 10px 18px;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.85);
-            color: #ffffff;
-            text-decoration: none;
+        .section h2 {
+            margin: 0;
+            font-size: 20px;
+            color: #be123c;
+        }
+
+        form {
+            display: grid;
+            gap: 12px;
+        }
+
+        .grid-two {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        label {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 14px;
+            color: #475569;
             font-weight: 600;
+        }
+
+        input, select, textarea {
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(236, 72, 153, 0.35);
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        textarea {
+            min-height: 80px;
+        }
+
+        button {
+            justify-self: flex-start;
+            padding: 10px 20px;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(135deg, #f43f5e, #be123c);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
 
-        a.button:hover {
+        button:hover {
             transform: translateY(-1px);
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.35);
+            box-shadow: 0 12px 28px rgba(244, 63, 94, 0.35);
+        }
+
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .item {
+            border-radius: 18px;
+            background: rgba(254, 215, 215, 0.65);
+            padding: 16px;
+            display: grid;
+            gap: 8px;
+            box-shadow: inset 0 0 0 1px rgba(244, 114, 182, 0.35);
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: rgba(244, 63, 94, 0.15);
+            color: #be123c;
+        }
+
+        .empty {
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        #toast {
+            display: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: rgba(244, 63, 94, 0.15);
+            color: #be123c;
+            font-size: 14px;
+        }
+
+        #toast.error {
+            background: rgba(248, 113, 113, 0.2);
+            color: #991b1b;
+        }
+
+        a.button-link {
+            align-self: flex-start;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 999px;
+            background: #be123c;
+            color: #fff;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
 <div class="card">
-    <h1 th:text="${title}">系统管理员控制台</h1>
-    <p th:text="${description}">在这里可以管理平台的核心数据和用户。\n如需返回登录，请点击页面底部的链接。</p>
-    <ul>
-        <li>维护校园基础数据：院系、专业、班级等</li>
-        <li>审核企业入驻申请，维护企业信息</li>
-        <li>管理系统用户与权限，保障平台安全</li>
-        <li>查看整体数据统计和运营报表</li>
-    </ul>
-    <a class="button" href="/login">返回登录</a>
+    <header>
+        <h1 th:text="${title}">系统管理员控制台</h1>
+        <p class="subtitle" th:text="${description}">这里可以管理平台的核心数据和用户。\n如需返回登录，请点击页面底部的链接。</p>
+        <div id="toast"></div>
+    </header>
+
+    <section class="section">
+        <h2>管理员资料</h2>
+        <form id="admin-form">
+            <div class="grid-two">
+                <label>姓名
+                    <input id="admin-name" type="text" required placeholder="管理员姓名">
+                </label>
+                <label>权限等级
+                    <select id="admin-level">
+                        <option value="1">普通管理员</option>
+                        <option value="2">超级管理员</option>
+                    </select>
+                </label>
+            </div>
+            <button type="submit">保存管理员资料</button>
+        </form>
+        <p class="empty" id="admin-hint">完善资料后可发布公告和记录审核操作。</p>
+    </section>
+
+    <section class="section">
+        <h2>公告管理</h2>
+        <form id="announcement-form">
+            <div class="grid-two">
+                <label>公告标题
+                    <input id="announcement-title" type="text" required placeholder="面向全体 / 学生 / 企业的公告">
+                </label>
+                <label>发布对象
+                    <select id="announcement-target">
+                        <option value="all">全部用户</option>
+                        <option value="student">学生</option>
+                        <option value="company">企业</option>
+                    </select>
+                </label>
+            </div>
+            <label>公告内容
+                <textarea id="announcement-content" required placeholder="输入公告正文"></textarea>
+            </label>
+            <button type="submit">保存公告</button>
+        </form>
+        <div class="list" id="announcement-list"></div>
+    </section>
+
+    <section class="section">
+        <h2>企业审核</h2>
+        <div class="list" id="company-list"></div>
+    </section>
+
+    <section class="section">
+        <h2>操作日志</h2>
+        <form id="audit-form">
+            <div class="grid-two">
+                <label>操作动作
+                    <input id="audit-action" type="text" required placeholder="例如：审核企业">
+                </label>
+                <label>目标类型
+                    <input id="audit-target-type" type="text" required placeholder="企业 / 职位 / 用户">
+                </label>
+            </div>
+            <div class="grid-two">
+                <label>目标ID
+                    <input id="audit-target-id" type="number" min="1" placeholder="填写目标ID">
+                </label>
+                <label>操作结果
+                    <input id="audit-result" type="text" placeholder="备注操作结果">
+                </label>
+            </div>
+            <button type="submit">记录日志</button>
+        </form>
+        <div class="list" id="audit-list"></div>
+    </section>
+
+    <a class="button-link" href="/login">返回登录</a>
 </div>
+
+<script>
+    const sessionUser = (() => {
+        const raw = sessionStorage.getItem('tsukiUser');
+        if (!raw) {
+            return null;
+        }
+        try {
+            return JSON.parse(raw);
+        } catch (e) {
+            return null;
+        }
+    })();
+
+    if (!sessionUser || sessionUser.role !== 'ADMIN') {
+        sessionStorage.removeItem('tsukiUser');
+        window.location.replace('/login');
+    }
+
+    const toast = document.getElementById('toast');
+    const adminForm = document.getElementById('admin-form');
+    const announcementForm = document.getElementById('announcement-form');
+    const auditForm = document.getElementById('audit-form');
+
+    const adminNameInput = document.getElementById('admin-name');
+    const adminLevelSelect = document.getElementById('admin-level');
+
+    const announcementTitleInput = document.getElementById('announcement-title');
+    const announcementTargetSelect = document.getElementById('announcement-target');
+    const announcementContentInput = document.getElementById('announcement-content');
+
+    const auditActionInput = document.getElementById('audit-action');
+    const auditTargetTypeInput = document.getElementById('audit-target-type');
+    const auditTargetIdInput = document.getElementById('audit-target-id');
+    const auditResultInput = document.getElementById('audit-result');
+    const adminHint = document.getElementById('admin-hint');
+    const announcementList = document.getElementById('announcement-list');
+    const companyList = document.getElementById('company-list');
+    const auditList = document.getElementById('audit-list');
+
+    const state = {
+        admin: null,
+        announcements: [],
+        companies: [],
+        audits: [],
+        students: [],
+        jobs: [],
+        applications: [],
+        messages: [],
+        sentMessages: [],
+        admins: []
+    };
+
+    initialize();
+
+    function showToast(message, isError = false) {
+        toast.textContent = message;
+        toast.className = isError ? 'error' : '';
+        toast.style.display = 'block';
+        clearTimeout(showToast.timer);
+        showToast.timer = setTimeout(() => toast.style.display = 'none', 3200);
+    }
+
+    async function initialize() {
+        try {
+            await loadSnapshot();
+            attachHandlers();
+        } catch (error) {
+            showToast(error.message || '初始化失败，请稍后重试', true);
+        }
+    }
+
+    async function loadSnapshot() {
+        const snapshot = await api(`/api/dashboard/admin/${sessionUser.userId}`);
+        state.admin = snapshot.profile ?? null;
+        state.announcements = Array.isArray(snapshot.announcements) ? snapshot.announcements : [];
+        state.companies = Array.isArray(snapshot.companies) ? snapshot.companies : [];
+        state.audits = Array.isArray(snapshot.auditLogs) ? snapshot.auditLogs : [];
+        state.students = Array.isArray(snapshot.students) ? snapshot.students : [];
+        state.jobs = Array.isArray(snapshot.jobs) ? snapshot.jobs : [];
+        state.applications = Array.isArray(snapshot.applications) ? snapshot.applications : [];
+        state.messages = Array.isArray(snapshot.inboxMessages) ? snapshot.inboxMessages : [];
+        state.sentMessages = Array.isArray(snapshot.sentMessages) ? snapshot.sentMessages : [];
+        state.admins = Array.isArray(snapshot.admins) ? snapshot.admins : [];
+
+        if (state.admin) {
+            populateAdmin(state.admin);
+            adminHint.textContent = buildAdminSummary();
+        } else {
+            adminForm.reset();
+            adminHint.textContent = '完善资料后可发布公告和记录审核操作。';
+        }
+
+        renderAnnouncements();
+        renderCompanies();
+        renderAudits();
+    }
+
+    function attachHandlers() {
+        adminForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const payload = collectAdminPayload();
+            if (!payload) {
+                return;
+            }
+            try {
+                if (state.admin) {
+                    await api(`/api/admins/${state.admin.id}`, 'PUT', payload);
+                } else {
+                    await api('/api/admins', 'POST', { ...payload, userId: sessionUser.userId });
+                }
+                showToast('管理员资料已保存');
+                await loadAdmin();
+            } catch (error) {
+                showToast(error.message, true);
+            }
+        });
+
+        announcementForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!state.admin) {
+                showToast('请先完善管理员资料', true);
+                return;
+            }
+            const payload = collectAnnouncementPayload();
+            if (!payload) {
+                return;
+            }
+            const announcementId = announcementForm.dataset.editingId;
+            try {
+                if (announcementId) {
+                    await api(`/api/announcements/${announcementId}`, 'PUT', payload);
+                    showToast('公告已更新');
+                } else {
+                    await api('/api/announcements', 'POST', { ...payload, adminId: state.admin.id });
+                    showToast('公告已发布');
+                }
+                announcementForm.reset();
+                delete announcementForm.dataset.editingId;
+                await loadAnnouncements();
+            } catch (error) {
+                showToast(error.message, true);
+            }
+        });
+
+        auditForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            if (!state.admin) {
+                showToast('请先完善管理员资料', true);
+                return;
+            }
+            const payload = collectAuditPayload();
+            if (!payload) {
+                return;
+            }
+            try {
+                await api('/api/audit-logs', 'POST', { ...payload, adminId: state.admin.id });
+                showToast('已记录操作日志');
+                auditForm.reset();
+                await loadAudits();
+            } catch (error) {
+                showToast(error.message, true);
+            }
+        });
+    }
+
+    function collectAdminPayload() {
+        const name = adminNameInput.value.trim();
+        if (!name) {
+            showToast('姓名不能为空', true);
+            return null;
+        }
+        return {
+            name,
+            level: Number(adminLevelSelect.value) || 1
+        };
+    }
+
+    function collectAnnouncementPayload() {
+        const title = announcementTitleInput.value.trim();
+        const content = announcementContentInput.value.trim();
+        if (!title || !content) {
+            showToast('公告标题和内容不能为空', true);
+            return null;
+        }
+        return {
+            title,
+            content,
+            target: announcementTargetSelect.value
+        };
+    }
+
+    function collectAuditPayload() {
+        const action = auditActionInput.value.trim();
+        const targetType = auditTargetTypeInput.value.trim();
+        if (!action || !targetType) {
+            showToast('操作动作和目标类型不能为空', true);
+            return null;
+        }
+        return {
+            action,
+            targetType,
+            targetId: auditTargetIdInput.value ? Number(auditTargetIdInput.value) : null,
+            result: auditResultInput.value.trim() || null
+        };
+    }
+
+    async function loadAdmin() {
+        try {
+            const admin = await api(`/api/admins/user/${sessionUser.userId}`);
+            state.admin = admin;
+            populateAdmin(admin);
+            adminHint.textContent = buildAdminSummary();
+        } catch (error) {
+            if (error.status === 404) {
+                state.admin = null;
+                adminForm.reset();
+                adminHint.textContent = '完善资料后可发布公告和记录审核操作。';
+            } else {
+                showToast(error.message, true);
+            }
+        }
+    }
+
+    async function loadAnnouncements() {
+        if (!state.admin) {
+            state.announcements = [];
+            renderAnnouncements();
+            return;
+        }
+        state.announcements = await api(`/api/announcements/admin/${state.admin.id}`);
+        renderAnnouncements();
+    }
+
+    async function loadCompanies() {
+        state.companies = await api('/api/companies');
+        renderCompanies();
+        if (state.admin) {
+            adminHint.textContent = buildAdminSummary();
+        }
+    }
+
+    async function loadAudits() {
+        if (!state.admin) {
+            state.audits = [];
+            renderAudits();
+            return;
+        }
+        state.audits = await api(`/api/audit-logs/admin/${state.admin.id}`);
+        renderAudits();
+    }
+
+    function populateAdmin(admin) {
+        adminNameInput.value = admin.name ?? '';
+        adminLevelSelect.value = admin.level ?? 1;
+    }
+
+    function renderAnnouncements() {
+        announcementList.innerHTML = '';
+        if (!state.announcements.length) {
+            announcementList.innerHTML = '<p class="empty">暂无公告</p>';
+            return;
+        }
+        state.announcements.forEach((announcement) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'item';
+            wrapper.innerHTML = `
+                <div><strong>${announcement.title}</strong></div>
+                <div>${announcement.content}</div>
+                <div class="pill">发布对象：${targetLabel(announcement.target)} · 发布时间：${formatDate(announcement.publishTime)}</div>
+            `;
+            const actions = document.createElement('div');
+            actions.className = 'item-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.textContent = '编辑';
+            editBtn.addEventListener('click', () => {
+                announcementTitleInput.value = announcement.title ?? '';
+                announcementContentInput.value = announcement.content ?? '';
+                announcementTargetSelect.value = announcement.target ?? 'all';
+                announcementForm.dataset.editingId = announcement.id;
+                showToast(`已加载公告「${announcement.title}」进行编辑`);
+            });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.textContent = '删除';
+            deleteBtn.addEventListener('click', async () => {
+                if (!confirm('确定删除该公告吗？')) {
+                    return;
+                }
+                try {
+                    await api(`/api/announcements/${announcement.id}`, 'DELETE');
+                    showToast('公告已删除');
+                    await loadAnnouncements();
+                } catch (error) {
+                    showToast(error.message, true);
+                }
+            });
+
+            actions.append(editBtn, deleteBtn);
+            wrapper.append(actions);
+            announcementList.append(wrapper);
+        });
+    }
+
+    function renderCompanies() {
+        companyList.innerHTML = '';
+        if (!state.companies.length) {
+            companyList.innerHTML = '<p class="empty">暂无企业信息</p>';
+            return;
+        }
+        state.companies.forEach((company) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'item';
+            wrapper.innerHTML = `
+                <div><strong>${company.companyName}</strong> · 企业ID：${company.id} · 用户ID：${company.userId}</div>
+                <div>行业：${company.industry ?? '未填写'} · 营业执照：${company.licenseNumber ?? '未填写'}</div>
+                <div>官网：${company.website ?? '未填写'} · 地址：${company.address ?? '未填写'}</div>
+                <div>状态：${company.auditStatus} ${company.auditReason ? '· 备注：' + company.auditReason : ''}</div>
+                <div>${company.description ?? '暂无企业简介'}</div>
+            `;
+            const actions = document.createElement('div');
+            actions.className = 'item-actions';
+
+            const statusSelect = document.createElement('select');
+            ['pending', 'approved', 'rejected'].forEach((status) => {
+                statusSelect.add(new Option(status, status, false, status === company.auditStatus));
+            });
+
+            const reasonInput = document.createElement('input');
+            reasonInput.type = 'text';
+            reasonInput.placeholder = '审核备注，可为空';
+            reasonInput.value = company.auditReason ?? '';
+
+            const updateBtn = document.createElement('button');
+            updateBtn.type = 'button';
+            updateBtn.textContent = '更新状态';
+            updateBtn.addEventListener('click', async () => {
+                try {
+                    await api(`/api/companies/${company.id}`, 'PUT', {
+                        auditStatus: statusSelect.value,
+                        auditReason: blankToNull(reasonInput.value)
+                    });
+                    showToast('企业审核状态已更新');
+                    await Promise.all([loadCompanies(), loadAudits()]);
+                } catch (error) {
+                    showToast(error.message, true);
+                }
+            });
+
+            actions.append(statusSelect, reasonInput, updateBtn);
+            wrapper.append(actions);
+            companyList.append(wrapper);
+        });
+    }
+
+    function renderAudits() {
+        auditList.innerHTML = '';
+        if (!state.audits.length) {
+            auditList.innerHTML = '<p class="empty">暂未记录操作</p>';
+            return;
+        }
+        state.audits.forEach((audit) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'item';
+            wrapper.innerHTML = `
+                <div><strong>${audit.action}</strong> · ${formatDate(audit.timestamp)}</div>
+                <div>目标：${audit.targetType ?? '未指定'} ${audit.targetId ? '· ID：' + audit.targetId : ''}</div>
+                <div>结果：${audit.result ?? '无'}</div>
+            `;
+            auditList.append(wrapper);
+        });
+    }
+
+    function buildAdminSummary() {
+        const companyCount = state.companies.length;
+        const studentCount = state.students.length;
+        const jobCount = state.jobs.length;
+        const applicationCount = state.applications.length;
+        return `资料已完善，当前平台共有${companyCount}家企业、${studentCount}名学生、${jobCount}个岗位、${applicationCount}条投递记录。`;
+    }
+
+    function targetLabel(value) {
+        switch (value) {
+            case 'student':
+                return '学生';
+            case 'company':
+                return '企业';
+            default:
+                return '全部用户';
+        }
+    }
+
+    async function api(url, method = 'GET', body) {
+        const options = { method, headers: {} };
+        if (body !== undefined) {
+            options.headers['Content-Type'] = 'application/json';
+            options.body = JSON.stringify(body);
+        }
+        const response = await fetch(url, options);
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            const error = new Error(payload.message || '请求失败');
+            error.status = response.status;
+            throw error;
+        }
+        if (response.status === 204) {
+            return null;
+        }
+        return response.json();
+    }
+
+    function blankToNull(value) {
+        return value && value.trim() ? value.trim() : null;
+    }
+
+    function formatDate(value) {
+        if (!value) {
+            return '未知时间';
+        }
+        try {
+            return new Date(value).toLocaleString();
+        } catch (e) {
+            return value;
+        }
+    }
+</script>
 </body>
 </html>

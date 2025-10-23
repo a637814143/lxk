@@ -29,6 +29,13 @@ public class AuditLogService {
     }
 
     @Transactional(readOnly = true)
+    public List<AuditLogResponse> findByAdminId(Long adminId) {
+        return auditLogRepository.findByAdmin_Id(adminId).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public AuditLogResponse findById(Long id) {
         return toResponse(getLog(id));
     }

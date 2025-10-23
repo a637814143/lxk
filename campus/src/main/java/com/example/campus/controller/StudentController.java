@@ -30,6 +30,13 @@ public class StudentController {
         return studentService.findAll();
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<StudentResponse> findByUser(@PathVariable Long userId) {
+        return studentService.findByUserId(userId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/{id}")
     public StudentResponse get(@PathVariable Long id) {
         return studentService.findById(id);

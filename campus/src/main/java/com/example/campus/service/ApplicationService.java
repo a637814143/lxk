@@ -41,6 +41,20 @@ public class ApplicationService {
     }
 
     @Transactional(readOnly = true)
+    public List<ApplicationResponse> findByStudentId(Long studentId) {
+        return applicationRepository.findByStudent_Id(studentId).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ApplicationResponse> findByCompanyId(Long companyId) {
+        return applicationRepository.findByCompany_Id(companyId).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public ApplicationResponse findById(Long id) {
         return toResponse(getApplication(id));
     }

@@ -11,6 +11,7 @@ import com.example.campus.repository.TsukiCompanyRepository;
 import com.example.campus.repository.TsukiUserRepository;
 import java.util.List;
 import java.util.Set;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,12 @@ public class CompanyService {
         return companyRepository.findAll().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<CompanyResponse> findByUserId(Long userId) {
+        return companyRepository.findByUser_Id(userId)
+                .map(this::toResponse);
     }
 
     @Transactional(readOnly = true)

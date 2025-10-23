@@ -30,6 +30,11 @@ public class JobController {
         return jobService.findAll();
     }
 
+    @GetMapping("/company/{companyId}")
+    public List<JobResponse> findByCompany(@PathVariable Long companyId) {
+        return jobService.findByCompanyId(companyId);
+    }
+
     @GetMapping("/{id}")
     public JobResponse get(@PathVariable Long id) {
         return jobService.findById(id);
