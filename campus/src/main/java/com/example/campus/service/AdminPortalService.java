@@ -1,9 +1,14 @@
 package com.example.campus.service;
 
-import com.example.campus.dto.announcement.AnnouncementCreateRequest;
 import com.example.campus.dto.announcement.AnnouncementResponse;
+import com.example.campus.dto.announcement.AnnouncementCreateRequest;
 import com.example.campus.dto.announcement.AnnouncementUpdateRequest;
 import com.example.campus.dto.company.CompanyResponse;
+import com.example.campus.dto.discussion.DiscussionResponse;
+import com.example.campus.dto.discussion.DiscussionReviewRequest;
+import com.example.campus.dto.finance.FinancialTransactionRequest;
+import com.example.campus.dto.finance.FinancialTransactionResponse;
+import com.example.campus.dto.finance.FinancialTransactionStatusRequest;
 import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.message.MessageCreateRequest;
 import com.example.campus.dto.portal.admin.AdminDashboardSummary;
@@ -24,6 +29,8 @@ import com.example.campus.repository.TsukiCompanyRepository;
 import com.example.campus.repository.TsukiJobRepository;
 import com.example.campus.repository.TsukiMessageRepository;
 import com.example.campus.repository.TsukiUserRepository;
+import com.example.campus.dto.backup.BackupResponse;
+import com.example.campus.dto.backup.BackupCreateRequest;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,6 +60,9 @@ public class AdminPortalService {
     private final AnnouncementService announcementService;
     private final MessageService messageService;
     private final TsukiUserService userService;
+    private final FinancialTransactionService financialTransactionService;
+    private final DataBackupService dataBackupService;
+    private final DiscussionService discussionService;
 
     @Transactional(readOnly = true)
     public AdminDashboardSummary loadSummary(Long adminUserId) {
@@ -82,6 +92,22 @@ public class AdminPortalService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<FinancialTransactionResponse> listTransactions() {
+        return financialTransactionService.findAll();
+    }
+
+    @Transactional
+    public FinancialTransactionResponse createTransaction(Long adminUserId, FinancialTransactionRequest request) {
+        return financialTransactionService.createByAdmin(adminUserId, request);
+    }
+
+    @Transactional
+    public FinancialTransactionResponse updateTransactionStatus(Long adminUserId, Long transactionId,
+            FinancialTransactionStatusRequest request) {
+        return financialTransactionService.updateStatus(adminUserId, transactionId, request);
+    }
+
     @Transactional
     public CompanyResponse reviewCompany(Long adminUserId, Long companyId, CompanyAuditRequest request) {
         TsukiAdmin admin = requireAdmin(adminUserId);
@@ -106,6 +132,16 @@ public class AdminPortalService {
         return jobRepository.findByStatus("pending").stream()
                 .map(job -> jobService.findById(job.getId()))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DiscussionResponse> listPendingDiscussions() {
+        return discussionService.findPending();
+    }
+
+    @Transactional
+    public DiscussionResponse reviewDiscussion(Long adminUserId, Long discussionId, DiscussionReviewRequest request) {
+        return discussionService.review(adminUserId, discussionId, request);
     }
 
     @Transactional
@@ -140,6 +176,16 @@ public class AdminPortalService {
         AnnouncementCreateRequest createRequest = new AnnouncementCreateRequest(admin.getId(), request.title(),
                 request.content(), request.target());
         return announcementService.create(createRequest);
+    }
+
+    @Transactional(readOnly = true)
+    public List<BackupResponse> listBackups() {
+        return dataBackupService.findAll();
+    }
+
+    @Transactional
+    public BackupResponse createBackup(Long adminUserId, BackupCreateRequest request) {
+        return dataBackupService.createBackup(adminUserId, request);
     }
 
     @Transactional

@@ -39,16 +39,21 @@ function resolveUrl(path) {
 
 async function request(path, options = {}) {
   const url = resolveUrl(path);
+  const isFormData = options.body instanceof FormData;
+  const headers = {
+    ...(options.headers ?? {})
+  };
+  if (!isFormData) {
+    headers['Content-Type'] = headers['Content-Type'] ?? 'application/json';
+  }
+
   const finalOptions = {
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers ?? {})
-    },
+    headers,
     ...options
   };
 
-  if (finalOptions.body && typeof finalOptions.body !== 'string') {
+  if (!isFormData && finalOptions.body && typeof finalOptions.body !== 'string') {
     finalOptions.body = JSON.stringify(finalOptions.body);
   }
 
@@ -82,6 +87,10 @@ export function get(path) {
 
 export function post(path, body) {
   return request(path, { method: 'POST', body });
+}
+
+export function upload(path, formData, method = 'POST') {
+  return request(path, { method, body: formData });
 }
 
 export function put(path, body) {

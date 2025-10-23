@@ -1,5 +1,6 @@
 package com.example.campus.service;
 
+import com.example.campus.dto.backup.BackupResponse;
 import com.example.campus.dto.dashboard.AdminDashboardResponse;
 import com.example.campus.dto.dashboard.CompanyDashboardResponse;
 import com.example.campus.dto.dashboard.StudentDashboardResponse;
@@ -8,11 +9,13 @@ import com.example.campus.dto.application.ApplicationResponse;
 import com.example.campus.dto.announcement.AnnouncementResponse;
 import com.example.campus.dto.audit.AuditLogResponse;
 import com.example.campus.dto.company.CompanyResponse;
+import com.example.campus.dto.discussion.DiscussionResponse;
 import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.message.MessageResponse;
 import com.example.campus.dto.resume.ResumeResponse;
 import com.example.campus.dto.student.StudentResponse;
 import com.example.campus.dto.user.UserResponse;
+import com.example.campus.dto.finance.FinancialTransactionResponse;
 import com.example.campus.entity.UserRole;
 import com.example.campus.exception.ResourceNotFoundException;
 import java.util.ArrayList;
@@ -36,6 +39,9 @@ public class DashboardService {
     private final AdminService adminService;
     private final AnnouncementService announcementService;
     private final AuditLogService auditLogService;
+    private final FinancialTransactionService financialTransactionService;
+    private final DataBackupService dataBackupService;
+    private final DiscussionService discussionService;
 
     public StudentDashboardResponse loadStudentDashboard(Long userId) {
         UserResponse user = userService.findById(userId);
@@ -76,6 +82,13 @@ public class DashboardService {
         List<MessageResponse> sentMessages = messageService.findBySenderId(userId);
         List<MessageResponse> inboxMessages = messageService.findByReceiverId(userId);
 
+        List<FinancialTransactionResponse> transactions = company != null
+                ? financialTransactionService.findByCompany(company.id())
+                : List.of();
+        List<DiscussionResponse> discussions = company != null
+                ? discussionService.findByCompany(userId)
+                : List.of();
+
         List<StudentResponse> applicants = company != null
                 ? resolveApplicants(applications)
                 : List.of();
@@ -90,6 +103,8 @@ public class DashboardService {
                 List.copyOf(applications),
                 List.copyOf(sentMessages),
                 List.copyOf(inboxMessages),
+                List.copyOf(transactions),
+                List.copyOf(discussions),
                 List.copyOf(applicants),
                 List.copyOf(resumes));
     }
@@ -110,6 +125,10 @@ public class DashboardService {
         List<MessageResponse> inboxMessages = messageService.findByReceiverId(userId);
         List<MessageResponse> sentMessages = messageService.findBySenderId(userId);
         List<MessageResponse> allMessages = messageService.findAll();
+
+        List<FinancialTransactionResponse> transactions = financialTransactionService.findAll();
+        List<BackupResponse> backups = dataBackupService.findAll();
+        List<DiscussionResponse> discussions = discussionService.findPending();
 
         List<AnnouncementResponse> announcements = profile != null
                 ? announcementService.findByAdminId(profile.id())
@@ -132,7 +151,10 @@ public class DashboardService {
                 List.copyOf(auditLogs),
                 List.copyOf(inboxMessages),
                 List.copyOf(sentMessages),
-                List.copyOf(allMessages));
+                List.copyOf(allMessages),
+                List.copyOf(transactions),
+                List.copyOf(backups),
+                List.copyOf(discussions));
     }
 
     private List<StudentResponse> resolveApplicants(List<ApplicationResponse> applications) {

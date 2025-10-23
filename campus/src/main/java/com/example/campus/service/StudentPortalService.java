@@ -22,6 +22,7 @@ import com.example.campus.repository.TsukiJobRepository;
 import com.example.campus.repository.TsukiMessageRepository;
 import com.example.campus.repository.TsukiResumeRepository;
 import com.example.campus.repository.TsukiStudentRepository;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,7 @@ public class StudentPortalService {
     private final TsukiApplicationRepository applicationRepository;
     private final TsukiJobRepository jobRepository;
     private final TsukiMessageRepository messageRepository;
+    private final FileStorageService fileStorageService;
 
     @Transactional(readOnly = true)
     public StudentResponse loadProfile(Long userId) {
@@ -135,6 +137,35 @@ public class StudentPortalService {
                 .filter(message -> message.getReceiver().getId().equals(userId))
                 .map(message -> messageService.update(messageId, new MessageUpdateRequest(null, null, Boolean.TRUE)))
                 .orElseThrow(() -> new ResourceNotFoundException("未找到对应的消息"));
+    }
+
+    @Transactional
+    public String uploadAttachment(Long userId, MultipartFile file) {
+        TsukiStudent student = requireStudent(userId);
+        try {
+            return fileStorageService.store(file, FileStorageService.StorageArea.RESUME,
+                    "resume-" + student.getId());
+        } catch (Exception ex) {
+            throw new IllegalStateException("上传附件失败: " + ex.getMessage(), ex);
+        }
+    }
+
+    @Transactional
+    public ResumeResponse replaceAttachment(Long userId, Long resumeId, MultipartFile file) {
+        TsukiStudent student = requireStudent(userId);
+        TsukiResume resume = requireResume(student.getId(), resumeId);
+        try {
+            if (resume.getAttachment() != null) {
+                fileStorageService.deleteIfExists(resume.getAttachment());
+            }
+            String path = fileStorageService.store(file, FileStorageService.StorageArea.RESUME,
+                    "resume-" + resume.getId());
+            resume.setAttachment(path);
+            resumeRepository.save(resume);
+            return resumeService.findById(resume.getId());
+        } catch (Exception ex) {
+            throw new IllegalStateException("更新附件失败: " + ex.getMessage(), ex);
+        }
     }
 
     @Transactional(readOnly = true)

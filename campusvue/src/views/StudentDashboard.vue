@@ -36,7 +36,12 @@
         <label class="full">实习/工作经历<textarea v-model="resumeForm.workExperience"></textarea></label>
         <label class="full">技能特长<textarea v-model="resumeForm.skills"></textarea></label>
         <label class="full">自我评价<textarea v-model="resumeForm.selfEvaluation"></textarea></label>
-        <label class="full">附件链接<input v-model="resumeForm.attachment" /></label>
+        <label class="full file-input">
+          附件上传
+          <input ref="resumeFileInput" type="file" accept=".pdf,.doc,.docx" @change="handleResumeFile" />
+          <small>支持 PDF/DOC/DOCX，最大 15MB。上传后系统会生成附件链接。</small>
+        </label>
+        <label class="full">附件链接（可选）<input v-model="resumeForm.attachment" placeholder="也可填写已有附件链接" /></label>
         <div class="full actions">
           <button class="primary" type="submit">{{ editingResumeId ? '更新简历' : '新建简历' }}</button>
           <button class="outline" type="button" @click="resetResumeForm">取消</button>
@@ -84,6 +89,10 @@
           <footer>
             <button class="primary" :disabled="!selectedResumeId" @click="applyJob(job.id)">
               使用选中简历投递
+            </button>
+            <button class="outline" type="button"
+              @click="loadCompanyDiscussions(job.companyId, job.companyName)">
+              查看企业讨论
             </button>
           </footer>
         </article>
@@ -138,6 +147,38 @@
       <p v-else class="muted">暂无公告</p>
     </section>
 
+    <section class="card">
+      <div class="card__title">
+        <h2>企业讨论区</h2>
+        <button v-if="currentDiscussionCompany.id" class="outline" type="button" @click="resetDiscussion">
+          返回说明
+        </button>
+      </div>
+      <p class="muted" v-if="discussionLoading">正在加载企业讨论，请稍候…</p>
+      <template v-else>
+        <p class="muted" v-if="!currentDiscussionCompany.id">
+          点击职位卡片中的“查看企业讨论”即可查看企业与管理员审核通过的交流内容。
+        </p>
+        <div v-else>
+          <h3>{{ currentDiscussionCompany.name }} 的公开讨论</h3>
+          <p v-if="discussionFeedback.message" :class="['feedback', discussionFeedback.type]">
+            {{ discussionFeedback.message }}
+          </p>
+          <ul class="list" v-if="discussions.length">
+            <li v-for="post in discussions" :key="post.id" class="list__item">
+              <div>
+                <h3>{{ post.title }}</h3>
+                <p class="muted">发布时间：{{ formatDate(post.createdAt) }}</p>
+                <p>{{ post.sanitizedContent }}</p>
+                <p v-if="post.reviewComment" class="muted">审核备注：{{ post.reviewComment }}</p>
+              </div>
+            </li>
+          </ul>
+          <p v-else class="muted">暂无公开讨论，欢迎稍后再来查看。</p>
+        </div>
+      </template>
+    </section>
+
     <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </div>
 </template>
@@ -145,7 +186,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { clearAuthInfo, del, get, getAuthInfo, post, put } from '../api/http';
+import { clearAuthInfo, del, get, getAuthInfo, post, put, upload } from '../api/http';
 
 const router = useRouter();
 const authInfo = getAuthInfo();
@@ -171,6 +212,8 @@ const resumeForm = reactive({
 const resumes = ref([]);
 const selectedResumeId = ref(null);
 const editingResumeId = ref(null);
+const resumeFile = ref(null);
+const resumeFileInput = ref(null);
 
 const jobFilters = reactive({
   keyword: '',
@@ -184,6 +227,10 @@ const jobs = ref([]);
 const applications = ref([]);
 const messages = ref([]);
 const announcements = ref([]);
+const discussions = ref([]);
+const currentDiscussionCompany = reactive({ id: null, name: '' });
+const discussionLoading = ref(false);
+const discussionFeedback = reactive({ message: '', type: 'info' });
 
 const feedback = reactive({ message: '', type: 'info' });
 
@@ -210,6 +257,15 @@ function resetResumeForm() {
   resumeForm.selfEvaluation = '';
   resumeForm.attachment = '';
   editingResumeId.value = null;
+  resumeFile.value = null;
+  if (resumeFileInput.value) {
+    resumeFileInput.value.value = '';
+  }
+}
+
+function handleResumeFile(event) {
+  const [file] = event.target.files ?? [];
+  resumeFile.value = file ?? null;
 }
 
 async function loadProfile() {
@@ -251,15 +307,32 @@ async function refreshResumes() {
 async function createResume() {
   try {
     if (editingResumeId.value) {
-      const updated = await put(`/portal/student/resumes/${editingResumeId.value}`, resumeForm);
+      const payload = { ...resumeForm };
+      const updated = await put(`/portal/student/resumes/${editingResumeId.value}`, payload);
+      let finalResume = updated;
+      if (resumeFile.value) {
+        const formData = new FormData();
+        formData.append('file', resumeFile.value);
+        finalResume = await upload(`/portal/student/resumes/${editingResumeId.value}/attachment`, formData);
+      }
       const index = resumes.value.findIndex(item => item.id === editingResumeId.value);
       if (index !== -1) {
-        resumes.value[index] = updated;
+        resumes.value[index] = finalResume;
       }
-      selectedResumeId.value = updated.id;
+      selectedResumeId.value = finalResume.id;
       showFeedback('简历更新成功', 'success');
     } else {
-      const created = await post('/portal/student/resumes', resumeForm);
+      let attachmentPath = resumeForm.attachment;
+      if (resumeFile.value) {
+        const formData = new FormData();
+        formData.append('file', resumeFile.value);
+        const uploaded = await upload('/portal/student/resumes/attachments', formData);
+        attachmentPath = uploaded.attachment;
+      }
+      const created = await post('/portal/student/resumes', {
+        ...resumeForm,
+        attachment: attachmentPath
+      });
       resumes.value.unshift(created);
       selectedResumeId.value = created.id;
       showFeedback('简历创建成功', 'success');
@@ -378,6 +451,37 @@ async function loadAnnouncements() {
   }
 }
 
+async function loadCompanyDiscussions(companyId, companyName) {
+  if (!companyId) {
+    return;
+  }
+  currentDiscussionCompany.id = companyId;
+  currentDiscussionCompany.name = companyName ?? `企业 #${companyId}`;
+  discussionLoading.value = true;
+  discussionFeedback.message = '';
+  try {
+    discussions.value = await get(`/public/discussions/company/${companyId}`);
+    if (!discussions.value.length) {
+      discussionFeedback.message = '暂无公开讨论记录';
+      discussionFeedback.type = 'info';
+    }
+  } catch (error) {
+    discussions.value = [];
+    discussionFeedback.message = error.message ?? '加载讨论失败';
+    discussionFeedback.type = 'error';
+  } finally {
+    discussionLoading.value = false;
+  }
+}
+
+function resetDiscussion() {
+  currentDiscussionCompany.id = null;
+  currentDiscussionCompany.name = '';
+  discussions.value = [];
+  discussionFeedback.message = '';
+  discussionFeedback.type = 'info';
+}
+
 function resolveJobTitle(jobId) {
   const job = jobs.value.find(item => item.id === jobId);
   return job ? job.jobTitle : '职位 #' + jobId;
@@ -464,6 +568,17 @@ onMounted(async () => {
 
 .form-grid .full {
   grid-column: 1 / -1;
+}
+
+.file-input input[type='file'] {
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+}
+
+.file-input small {
+  color: #64748b;
+  font-size: 12px;
 }
 
 .actions {

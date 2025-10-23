@@ -74,6 +74,28 @@
 
     <section class="card">
       <div class="card__title">
+        <h2>讨论审核</h2>
+        <button class="outline" @click="loadPendingDiscussions">刷新</button>
+      </div>
+      <ul class="list" v-if="pendingDiscussions.length">
+        <li v-for="item in pendingDiscussions" :key="item.id" class="list__item">
+          <div>
+            <h3>{{ item.title }} <small class="muted">企业 #{{ item.companyId }}</small></h3>
+            <p class="muted">提交时间：{{ formatDate(item.createdAt) }}</p>
+            <p>{{ item.sanitizedContent || item.content }}</p>
+            <p v-if="item.reviewComment" class="muted">备注：{{ item.reviewComment }}</p>
+          </div>
+          <div class="list__actions">
+            <button class="primary" @click="handleDiscussionReview(item, 'approved')">通过</button>
+            <button class="danger" @click="handleDiscussionReview(item, 'rejected')">驳回</button>
+          </div>
+        </li>
+      </ul>
+      <p v-else class="muted">暂无待审核的讨论内容</p>
+    </section>
+
+    <section class="card">
+      <div class="card__title">
         <h2>用户管理</h2>
         <button class="outline" @click="loadUsers">刷新</button>
       </div>
@@ -94,6 +116,46 @@
         </tbody>
       </table>
       <p v-else class="muted">暂无用户数据</p>
+    </section>
+
+    <section class="card">
+      <div class="card__title">
+        <h2>财务记录管理</h2>
+        <button class="outline" @click="loadTransactions">刷新</button>
+      </div>
+      <form class="form-grid" @submit.prevent="createTransaction">
+        <label>企业ID<input v-model="transactionForm.companyId" type="number" min="1" required /></label>
+        <label>金额（元）<input v-model="transactionForm.amount" type="number" min="0" step="0.01" required /></label>
+        <label>币种<input v-model="transactionForm.currency" placeholder="默认 CNY" /></label>
+        <label class="full">费用用途<input v-model="transactionForm.type" required placeholder="例如：平台服务费" /></label>
+        <label class="full">业务编号<input v-model="transactionForm.reference" placeholder="可选的内部参考编号" /></label>
+        <label class="full">备注<textarea v-model="transactionForm.notes" placeholder="补充说明（可选）"></textarea></label>
+        <div class="full actions">
+          <button class="primary" type="submit">创建记录</button>
+          <button class="outline" type="button" @click="resetTransactionForm">重置</button>
+        </div>
+      </form>
+      <table v-if="transactions.length" class="table">
+        <thead><tr><th>ID</th><th>企业ID</th><th>用途</th><th>金额</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr v-for="item in transactions" :key="item.id">
+            <td>{{ item.id }}</td>
+            <td>{{ item.companyId }}</td>
+            <td>{{ item.type }}</td>
+            <td>{{ Number(item.amount ?? 0).toFixed(2) }} {{ item.currency || 'CNY' }}</td>
+            <td>{{ item.status }}</td>
+            <td>{{ formatDate(item.updatedAt || item.createdAt) }}</td>
+            <td class="actions">
+              <select v-model="item.status" @change="updateTransactionStatus(item, item.status)">
+                <option value="pending">待处理</option>
+                <option value="completed">已完成</option>
+                <option value="cancelled">已取消</option>
+              </select>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="muted">暂无财务记录</p>
     </section>
 
     <section class="card">
@@ -132,6 +194,37 @@
       <p v-else class="muted">暂无公告</p>
     </section>
 
+    <section class="card">
+      <div class="card__title">
+        <h2>数据备份</h2>
+        <button class="outline" @click="loadBackups">刷新</button>
+      </div>
+      <form class="form-grid" @submit.prevent="triggerBackup">
+        <label>备份类型<input v-model="backupForm.backupType" placeholder="例如 daily/system" /></label>
+        <label class="full">备注<textarea v-model="backupForm.message" placeholder="可选备注"></textarea></label>
+        <div class="full actions">
+          <button class="primary" type="submit">立即备份</button>
+          <button class="outline" type="button" @click="backupForm.message = ''">清空备注</button>
+        </div>
+      </form>
+      <table v-if="backups.length" class="table">
+        <thead><tr><th>ID</th><th>类型</th><th>状态</th><th>创建时间</th><th>文件</th></tr></thead>
+        <tbody>
+          <tr v-for="item in backups" :key="item.id">
+            <td>{{ item.id }}</td>
+            <td>{{ item.backupType || 'system' }}</td>
+            <td>{{ item.status }}</td>
+            <td>{{ formatDate(item.createdAt) }}</td>
+            <td>
+              <a v-if="item.downloadUrl" :href="item.downloadUrl" target="_blank" rel="noopener">下载</a>
+              <span v-else class="muted">生成中</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="muted">暂无备份记录</p>
+    </section>
+
     <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </div>
 </template>
@@ -149,12 +242,29 @@ const pendingCompanies = ref([]);
 const pendingJobs = ref([]);
 const users = ref([]);
 const announcements = ref([]);
+const transactions = ref([]);
+const pendingDiscussions = ref([]);
+const backups = ref([]);
 
 const announcementForm = reactive({
   id: null,
   title: '',
   content: '',
   target: 'all'
+});
+
+const transactionForm = reactive({
+  companyId: '',
+  amount: '',
+  type: '',
+  currency: 'CNY',
+  reference: '',
+  notes: ''
+});
+
+const backupForm = reactive({
+  backupType: 'system',
+  message: ''
 });
 
 const feedback = reactive({ message: '', type: 'info' });
@@ -239,6 +349,97 @@ async function toggleUserStatus(user) {
   }
 }
 
+async function loadTransactions() {
+  try {
+    transactions.value = await get('/portal/admin/transactions');
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+function resetTransactionForm() {
+  transactionForm.companyId = '';
+  transactionForm.amount = '';
+  transactionForm.type = '';
+  transactionForm.currency = 'CNY';
+  transactionForm.reference = '';
+  transactionForm.notes = '';
+}
+
+async function createTransaction() {
+  if (!transactionForm.companyId || !transactionForm.amount || !transactionForm.type) {
+    showFeedback('请填写企业ID、金额和用途', 'error');
+    return;
+  }
+  try {
+    await post('/portal/admin/transactions', {
+      companyId: Number(transactionForm.companyId),
+      amount: transactionForm.amount,
+      type: transactionForm.type,
+      currency: transactionForm.currency || 'CNY',
+      reference: transactionForm.reference,
+      notes: transactionForm.notes
+    });
+    showFeedback('已创建财务记录', 'success');
+    resetTransactionForm();
+    await loadTransactions();
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+async function updateTransactionStatus(transaction, status) {
+  try {
+    const updated = await patch(`/portal/admin/transactions/${transaction.id}`, {
+      status,
+      notes: transaction.notes
+    });
+    Object.assign(transaction, updated);
+    showFeedback('交易状态已更新', 'success');
+  } catch (error) {
+    showFeedback(error.message, 'error');
+    await loadTransactions();
+  }
+}
+
+async function loadPendingDiscussions() {
+  try {
+    pendingDiscussions.value = await get('/portal/admin/discussions/pending');
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+async function handleDiscussionReview(discussion, status) {
+  const comment = status === 'rejected' ? prompt('请输入驳回原因', '') ?? '' : '';
+  try {
+    await post(`/portal/admin/discussions/${discussion.id}/review`, { status, comment });
+    showFeedback('讨论审核结果已提交', 'success');
+    await loadPendingDiscussions();
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+async function loadBackups() {
+  try {
+    backups.value = await get('/portal/admin/backups');
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+async function triggerBackup() {
+  try {
+    await post('/portal/admin/backups', backupForm);
+    showFeedback('备份任务已创建', 'success');
+    backupForm.message = '';
+    await loadBackups();
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
 async function loadAnnouncements() {
   try {
     announcements.value = await get('/portal/admin/announcements');
@@ -307,7 +508,10 @@ onMounted(async () => {
     loadPendingCompanies(),
     loadPendingJobs(),
     loadUsers(),
-    loadAnnouncements()
+    loadAnnouncements(),
+    loadTransactions(),
+    loadPendingDiscussions(),
+    loadBackups()
   ]);
 });
 </script>

@@ -18,6 +18,17 @@
         <label>企业官网<input v-model="profileForm.website" /></label>
         <label class="full">企业简介<textarea v-model="profileForm.description"></textarea></label>
         <label class="full">Logo 链接<input v-model="profileForm.logo" /></label>
+        <label class="full file-input">
+          营业执照文件
+          <div class="file-row">
+            <input ref="licenseFileInput" type="file" accept=".pdf,.jpg,.jpeg,.png" @change="handleLicenseFile" />
+            <button class="outline" type="button" @click="uploadLicense" :disabled="!licenseFile">上传</button>
+          </div>
+          <small v-if="profileForm.licenseDocument">
+            当前文件：
+            <a :href="profileForm.licenseDocument" target="_blank" rel="noopener">点击查看</a>
+          </small>
+        </label>
         <div class="full actions">
           <button class="primary" type="submit">保存资料</button>
         </div>
@@ -68,6 +79,40 @@
 
     <section class="card">
       <div class="card__title">
+        <h2>财务往来</h2>
+        <button class="outline" @click="loadTransactions">刷新</button>
+      </div>
+      <form class="form-grid" @submit.prevent="submitTransaction">
+        <label>金额（元）<input v-model="transactionForm.amount" type="number" min="0" step="0.01" required /></label>
+        <label>币种<input v-model="transactionForm.currency" placeholder="默认 CNY" /></label>
+        <label class="full">费用用途<input v-model="transactionForm.type" required placeholder="例如：平台服务费" /></label>
+        <label class="full">业务编号<input v-model="transactionForm.reference" placeholder="可选的内部参考编号" /></label>
+        <label class="full">备注<textarea v-model="transactionForm.notes" placeholder="补充说明（可选）"></textarea></label>
+        <div class="full actions">
+          <button class="primary" type="submit">提交审核</button>
+          <button class="outline" type="button" @click="resetTransactionForm">清空</button>
+        </div>
+      </form>
+      <table v-if="transactions.length" class="table">
+        <thead>
+          <tr><th>用途</th><th>金额</th><th>币种</th><th>状态</th><th>更新时间</th><th>备注</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in transactions" :key="item.id">
+            <td>{{ item.type }}</td>
+            <td>{{ Number(item.amount ?? 0).toFixed(2) }}</td>
+            <td>{{ item.currency || 'CNY' }}</td>
+            <td>{{ item.status }}</td>
+            <td>{{ formatDate(item.updatedAt || item.createdAt) }}</td>
+            <td>{{ item.notes || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="muted">暂无财务记录</p>
+    </section>
+
+    <section class="card">
+      <div class="card__title">
         <h2>简历投递</h2>
         <button class="outline" @click="loadApplications">刷新</button>
       </div>
@@ -95,6 +140,32 @@
         </tbody>
       </table>
       <p v-else class="muted">暂无投递</p>
+    </section>
+
+    <section class="card">
+      <div class="card__title">
+        <h2>企业讨论区</h2>
+        <button class="outline" @click="loadDiscussions">刷新</button>
+      </div>
+      <form class="form-grid" @submit.prevent="createDiscussion">
+        <label class="full">讨论主题<input v-model="discussionForm.title" required /></label>
+        <label class="full">讨论内容<textarea v-model="discussionForm.content" required></textarea></label>
+        <div class="full actions">
+          <button class="primary" type="submit">提交审核</button>
+          <button class="outline" type="button" @click="resetDiscussionForm">清空</button>
+        </div>
+      </form>
+      <ul class="list" v-if="discussions.length">
+        <li v-for="item in discussions" :key="item.id" class="list__item">
+          <div>
+            <h3>{{ item.title }}</h3>
+            <p class="muted">状态：{{ translateDiscussionStatus(item.status) }} · 提交时间：{{ formatDate(item.createdAt) }}</p>
+            <p>{{ item.sanitizedContent || item.content }}</p>
+            <p v-if="item.reviewComment" class="muted">审核备注：{{ item.reviewComment }}</p>
+          </div>
+        </li>
+      </ul>
+      <p v-else class="muted">暂无讨论内容，欢迎提交与学生交流的话题。</p>
     </section>
 
     <section v-if="messageDialog.visible" class="card">
@@ -130,7 +201,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { clearAuthInfo, getAuthInfo, get, post, put, patch } from '../api/http';
+import { clearAuthInfo, getAuthInfo, get, post, put, patch, upload } from '../api/http';
 
 const router = useRouter();
 const authInfo = getAuthInfo();
@@ -142,7 +213,8 @@ const profileForm = reactive({
   address: '',
   website: '',
   description: '',
-  logo: ''
+  logo: '',
+  licenseDocument: ''
 });
 
 const jobForm = reactive({
@@ -158,6 +230,8 @@ const jobForm = reactive({
 const jobs = ref([]);
 const applications = ref([]);
 const announcements = ref([]);
+const transactions = ref([]);
+const discussions = ref([]);
 
 const messageDialog = reactive({
   visible: false,
@@ -168,6 +242,22 @@ const messageDialog = reactive({
     content: ''
   }
 });
+
+const transactionForm = reactive({
+  amount: '',
+  type: '',
+  currency: 'CNY',
+  reference: '',
+  notes: ''
+});
+
+const discussionForm = reactive({
+  title: '',
+  content: ''
+});
+
+const licenseFile = ref(null);
+const licenseFileInput = ref(null);
 
 const feedback = reactive({ message: '', type: 'info' });
 
@@ -199,10 +289,37 @@ async function loadProfile() {
 
 async function saveProfile() {
   try {
-    await put('/portal/company/profile', profileForm);
+    const data = await put('/portal/company/profile', profileForm);
+    Object.assign(profileForm, data);
     showFeedback('企业资料已保存', 'success');
   } catch (error) {
     showFeedback(error.message, 'error');
+  }
+}
+
+function handleLicenseFile(event) {
+  const [file] = event.target.files ?? [];
+  licenseFile.value = file ?? null;
+}
+
+async function uploadLicense() {
+  if (!licenseFile.value) {
+    showFeedback('请先选择要上传的营业执照文件', 'error');
+    return;
+  }
+  try {
+    const formData = new FormData();
+    formData.append('file', licenseFile.value);
+    const data = await upload('/portal/company/profile/license', formData);
+    Object.assign(profileForm, data);
+    showFeedback('营业执照上传成功，等待管理员审核', 'success');
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  } finally {
+    licenseFile.value = null;
+    if (licenseFileInput.value) {
+      licenseFileInput.value.value = '';
+    }
   }
 }
 
@@ -315,6 +432,83 @@ async function sendMessage() {
   }
 }
 
+async function loadTransactions() {
+  try {
+    transactions.value = await get('/portal/company/transactions');
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+function resetTransactionForm() {
+  transactionForm.amount = '';
+  transactionForm.type = '';
+  transactionForm.currency = 'CNY';
+  transactionForm.reference = '';
+  transactionForm.notes = '';
+}
+
+async function submitTransaction() {
+  if (!transactionForm.amount || !transactionForm.type) {
+    showFeedback('请填写金额和费用用途', 'error');
+    return;
+  }
+  try {
+    await post('/portal/company/transactions', {
+      amount: transactionForm.amount,
+      type: transactionForm.type,
+      currency: transactionForm.currency || 'CNY',
+      reference: transactionForm.reference,
+      notes: transactionForm.notes
+    });
+    showFeedback('财务申请已提交，等待管理员处理', 'success');
+    resetTransactionForm();
+    await loadTransactions();
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+async function loadDiscussions() {
+  try {
+    discussions.value = await get('/portal/company/discussions');
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+function resetDiscussionForm() {
+  discussionForm.title = '';
+  discussionForm.content = '';
+}
+
+async function createDiscussion() {
+  if (!discussionForm.title || !discussionForm.content) {
+    showFeedback('请填写讨论主题和内容', 'error');
+    return;
+  }
+  try {
+    const created = await post('/portal/company/discussions', discussionForm);
+    discussions.value.unshift(created);
+    showFeedback('讨论已提交审核', 'success');
+    resetDiscussionForm();
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+function translateDiscussionStatus(status) {
+  switch ((status || '').toLowerCase()) {
+    case 'approved':
+      return '已发布';
+    case 'rejected':
+      return '已驳回';
+    case 'pending':
+    default:
+      return '待审核';
+  }
+}
+
 async function loadAnnouncements() {
   try {
     announcements.value = await get('/portal/company/announcements');
@@ -337,6 +531,8 @@ onMounted(async () => {
   await loadProfile();
   await loadJobs();
   await loadApplications();
+  await loadTransactions();
+  await loadDiscussions();
   await loadAnnouncements();
 });
 </script>
@@ -402,6 +598,26 @@ onMounted(async () => {
 
 .form-grid .full {
   grid-column: 1 / -1;
+}
+
+.file-input .file-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.file-input input[type='file'] {
+  flex: 1;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+}
+
+.file-input small {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
 }
 
 .actions {

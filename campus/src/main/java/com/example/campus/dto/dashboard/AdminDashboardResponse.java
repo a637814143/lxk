@@ -5,6 +5,9 @@ import com.example.campus.dto.application.ApplicationResponse;
 import com.example.campus.dto.announcement.AnnouncementResponse;
 import com.example.campus.dto.audit.AuditLogResponse;
 import com.example.campus.dto.company.CompanyResponse;
+import com.example.campus.dto.backup.BackupResponse;
+import com.example.campus.dto.discussion.DiscussionResponse;
+import com.example.campus.dto.finance.FinancialTransactionResponse;
 import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.message.MessageResponse;
 import com.example.campus.dto.resume.ResumeResponse;
@@ -26,5 +29,8 @@ public record AdminDashboardResponse(
         List<AuditLogResponse> auditLogs,
         List<MessageResponse> inboxMessages,
         List<MessageResponse> sentMessages,
-        List<MessageResponse> allMessages) {
+        List<MessageResponse> allMessages,
+        List<FinancialTransactionResponse> transactions,
+        List<BackupResponse> backups,
+        List<DiscussionResponse> pendingDiscussions) {
 }

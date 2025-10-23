@@ -29,6 +29,9 @@ public record CompanyCreateRequest(
         @Size(max = 255, message = "Logo链接不能超过255个字符")
         String logo,
 
+        @Size(max = 255, message = "证照文件链接不能超过255个字符")
+        String licenseDocument,
+
         @Size(max = 20, message = "审核状态不能超过20个字符")
         String auditStatus,
 

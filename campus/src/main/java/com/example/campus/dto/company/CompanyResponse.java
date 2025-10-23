@@ -10,6 +10,7 @@ public record CompanyResponse(
         String website,
         String description,
         String logo,
+        String licenseDocument,
         String auditStatus,
         String auditReason) {
 }

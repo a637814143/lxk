@@ -54,6 +54,9 @@ public class TsukiCompany {
     @Column(name = "logo", length = 255)
     private String logo;
 
+    @Column(name = "license_document", length = 255)
+    private String licenseDocument;
+
     @Column(name = "audit_status", length = 20)
     private String auditStatus;
 
