@@ -184,12 +184,16 @@
             }
 
             const data = await response.json();
+            if (!data.token) {
+                throw new Error('登录失败，服务未返回身份令牌');
+            }
             const payload = {
                 userId: data.userId,
                 username: data.username,
                 role: data.role,
                 roleDisplayName: data.roleDisplayName,
-                redirectPath: data.redirectPath
+                redirectPath: data.redirectPath,
+                token: data.token
             };
             sessionStorage.setItem('tsukiUser', JSON.stringify(payload));
             showMessage(`${data.message}，即将前往${data.roleDisplayName}页面...`, 'success');
