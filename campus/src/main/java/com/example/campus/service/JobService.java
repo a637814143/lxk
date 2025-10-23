@@ -32,6 +32,19 @@ public class JobService {
     }
 
     @Transactional(readOnly = true)
+    public List<JobResponse> searchApprovedJobs(String keyword, String companyName, String jobType,
+            String location, String salaryRange) {
+        return jobRepository.findByStatus("approved").stream()
+                .filter(job -> matchesKeyword(job, keyword))
+                .filter(job -> matchesCompany(job, companyName))
+                .filter(job -> matchesField(job.getJobType(), jobType))
+                .filter(job -> matchesField(job.getLocation(), location))
+                .filter(job -> matchesField(job.getSalaryRange(), salaryRange))
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<JobResponse> findByCompanyId(Long companyId) {
         return jobRepository.findByCompany_Id(companyId).stream()
                 .map(this::toResponse)
@@ -107,6 +120,7 @@ public class JobService {
         return new JobResponse(
                 job.getId(),
                 job.getCompany().getId(),
+                job.getCompany().getCompanyName(),
                 job.getJobTitle(),
                 job.getJobType(),
                 job.getSalaryRange(),
@@ -127,5 +141,35 @@ public class JobService {
             throw new IllegalArgumentException("职位状态仅支持: " + String.join("/", ALLOWED_STATUSES));
         }
         return normalized;
+    }
+
+    private boolean matchesKeyword(TsukiJob job, String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return true;
+        }
+        String lowerKeyword = keyword.toLowerCase();
+        return containsIgnoreCase(job.getJobTitle(), lowerKeyword)
+                || containsIgnoreCase(job.getJobType(), lowerKeyword)
+                || containsIgnoreCase(job.getRequirement(), lowerKeyword)
+                || containsIgnoreCase(job.getDescription(), lowerKeyword)
+                || (job.getCompany() != null && containsIgnoreCase(job.getCompany().getCompanyName(), lowerKeyword));
+    }
+
+    private boolean matchesCompany(TsukiJob job, String companyName) {
+        if (companyName == null || companyName.isBlank()) {
+            return true;
+        }
+        return job.getCompany() != null && containsIgnoreCase(job.getCompany().getCompanyName(), companyName.toLowerCase());
+    }
+
+    private boolean matchesField(String actual, String expected) {
+        if (expected == null || expected.isBlank()) {
+            return true;
+        }
+        return containsIgnoreCase(actual, expected.toLowerCase());
+    }
+
+    private boolean containsIgnoreCase(String value, String keyword) {
+        return value != null && value.toLowerCase().contains(keyword);
     }
 }

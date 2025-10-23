@@ -1,6 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from '../views/LoginView.vue';
 import AdminDashboard from '../views/AdminDashboard.vue';
+import StudentDashboard from '../views/StudentDashboard.vue';
+import CompanyDashboard from '../views/CompanyDashboard.vue';
+import { getAuthInfo } from '../api/http';
 
 const routes = [
   {
@@ -9,11 +12,27 @@ const routes = [
     component: LoginView
   },
   {
+    path: '/student',
+    name: 'student-dashboard',
+    component: StudentDashboard,
+    meta: {
+      requiresRole: 'STUDENT'
+    }
+  },
+  {
+    path: '/company',
+    name: 'company-dashboard',
+    component: CompanyDashboard,
+    meta: {
+      requiresRole: 'COMPANY'
+    }
+  },
+  {
     path: '/admin',
     name: 'admin-dashboard',
     component: AdminDashboard,
     meta: {
-      requiresAdmin: true
+      requiresRole: 'ADMIN'
     }
   }
 ];
@@ -24,25 +43,17 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  if (!to.meta.requiresAdmin) {
+  const requiredRole = to.meta.requiresRole;
+  if (!requiredRole) {
     next();
     return;
   }
-  try {
-    const raw = localStorage.getItem('tsukiUser');
-    if (!raw) {
-      next({ name: 'login' });
-      return;
-    }
-    const user = JSON.parse(raw);
-    if (user && user.role === 'ADMIN') {
-      next();
-      return;
-    }
-  } catch (error) {
-    console.warn('无法解析登录信息', error);
+  const auth = getAuthInfo();
+  if (auth && auth.role === requiredRole) {
+    next();
+    return;
   }
-  next({ name: 'login' });
+  next({ name: 'login', query: { redirect: to.fullPath } });
 });
 
 export default router;

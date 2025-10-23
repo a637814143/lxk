@@ -7,6 +7,8 @@ import com.example.campus.entity.UserRole;
 import com.example.campus.exception.InvalidCredentialsException;
 import com.example.campus.exception.UserAlreadyExistsException;
 import com.example.campus.repository.TsukiUserRepository;
+import com.example.campus.security.JwtService;
+import com.example.campus.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ public class AuthService {
 
     private final TsukiUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     @Transactional
     public void register(RegisterRequest request) {
@@ -66,7 +69,9 @@ public class AuthService {
         }
 
         UserRole role = user.getRole();
-        return new LoginResult(user.getId(), username, role, role.getDisplayName(), role.getRedirectPath());
+        UserPrincipal principal = UserPrincipal.fromEntity(user);
+        String token = jwtService.generateToken(principal);
+        return new LoginResult(user.getId(), username, role, role.getDisplayName(), role.getRedirectPath(), token);
     }
 
     private String normalize(String value) {
@@ -90,6 +95,7 @@ public class AuthService {
         }
     }
 
-    public record LoginResult(Long userId, String username, UserRole role, String roleDisplayName, String redirectPath) {
+    public record LoginResult(Long userId, String username, UserRole role, String roleDisplayName, String redirectPath,
+                              String token) {
     }
 }

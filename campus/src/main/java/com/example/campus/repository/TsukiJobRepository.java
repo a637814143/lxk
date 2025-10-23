@@ -7,4 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TsukiJobRepository extends JpaRepository<TsukiJob, Long> {
 
     List<TsukiJob> findByCompany_Id(Long companyId);
+
+    List<TsukiJob> findByStatus(String status);
+
+    long countByStatus(String status);
 }

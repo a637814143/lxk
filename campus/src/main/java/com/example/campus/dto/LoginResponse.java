@@ -8,5 +8,6 @@ public record LoginResponse(
         String message,
         UserRole role,
         String roleDisplayName,
-        String redirectPath) {
+        String redirectPath,
+        String token) {
 }

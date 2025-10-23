@@ -2,8 +2,8 @@
   <div class="login-page">
     <section class="login-card">
       <header class="login-header">
-        <h1>Tsuki 校园招聘管理后台</h1>
-        <p>请输入系统管理员账号密码以继续</p>
+        <h1>Tsuki 校园招聘平台</h1>
+        <p>请输入账号密码，根据角色进入对应的工作台</p>
       </header>
       <form class="login-form" @submit.prevent="handleSubmit">
         <label>
@@ -28,7 +28,7 @@
 <script setup>
 import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { get, post } from '../api/http';
+import { post, setAuthInfo, clearAuthInfo } from '../api/http';
 
 const router = useRouter();
 const username = ref('');
@@ -52,32 +52,36 @@ async function handleSubmit() {
       username: username.value,
       password: password.value
     });
-    if (!data || data.role !== 'ADMIN') {
-      throw new Error('该账号不是系统管理员，请使用管理员账号登录');
-    }
     const payload = {
       userId: data.userId,
       username: data.username,
       role: data.role,
-      roleDisplayName: data.roleDisplayName
+      roleDisplayName: data.roleDisplayName,
+      token: data.token
     };
-    localStorage.setItem('tsukiUser', JSON.stringify(payload));
-    try {
-      const profile = await get(`/admins/user/${data.userId}`);
-      if (profile) {
-        localStorage.setItem('tsukiAdminProfile', JSON.stringify(profile));
-      }
-    } catch (error) {
-      console.warn('管理员档案查询失败，可在后台页面创建', error);
-      localStorage.removeItem('tsukiAdminProfile');
+    setAuthInfo(payload);
+    const routeMap = {
+      ADMIN: 'admin-dashboard',
+      COMPANY: 'company-dashboard',
+      STUDENT: 'student-dashboard'
+    };
+    const targetRoute = routeMap[data.role];
+    if (!targetRoute) {
+      throw new Error('当前角色暂不支持登录');
     }
-    showFeedback('登录成功，正在进入管理后台…', 'success');
+    showFeedback(`登录成功，欢迎 ${data.roleDisplayName} ${data.username}`, 'success');
     setTimeout(() => {
-      router.push({ name: 'admin-dashboard' });
-    }, 400);
+      const redirect = router.currentRoute.value.query.redirect;
+      if (typeof redirect === 'string' && redirect) {
+        router.replace(redirect);
+      } else {
+        router.push({ name: targetRoute });
+      }
+    }, 300);
   } catch (error) {
     console.error(error);
     showFeedback(error.message ?? '登录失败，请稍后重试', 'error');
+    clearAuthInfo();
   } finally {
     loading.value = false;
   }

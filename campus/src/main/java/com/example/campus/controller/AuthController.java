@@ -37,7 +37,8 @@ public class AuthController {
                 "登录成功",
                 result.role(),
                 result.roleDisplayName(),
-                result.redirectPath());
+                result.redirectPath(),
+                result.token());
         return ResponseEntity.ok(response);
     }
 }

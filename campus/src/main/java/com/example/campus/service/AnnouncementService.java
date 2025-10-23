@@ -39,6 +39,13 @@ public class AnnouncementService {
     }
 
     @Transactional(readOnly = true)
+    public List<AnnouncementResponse> findByTargets(List<String> targets) {
+        return announcementRepository.findByTargetInOrderByPublishTimeDesc(targets).stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public AnnouncementResponse findById(Long id) {
         return toResponse(getAnnouncement(id));
     }

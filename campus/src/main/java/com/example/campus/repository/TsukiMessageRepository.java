@@ -9,4 +9,6 @@ public interface TsukiMessageRepository extends JpaRepository<TsukiMessage, Long
     List<TsukiMessage> findByReceiver_Id(Long receiverId);
 
     List<TsukiMessage> findBySenderId(Long senderId);
+
+    long countByReceiver_IdAndIsRead(Long receiverId, Boolean isRead);
 }
