@@ -12,11 +12,6 @@ public class PageController {
         return "login";
     }
 
-    @GetMapping("/register")
-    public String registerPage() {
-        return "register";
-    }
-
     @GetMapping("/admin/dashboard")
     public String adminDashboard(Model model) {
         model.addAttribute("title", "系统管理员控制台");

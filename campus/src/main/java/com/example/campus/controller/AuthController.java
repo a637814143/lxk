@@ -25,7 +25,7 @@ public class AuthController {
     public ResponseEntity<MessageResponse> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new MessageResponse("注册成功，请登录"));
+                .body(new MessageResponse("注册成功，请使用账户登录"));
     }
 
     @PostMapping("/login")
@@ -35,6 +35,20 @@ public class AuthController {
                 result.userId(),
                 result.username(),
                 "登录成功",
+                result.role(),
+                result.roleDisplayName(),
+                result.redirectPath(),
+                result.token());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/admin/login")
+    public ResponseEntity<LoginResponse> adminLogin(@Valid @RequestBody LoginRequest request) {
+        AuthService.LoginResult result = authService.loginAdmin(request);
+        LoginResponse response = new LoginResponse(
+                result.userId(),
+                result.username(),
+                "管理员登录成功",
                 result.role(),
                 result.roleDisplayName(),
                 result.redirectPath(),

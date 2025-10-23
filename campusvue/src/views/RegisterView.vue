@@ -3,87 +3,151 @@
     <section class="register-card">
       <header class="register-header">
         <h1>创建 Tsuki 校园招聘账号</h1>
-        <p>选择角色后完善资料即可登录系统</p>
+        <p>支持学生、企业和系统管理员注册，信息将用于角色初始化</p>
       </header>
       <form class="register-form" @submit.prevent="handleSubmit">
         <label>
           <span>用户名</span>
-          <input v-model.trim="form.username" required maxlength="50" autocomplete="username" />
+          <input v-model.trim="form.username" type="text" maxlength="50" autocomplete="username" required />
         </label>
+        <div class="grid">
+          <label>
+            <span>密码</span>
+            <input v-model="form.password" type="password" minlength="6" maxlength="64" autocomplete="new-password" required />
+          </label>
+          <label>
+            <span>确认密码</span>
+            <input v-model="form.confirmPassword" type="password" minlength="6" maxlength="64" autocomplete="new-password" required />
+          </label>
+        </div>
         <label>
           <span>邮箱</span>
-          <input v-model.trim="form.email" required type="email" autocomplete="email" />
+          <input v-model.trim="form.email" type="email" maxlength="100" autocomplete="email" required />
         </label>
         <label>
-          <span>手机号</span>
-          <input v-model.trim="form.phone" placeholder="可选" autocomplete="tel" />
+          <span>手机号（选填）</span>
+          <input v-model.trim="form.phone" type="tel" maxlength="20" placeholder="例如：13800000000" />
         </label>
-        <label>
-          <span>密码</span>
-          <input v-model="form.password" required type="password" minlength="6" autocomplete="new-password" />
+        <div class="role-field">
+          <span>选择角色</span>
+          <div class="role-options">
+            <label>
+              <input v-model="form.role" type="radio" value="STUDENT" /> 学生
+            </label>
+            <label>
+              <input v-model="form.role" type="radio" value="COMPANY" /> 企业
+            </label>
+            <label>
+              <input v-model="form.role" type="radio" value="ADMIN" /> 系统管理员
+            </label>
+          </div>
+        </div>
+        <label v-if="requiresDisplayName">
+          <span>{{ form.role === 'ADMIN' ? '管理员姓名' : '学生姓名' }}</span>
+          <input v-model.trim="form.displayName" type="text" maxlength="50" required />
         </label>
-        <label>
-          <span>用户角色</span>
-          <select v-model="form.role" required>
-            <option disabled value="">请选择角色</option>
-            <option value="STUDENT">学生</option>
-            <option value="COMPANY">企业</option>
-          </select>
+        <label v-if="requiresCompanyName">
+          <span>企业名称</span>
+          <input v-model.trim="form.companyName" type="text" maxlength="100" required />
         </label>
         <button class="primary" type="submit" :disabled="loading">
-          {{ loading ? '正在注册…' : '注册并跳转登录' }}
+          {{ loading ? '提交中…' : '注册' }}
         </button>
       </form>
-      <router-link class="back" :to="{ name: 'login' }">已有账号？返回登录</router-link>
-      <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
+      <p class="note">已有账号？<RouterLink :to="{ name: 'login' }">前往登录</RouterLink></p>
+      <p v-if="feedback.message" :class="['feedback', feedback.type]">
+        {{ feedback.message }}
+      </p>
     </section>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, reactive, ref } from 'vue';
+import { useRouter, RouterLink } from 'vue-router';
 import { post } from '../api/http';
 
 const router = useRouter();
-const loading = ref(false);
-const feedback = reactive({ message: '', type: 'info' });
 
 const form = reactive({
   username: '',
+  password: '',
+  confirmPassword: '',
   email: '',
   phone: '',
-  password: '',
-  role: ''
+  role: 'STUDENT',
+  displayName: '',
+  companyName: ''
 });
+
+const loading = ref(false);
+const feedback = reactive({ message: '', type: 'info' });
+
+const requiresDisplayName = computed(() => form.role === 'STUDENT' || form.role === 'ADMIN');
+const requiresCompanyName = computed(() => form.role === 'COMPANY');
 
 function showFeedback(message, type = 'info') {
   feedback.message = message;
   feedback.type = type;
-  if (message) {
-    setTimeout(() => {
-      feedback.message = '';
-    }, 4000);
+}
+
+function validateForm() {
+  if (!form.username) {
+    return '请输入用户名';
   }
+  if (!form.password || !form.confirmPassword) {
+    return '请输入并确认密码';
+  }
+  if (form.password !== form.confirmPassword) {
+    return '两次输入的密码不一致';
+  }
+  if (!form.email) {
+    return '请输入邮箱';
+  }
+  if (requiresDisplayName.value && !form.displayName) {
+    return '请输入姓名信息';
+  }
+  if (requiresCompanyName.value && !form.companyName) {
+    return '请输入企业名称';
+  }
+  return null;
 }
 
 async function handleSubmit() {
-  if (loading.value) return;
+  if (loading.value) {
+    return;
+  }
+  const validationMessage = validateForm();
+  if (validationMessage) {
+    showFeedback(validationMessage, 'error');
+    return;
+  }
   loading.value = true;
+  showFeedback('正在提交注册信息…', 'info');
   try {
-    await post('/auth/register', {
+    const payload = {
       username: form.username,
-      email: form.email,
-      phone: form.phone,
       password: form.password,
-      role: form.role
-    });
-    showFeedback('注册成功，请使用账号登录', 'success');
+      email: form.email,
+      phone: form.phone || null,
+      role: form.role,
+      displayName: requiresDisplayName.value ? form.displayName : null,
+      companyName: requiresCompanyName.value ? form.companyName : null
+    };
+    await post('/auth/register', payload);
+    showFeedback('注册成功，请使用新账户登录', 'success');
     setTimeout(() => {
-      router.push({ name: 'login', query: { username: form.username } });
-    }, 600);
+      router.push({
+        name: 'login',
+        query: {
+          username: form.username,
+          registered: '1'
+        }
+      });
+    }, 500);
   } catch (error) {
-    showFeedback(error.message ?? '注册失败，请稍后重试', 'error');
+    console.error(error);
+    showFeedback(error.message ?? '注册失败，请稍后再试', 'error');
   } finally {
     loading.value = false;
   }
@@ -96,16 +160,16 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #eff6ff, #e0f2fe);
-  padding: 32px;
+  padding: 32px 16px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(16, 185, 129, 0.15));
 }
 
 .register-card {
-  width: min(520px, 100%);
-  background: #ffffff;
-  border-radius: 24px;
-  box-shadow: 0 25px 60px rgba(30, 64, 175, 0.18);
+  width: min(620px, 100%);
   padding: 36px;
+  border-radius: 28px;
+  background: #ffffff;
+  box-shadow: 0 32px 70px rgba(30, 58, 138, 0.18);
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -113,6 +177,7 @@ async function handleSubmit() {
 
 .register-header h1 {
   margin: 0;
+  font-size: 28px;
   color: #1e3a8a;
 }
 
@@ -122,7 +187,8 @@ async function handleSubmit() {
 }
 
 .register-form {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 18px;
 }
 
@@ -134,25 +200,61 @@ label {
   color: #1f2937;
 }
 
-input,
-select {
+input[type='text'],
+input[type='password'],
+input[type='email'],
+input[type='tel'] {
+  padding: 12px 14px;
   border: 1px solid rgba(59, 130, 246, 0.35);
   border-radius: 12px;
-  padding: 12px;
   font-size: 15px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.role-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.role-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+
+.role-options label {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
 }
 
 button.primary {
-  margin-top: 12px;
+  margin-top: 10px;
   padding: 12px;
-  border-radius: 999px;
   border: none;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #fff;
-  font-weight: 600;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  color: #ffffff;
   font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  transition: box-shadow 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 button.primary:disabled {
@@ -160,16 +262,37 @@ button.primary:disabled {
   cursor: not-allowed;
 }
 
-.back {
+button.primary:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.32);
+}
+
+.note {
+  margin: 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.note a {
   color: #2563eb;
-  text-align: center;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.note a:hover {
+  text-decoration: underline;
 }
 
 .feedback {
   margin: 0;
   padding: 12px 16px;
-  border-radius: 14px;
+  border-radius: 16px;
   font-size: 14px;
+}
+
+.feedback.info {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .feedback.success {
@@ -182,8 +305,9 @@ button.primary:disabled {
   color: #b91c1c;
 }
 
-.feedback.info {
-  background: #dbeafe;
-  color: #1d4ed8;
+@media (max-width: 640px) {
+  .register-card {
+    padding: 28px 20px;
+  }
 }
 </style>

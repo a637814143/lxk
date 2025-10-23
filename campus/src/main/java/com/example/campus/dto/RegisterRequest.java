@@ -26,5 +26,11 @@ public record RegisterRequest(
         String phone,
 
         @NotNull(message = "用户角色不能为空")
-        UserRole role) {
+        UserRole role,
+
+        @Size(max = 50, message = "姓名不能超过50个字符")
+        String displayName,
+
+        @Size(max = 100, message = "企业名称不能超过100个字符")
+        String companyName) {
 }

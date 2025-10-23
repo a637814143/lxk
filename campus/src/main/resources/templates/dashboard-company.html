@@ -285,7 +285,13 @@
         }
     })();
 
-    if (!sessionUser || sessionUser.role !== 'COMPANY') {
+    const authToken = (sessionUser && typeof sessionUser.token === 'string' && sessionUser.token.length > 0)
+        ? sessionUser.token
+        : null;
+    const API_BASE = '/api';
+    const isAuthorized = Boolean(sessionUser && sessionUser.role === 'COMPANY' && authToken);
+
+    if (!isAuthorized) {
         sessionStorage.removeItem('tsukiUser');
         window.location.replace('/login');
     }
@@ -330,7 +336,9 @@
         inbox: []
     };
 
-    initialize();
+    if (isAuthorized) {
+        initialize();
+    }
 
     function showToast(message, isError = false) {
         toast.textContent = message;
@@ -707,23 +715,55 @@
         }
     }
 
-    async function api(url, method = 'GET', body) {
-        const options = { method, headers: {} };
+    function buildApiUrl(path) {
+        if (!path) {
+            return API_BASE;
+        }
+        if (/^https?:\/\//i.test(path)) {
+            return path;
+        }
+        if (path.startsWith('/api')) {
+            return path;
+        }
+        if (path.startsWith('/')) {
+            return `${API_BASE}${path}`;
+        }
+        return `${API_BASE}/${path}`;
+    }
+
+    async function api(path, method = 'GET', body) {
+        const url = buildApiUrl(path);
+        const isFormData = body instanceof FormData;
+        const headers = {};
+        if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
+        }
+        if (body !== undefined && !isFormData) {
+            headers['Content-Type'] = 'application/json';
+        }
+        const options = { method, headers };
         if (body !== undefined) {
-            options.headers['Content-Type'] = 'application/json';
-            options.body = JSON.stringify(body);
+            options.body = isFormData ? body : JSON.stringify(body);
         }
         const response = await fetch(url, options);
-        if (!response.ok) {
-            const payload = await response.json().catch(() => ({}));
-            const error = new Error(payload.message || '请求失败');
-            error.status = response.status;
-            throw error;
+        if (response.status === 401 || response.status === 403) {
+            sessionStorage.removeItem('tsukiUser');
+            window.location.replace('/login');
+            throw new Error('登录已过期，请重新登录');
         }
         if (response.status === 204) {
             return null;
         }
-        return response.json();
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) {
+            const message = payload && typeof payload === 'object'
+                ? (payload.message || payload.error || '请求失败')
+                : '请求失败';
+            const error = new Error(message);
+            error.status = response.status;
+            throw error;
+        }
+        return payload;
     }
 
     function formatDate(value) {
