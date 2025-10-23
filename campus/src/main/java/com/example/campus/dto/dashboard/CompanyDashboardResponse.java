@@ -2,6 +2,8 @@ package com.example.campus.dto.dashboard;
 
 import com.example.campus.dto.application.ApplicationResponse;
 import com.example.campus.dto.company.CompanyResponse;
+import com.example.campus.dto.discussion.DiscussionResponse;
+import com.example.campus.dto.finance.FinancialTransactionResponse;
 import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.message.MessageResponse;
 import com.example.campus.dto.resume.ResumeResponse;
@@ -16,6 +18,8 @@ public record CompanyDashboardResponse(
         List<ApplicationResponse> applications,
         List<MessageResponse> sentMessages,
         List<MessageResponse> inboxMessages,
+        List<FinancialTransactionResponse> transactions,
+        List<DiscussionResponse> discussions,
         List<StudentResponse> applicants,
         List<ResumeResponse> resumes) {
 }

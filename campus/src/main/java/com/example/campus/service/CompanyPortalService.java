@@ -1,10 +1,13 @@
 package com.example.campus.service;
 
 import com.example.campus.dto.announcement.AnnouncementResponse;
-import com.example.campus.dto.application.ApplicationResponse;
 import com.example.campus.dto.application.ApplicationUpdateRequest;
+import com.example.campus.dto.application.ApplicationResponse;
 import com.example.campus.dto.company.CompanyResponse;
 import com.example.campus.dto.company.CompanyUpdateRequest;
+import com.example.campus.dto.discussion.DiscussionCreateRequest;
+import com.example.campus.dto.discussion.DiscussionResponse;
+import com.example.campus.dto.finance.FinancialTransactionResponse;
 import com.example.campus.dto.job.JobCreateRequest;
 import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.job.JobUpdateRequest;
@@ -14,6 +17,7 @@ import com.example.campus.dto.portal.company.CompanyJobRequest;
 import com.example.campus.dto.portal.company.CompanyProfileRequest;
 import com.example.campus.dto.portal.company.JobStatusUpdateRequest;
 import com.example.campus.dto.company.CompanyCreateRequest;
+import com.example.campus.dto.portal.company.CompanyTransactionRequest;
 import com.example.campus.entity.TsukiApplication;
 import com.example.campus.entity.TsukiCompany;
 import com.example.campus.entity.TsukiJob;
@@ -22,6 +26,7 @@ import com.example.campus.repository.TsukiApplicationRepository;
 import com.example.campus.repository.TsukiCompanyRepository;
 import com.example.campus.repository.TsukiJobRepository;
 import com.example.campus.repository.TsukiMessageRepository;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -36,6 +41,9 @@ public class CompanyPortalService {
     private final ApplicationService applicationService;
     private final MessageService messageService;
     private final AnnouncementService announcementService;
+    private final FinancialTransactionService financialTransactionService;
+    private final DiscussionService discussionService;
+    private final FileStorageService fileStorageService;
 
     private final TsukiCompanyRepository companyRepository;
     private final TsukiJobRepository jobRepository;
@@ -53,10 +61,11 @@ public class CompanyPortalService {
         return companyRepository.findByUser_Id(userId)
                 .map(existing -> companyService.update(existing.getId(),
                         new CompanyUpdateRequest(request.companyName(), request.licenseNumber(), request.industry(),
-                                request.address(), request.website(), request.description(), request.logo(), null, null)))
+                                request.address(), request.website(), request.description(), request.logo(),
+                                request.licenseDocument(), null, null)))
                 .orElseGet(() -> companyService.create(new CompanyCreateRequest(userId, request.companyName(),
                         request.licenseNumber(), request.industry(), request.address(), request.website(),
-                        request.description(), request.logo(), "pending", null)));
+                        request.description(), request.logo(), request.licenseDocument(), "pending", null)));
     }
 
     @Transactional(readOnly = true)
@@ -88,6 +97,44 @@ public class CompanyPortalService {
         TsukiJob job = requireJob(jobId, company.getId());
         JobUpdateRequest updateRequest = new JobUpdateRequest(null, null, null, null, null, null, request.status());
         return jobService.update(job.getId(), updateRequest);
+    }
+
+    @Transactional
+    public CompanyResponse uploadLicense(Long userId, MultipartFile file) {
+        TsukiCompany company = requireCompany(userId);
+        try {
+            if (company.getLicenseDocument() != null) {
+                fileStorageService.deleteIfExists(company.getLicenseDocument());
+            }
+            String path = fileStorageService.store(file, FileStorageService.StorageArea.LICENSE,
+                    "license-" + company.getId());
+            company.setLicenseDocument(path);
+            companyRepository.save(company);
+            return companyService.findById(company.getId());
+        } catch (Exception ex) {
+            throw new IllegalStateException("上传证照失败: " + ex.getMessage(), ex);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<FinancialTransactionResponse> listTransactions(Long userId) {
+        TsukiCompany company = requireCompany(userId);
+        return financialTransactionService.findByCompany(company.getId());
+    }
+
+    @Transactional
+    public FinancialTransactionResponse submitTransaction(Long userId, CompanyTransactionRequest request) {
+        return financialTransactionService.submitByCompany(userId, request);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DiscussionResponse> listDiscussions(Long userId) {
+        return discussionService.findByCompany(userId);
+    }
+
+    @Transactional
+    public DiscussionResponse createDiscussion(Long userId, DiscussionCreateRequest request) {
+        return discussionService.create(userId, request);
     }
 
     @Transactional(readOnly = true)

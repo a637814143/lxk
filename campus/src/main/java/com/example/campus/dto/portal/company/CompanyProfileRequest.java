@@ -23,5 +23,8 @@ public record CompanyProfileRequest(
         String description,
 
         @Size(max = 255, message = "Logo链接不能超过255个字符")
-        String logo) {
+        String logo,
+
+        @Size(max = 255, message = "证照文件链接不能超过255个字符")
+        String licenseDocument) {
 }

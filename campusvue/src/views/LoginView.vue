@@ -18,6 +18,7 @@
           {{ loading ? '正在登录…' : '登录' }}
         </button>
       </form>
+      <router-link class="link" :to="{ name: 'register' }">没有账号？注册新用户</router-link>
       <p v-if="feedback.message" :class="['feedback', feedback.type]">
         {{ feedback.message }}
       </p>
@@ -35,6 +36,11 @@ const username = ref('');
 const password = ref('');
 const loading = ref(false);
 const feedback = reactive({ message: '', type: 'info' });
+
+const presetUsername = router.currentRoute.value.query.username;
+if (typeof presetUsername === 'string' && presetUsername) {
+  username.value = presetUsername;
+}
 
 function showFeedback(message, type = 'info') {
   feedback.message = message;
@@ -189,5 +195,11 @@ button.primary:not(:disabled):hover {
 .feedback.error {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.link {
+  text-align: center;
+  color: #1d4ed8;
+  font-size: 14px;
 }
 </style>

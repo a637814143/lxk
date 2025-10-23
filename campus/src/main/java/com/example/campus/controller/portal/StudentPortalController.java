@@ -1,7 +1,7 @@
 package com.example.campus.controller.portal;
 
-import com.example.campus.dto.application.ApplicationResponse;
 import com.example.campus.dto.announcement.AnnouncementResponse;
+import com.example.campus.dto.application.ApplicationResponse;
 import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.message.MessageResponse;
 import com.example.campus.dto.portal.student.StudentApplicationRequest;
@@ -13,9 +13,11 @@ import com.example.campus.dto.student.StudentResponse;
 import com.example.campus.security.UserPrincipal;
 import com.example.campus.service.StudentPortalService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,7 +26,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/portal/student")
@@ -53,6 +57,19 @@ public class StudentPortalController {
     public ResumeResponse createResume(@AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody StudentResumeRequest request) {
         return studentPortalService.createResume(principal.getUserId(), request);
+    }
+
+    @PostMapping(value = "/resumes/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Map<String, String> uploadResumeAttachment(@AuthenticationPrincipal UserPrincipal principal,
+            @RequestPart("file") MultipartFile file) {
+        String path = studentPortalService.uploadAttachment(principal.getUserId(), file);
+        return Map.of("attachment", path);
+    }
+
+    @PostMapping(value = "/resumes/{resumeId}/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResumeResponse updateResumeAttachment(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long resumeId, @RequestPart("file") MultipartFile file) {
+        return studentPortalService.replaceAttachment(principal.getUserId(), resumeId, file);
     }
 
     @PutMapping("/resumes/{resumeId}")

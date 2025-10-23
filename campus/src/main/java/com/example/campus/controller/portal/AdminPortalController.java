@@ -1,7 +1,14 @@
 package com.example.campus.controller.portal;
 
 import com.example.campus.dto.announcement.AnnouncementResponse;
+import com.example.campus.dto.backup.BackupCreateRequest;
+import com.example.campus.dto.backup.BackupResponse;
 import com.example.campus.dto.company.CompanyResponse;
+import com.example.campus.dto.discussion.DiscussionResponse;
+import com.example.campus.dto.discussion.DiscussionReviewRequest;
+import com.example.campus.dto.finance.FinancialTransactionRequest;
+import com.example.campus.dto.finance.FinancialTransactionResponse;
+import com.example.campus.dto.finance.FinancialTransactionStatusRequest;
 import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.portal.admin.AdminDashboardSummary;
 import com.example.campus.dto.portal.admin.AnnouncementPublishRequest;
@@ -54,10 +61,38 @@ public class AdminPortalController {
         return adminPortalService.listPendingJobs();
     }
 
+    @GetMapping("/discussions/pending")
+    public List<DiscussionResponse> listPendingDiscussions() {
+        return adminPortalService.listPendingDiscussions();
+    }
+
+    @PostMapping("/discussions/{discussionId}/review")
+    public DiscussionResponse reviewDiscussion(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long discussionId, @Valid @RequestBody DiscussionReviewRequest request) {
+        return adminPortalService.reviewDiscussion(principal.getUserId(), discussionId, request);
+    }
+
     @PatchMapping("/jobs/{jobId}/review")
     public JobResponse reviewJob(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long jobId,
             @Valid @RequestBody JobAuditRequest request) {
         return adminPortalService.reviewJob(principal.getUserId(), jobId, request);
+    }
+
+    @GetMapping("/transactions")
+    public List<FinancialTransactionResponse> listTransactions() {
+        return adminPortalService.listTransactions();
+    }
+
+    @PostMapping("/transactions")
+    public FinancialTransactionResponse createTransaction(@AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody FinancialTransactionRequest request) {
+        return adminPortalService.createTransaction(principal.getUserId(), request);
+    }
+
+    @PatchMapping("/transactions/{transactionId}")
+    public FinancialTransactionResponse updateTransaction(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long transactionId, @Valid @RequestBody FinancialTransactionStatusRequest request) {
+        return adminPortalService.updateTransactionStatus(principal.getUserId(), transactionId, request);
     }
 
     @GetMapping("/users")
@@ -90,5 +125,16 @@ public class AdminPortalController {
     @DeleteMapping("/announcements/{announcementId}")
     public void deleteAnnouncement(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long announcementId) {
         adminPortalService.deleteAnnouncement(principal.getUserId(), announcementId);
+    }
+
+    @GetMapping("/backups")
+    public List<BackupResponse> listBackups() {
+        return adminPortalService.listBackups();
+    }
+
+    @PostMapping("/backups")
+    public BackupResponse createBackup(@AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody BackupCreateRequest request) {
+        return adminPortalService.createBackup(principal.getUserId(), request);
     }
 }

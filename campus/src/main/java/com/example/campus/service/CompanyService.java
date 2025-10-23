@@ -56,6 +56,7 @@ public class CompanyService {
                 .website(request.website())
                 .description(request.description())
                 .logo(request.logo())
+                .licenseDocument(request.licenseDocument())
                 .auditStatus(normalizeStatus(request.auditStatus()))
                 .auditReason(request.auditReason())
                 .build();
@@ -86,6 +87,9 @@ public class CompanyService {
         }
         if (request.logo() != null) {
             company.setLogo(request.logo());
+        }
+        if (request.licenseDocument() != null) {
+            company.setLicenseDocument(request.licenseDocument());
         }
         if (request.auditStatus() != null) {
             company.setAuditStatus(normalizeStatus(request.auditStatus()));
@@ -127,6 +131,7 @@ public class CompanyService {
                 company.getWebsite(),
                 company.getDescription(),
                 company.getLogo(),
+                company.getLicenseDocument(),
                 company.getAuditStatus(),
                 company.getAuditReason());
     }
