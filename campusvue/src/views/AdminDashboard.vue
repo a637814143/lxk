@@ -31,7 +31,7 @@
     <section class="card">
       <div class="card__title">
         <h2>企业审核</h2>
-        <button class="outline" @click="loadPendingCompanies">刷新</button>
+        <button class="outline" @click="loadPendingCompanies(true)">刷新</button>
       </div>
       <table v-if="pendingCompanies.length" class="table">
         <thead><tr><th>企业名称</th><th>行业</th><th>状态</th><th>操作</th></tr></thead>
@@ -53,7 +53,7 @@
     <section class="card">
       <div class="card__title">
         <h2>职位审核</h2>
-        <button class="outline" @click="loadPendingJobs">刷新</button>
+        <button class="outline" @click="loadPendingJobs(true)">刷新</button>
       </div>
       <table v-if="pendingJobs.length" class="table">
         <thead><tr><th>职位名称</th><th>企业ID</th><th>状态</th><th>操作</th></tr></thead>
@@ -75,7 +75,7 @@
     <section class="card">
       <div class="card__title">
         <h2>讨论审核</h2>
-        <button class="outline" @click="loadPendingDiscussions">刷新</button>
+        <button class="outline" @click="loadPendingDiscussions(true)">刷新</button>
       </div>
       <ul class="list" v-if="pendingDiscussions.length">
         <li v-for="item in pendingDiscussions" :key="item.id" class="list__item">
@@ -97,7 +97,7 @@
     <section class="card">
       <div class="card__title">
         <h2>用户管理</h2>
-        <button class="outline" @click="loadUsers">刷新</button>
+        <button class="outline" @click="loadUsers(true)">刷新</button>
       </div>
       <table v-if="users.length" class="table">
         <thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>状态</th><th>操作</th></tr></thead>
@@ -121,7 +121,7 @@
     <section class="card">
       <div class="card__title">
         <h2>财务记录管理</h2>
-        <button class="outline" @click="loadTransactions">刷新</button>
+        <button class="outline" @click="loadTransactions(true)">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="createTransaction">
         <label>企业ID<input v-model="transactionForm.companyId" type="number" min="1" required /></label>
@@ -161,7 +161,7 @@
     <section class="card">
       <div class="card__title">
         <h2>公告管理</h2>
-        <button class="outline" @click="loadAnnouncements">刷新</button>
+        <button class="outline" @click="loadAnnouncements(true)">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="saveAnnouncement">
         <label>标题<input v-model="announcementForm.title" required /></label>
@@ -197,7 +197,7 @@
     <section class="card">
       <div class="card__title">
         <h2>数据备份</h2>
-        <button class="outline" @click="loadBackups">刷新</button>
+        <button class="outline" @click="loadBackups(true)">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="triggerBackup">
         <label>备份类型<input v-model="backupForm.backupType" placeholder="例如 daily/system" /></label>
@@ -233,6 +233,7 @@
 import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { clearAuthInfo, getAuthInfo, get, patch, post, put, del } from '../api/http';
+import { notifyError, notifyInfo, notifySuccess } from '../composables/useNotifier';
 
 const router = useRouter();
 const authInfo = getAuthInfo();
@@ -276,6 +277,13 @@ function showFeedback(message, type = 'info') {
     setTimeout(() => {
       feedback.message = '';
     }, 4000);
+    if (type === 'success') {
+      notifySuccess(message);
+    } else if (type === 'error') {
+      notifyError(message);
+    } else if (type === 'info') {
+      notifyInfo(message);
+    }
   }
 }
 
@@ -292,9 +300,12 @@ async function loadSummary() {
   }
 }
 
-async function loadPendingCompanies() {
+async function loadPendingCompanies(showToast = false) {
   try {
     pendingCompanies.value = await get('/portal/admin/companies/pending');
+    if (showToast) {
+      showFeedback('待审核企业列表已刷新', 'success');
+    }
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -311,9 +322,12 @@ async function reviewCompany(companyId, status) {
   }
 }
 
-async function loadPendingJobs() {
+async function loadPendingJobs(showToast = false) {
   try {
     pendingJobs.value = await get('/portal/admin/jobs/pending');
+    if (showToast) {
+      showFeedback('待审核职位列表已刷新', 'success');
+    }
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -330,9 +344,12 @@ async function reviewJob(jobId, status) {
   }
 }
 
-async function loadUsers() {
+async function loadUsers(showToast = false) {
   try {
     users.value = await get('/portal/admin/users');
+    if (showToast) {
+      showFeedback('用户列表已刷新', 'success');
+    }
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -349,9 +366,12 @@ async function toggleUserStatus(user) {
   }
 }
 
-async function loadTransactions() {
+async function loadTransactions(showToast = false) {
   try {
     transactions.value = await get('/portal/admin/transactions');
+    if (showToast) {
+      showFeedback('财务记录已刷新', 'success');
+    }
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -402,9 +422,12 @@ async function updateTransactionStatus(transaction, status) {
   }
 }
 
-async function loadPendingDiscussions() {
+async function loadPendingDiscussions(showToast = false) {
   try {
     pendingDiscussions.value = await get('/portal/admin/discussions/pending');
+    if (showToast) {
+      showFeedback('待审核讨论已刷新', 'success');
+    }
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -421,9 +444,12 @@ async function handleDiscussionReview(discussion, status) {
   }
 }
 
-async function loadBackups() {
+async function loadBackups(showToast = false) {
   try {
     backups.value = await get('/portal/admin/backups');
+    if (showToast) {
+      showFeedback('备份列表已刷新', 'success');
+    }
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -440,9 +466,12 @@ async function triggerBackup() {
   }
 }
 
-async function loadAnnouncements() {
+async function loadAnnouncements(showToast = false) {
   try {
     announcements.value = await get('/portal/admin/announcements');
+    if (showToast) {
+      showFeedback('公告列表已刷新', 'success');
+    }
   } catch (error) {
     showFeedback(error.message, 'error');
   }

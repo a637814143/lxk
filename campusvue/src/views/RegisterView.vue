@@ -66,6 +66,7 @@
 import { computed, reactive, ref } from 'vue';
 import { useRouter, RouterLink } from 'vue-router';
 import { post } from '../api/http';
+import { notifyError, notifyInfo, notifySuccess } from '../composables/useNotifier';
 
 const router = useRouter();
 
@@ -89,6 +90,16 @@ const requiresCompanyName = computed(() => form.role === 'COMPANY');
 function showFeedback(message, type = 'info') {
   feedback.message = message;
   feedback.type = type;
+  if (!message) {
+    return;
+  }
+  if (type === 'success') {
+    notifySuccess(message);
+  } else if (type === 'error') {
+    notifyError(message);
+  } else if (type === 'info') {
+    notifyInfo(message);
+  }
 }
 
 function validateForm() {

@@ -28,7 +28,7 @@
     <section class="card">
       <div class="card__title">
         <h2>我的简历</h2>
-        <button class="outline" @click="refreshResumes">刷新</button>
+        <button class="outline" @click="refreshResumes(true)">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="createResume">
         <label class="full">简历标题<input v-model="resumeForm.title" required /></label>
@@ -68,7 +68,7 @@
     <section class="card">
       <div class="card__title">
         <h2>职位浏览</h2>
-        <button class="outline" @click="searchJobs">搜索</button>
+        <button class="outline" @click="searchJobs(true)">搜索</button>
       </div>
       <form class="filters" @submit.prevent="searchJobs">
         <input v-model="jobFilters.keyword" placeholder="关键字" />
@@ -187,6 +187,7 @@
 import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { clearAuthInfo, del, get, getAuthInfo, post, put, upload } from '../api/http';
+import { notifyError, notifyInfo, notifySuccess } from '../composables/useNotifier';
 
 const router = useRouter();
 const authInfo = getAuthInfo();
@@ -241,6 +242,13 @@ function showFeedback(message, type = 'info') {
     setTimeout(() => {
       feedback.message = '';
     }, 4000);
+    if (type === 'success') {
+      notifySuccess(message);
+    } else if (type === 'error') {
+      notifyError(message);
+    } else if (type === 'info') {
+      notifyInfo(message);
+    }
   }
 }
 
@@ -293,11 +301,14 @@ async function saveProfile() {
   }
 }
 
-async function refreshResumes() {
+async function refreshResumes(showToast = false) {
   try {
     resumes.value = await get('/portal/student/resumes');
     if (!selectedResumeId.value && resumes.value.length) {
       selectedResumeId.value = resumes.value[0].id;
+    }
+    if (showToast) {
+      showFeedback('简历列表已刷新', 'success');
     }
   } catch (error) {
     showFeedback(error.message, 'error');
@@ -386,7 +397,7 @@ function buildQuery(params) {
   return query ? `?${query}` : '';
 }
 
-async function searchJobs() {
+async function searchJobs(showToast = false) {
   try {
     const query = buildQuery({
       keyword: jobFilters.keyword,
@@ -396,6 +407,9 @@ async function searchJobs() {
       salaryRange: jobFilters.salaryRange
     });
     jobs.value = await get(`/portal/student/jobs${query}`);
+    if (showToast) {
+      showFeedback('职位列表已更新', 'success');
+    }
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -438,6 +452,7 @@ async function markMessageRead(messageId) {
   try {
     const updated = await post(`/portal/student/messages/${messageId}/read`);
     messages.value = messages.value.map(msg => (msg.id === updated.id ? updated : msg));
+    showFeedback('消息已标记为已读', 'success');
   } catch (error) {
     showFeedback(error.message, 'error');
   }

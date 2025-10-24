@@ -32,6 +32,7 @@
 import { reactive, ref } from 'vue';
 import { useRouter, useRoute, RouterLink } from 'vue-router';
 import { post, setAuthInfo, clearAuthInfo } from '../api/http';
+import { notifyError, notifyInfo, notifySuccess } from '../composables/useNotifier';
 
 const router = useRouter();
 const route = useRoute();
@@ -52,13 +53,22 @@ if (presetUsername) {
 }
 
 if (route.query.registered) {
-  feedback.message = '注册成功，请使用新账号登录';
-  feedback.type = 'success';
+  showFeedback('注册成功，请使用新账号登录', 'success');
 }
 
 function showFeedback(message, type = 'info') {
   feedback.message = message;
   feedback.type = type;
+  if (!message) {
+    return;
+  }
+  if (type === 'success') {
+    notifySuccess(message);
+  } else if (type === 'error') {
+    notifyError(message);
+  } else if (type === 'info') {
+    notifyInfo(message);
+  }
 }
 
 async function handleSubmit() {

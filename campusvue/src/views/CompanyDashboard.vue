@@ -38,7 +38,7 @@
     <section class="card">
       <div class="card__title">
         <h2>职位管理</h2>
-        <button class="outline" @click="loadJobs">刷新</button>
+        <button class="outline" @click="loadJobs(true)">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="createJob">
         <label class="full">职位名称<input v-model="jobForm.jobTitle" required /></label>
@@ -80,7 +80,7 @@
     <section class="card">
       <div class="card__title">
         <h2>财务往来</h2>
-        <button class="outline" @click="loadTransactions">刷新</button>
+        <button class="outline" @click="loadTransactions(true)">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="submitTransaction">
         <label>金额（元）<input v-model="transactionForm.amount" type="number" min="0" step="0.01" required /></label>
@@ -114,7 +114,7 @@
     <section class="card">
       <div class="card__title">
         <h2>简历投递</h2>
-        <button class="outline" @click="loadApplications">刷新</button>
+        <button class="outline" @click="loadApplications(true)">刷新</button>
       </div>
       <table v-if="applications.length" class="table">
         <thead>
@@ -145,7 +145,7 @@
     <section class="card">
       <div class="card__title">
         <h2>企业讨论区</h2>
-        <button class="outline" @click="loadDiscussions">刷新</button>
+        <button class="outline" @click="loadDiscussions(true)">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="createDiscussion">
         <label class="full">讨论主题<input v-model="discussionForm.title" required /></label>
@@ -202,6 +202,7 @@
 import { onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { clearAuthInfo, getAuthInfo, get, post, put, patch, upload } from '../api/http';
+import { notifyError, notifyInfo, notifySuccess } from '../composables/useNotifier';
 
 const router = useRouter();
 const authInfo = getAuthInfo();
@@ -268,6 +269,13 @@ function showFeedback(message, type = 'info') {
     setTimeout(() => {
       feedback.message = '';
     }, 4000);
+    if (type === 'success') {
+      notifySuccess(message);
+    } else if (type === 'error') {
+      notifyError(message);
+    } else if (type === 'info') {
+      notifyInfo(message);
+    }
   }
 }
 
@@ -323,9 +331,12 @@ async function uploadLicense() {
   }
 }
 
-async function loadJobs() {
+async function loadJobs(showToast = false) {
   try {
     jobs.value = await get('/portal/company/jobs');
+    if (showToast) {
+      showFeedback('职位列表已刷新', 'success');
+    }
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -379,9 +390,12 @@ async function changeJobStatus(job) {
   }
 }
 
-async function loadApplications() {
+async function loadApplications(showToast = false) {
   try {
     applications.value = await get('/portal/company/applications');
+    if (showToast) {
+      showFeedback('投递列表已刷新', 'success');
+    }
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -432,9 +446,12 @@ async function sendMessage() {
   }
 }
 
-async function loadTransactions() {
+async function loadTransactions(showToast = false) {
   try {
     transactions.value = await get('/portal/company/transactions');
+    if (showToast) {
+      showFeedback('财务往来已刷新', 'success');
+    }
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -469,9 +486,12 @@ async function submitTransaction() {
   }
 }
 
-async function loadDiscussions() {
+async function loadDiscussions(showToast = false) {
   try {
     discussions.value = await get('/portal/company/discussions');
+    if (showToast) {
+      showFeedback('讨论区内容已刷新', 'success');
+    }
   } catch (error) {
     showFeedback(error.message, 'error');
   }
