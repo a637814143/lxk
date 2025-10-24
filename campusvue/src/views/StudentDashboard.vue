@@ -436,6 +436,7 @@ async function loadApplications() {
   try {
     applications.value = await get('/portal/student/applications');
   } catch (error) {
+    applications.value = [];
     showFeedback(error.message, 'error');
   }
 }

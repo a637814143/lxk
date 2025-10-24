@@ -82,7 +82,8 @@ public class ApplicationService {
         if (request.status() != null) {
             application.setStatus(normalizeStatus(request.status()));
         }
-        return toResponse(application);
+        TsukiApplication saved = applicationRepository.save(application);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -117,12 +118,16 @@ public class ApplicationService {
     }
 
     private ApplicationResponse toResponse(TsukiApplication application) {
+        Long studentId = application.getStudent() != null ? application.getStudent().getId() : null;
+        Long resumeId = application.getResume() != null ? application.getResume().getId() : null;
+        Long jobId = application.getJob() != null ? application.getJob().getId() : null;
+        Long companyId = application.getCompany() != null ? application.getCompany().getId() : null;
         return new ApplicationResponse(
                 application.getId(),
-                application.getStudent().getId(),
-                application.getResume().getId(),
-                application.getJob().getId(),
-                application.getCompany().getId(),
+                studentId,
+                resumeId,
+                jobId,
+                companyId,
                 application.getStatus(),
                 application.getApplyTime(),
                 application.getUpdateTime());
