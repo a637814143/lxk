@@ -232,14 +232,26 @@
             <PieChart :data="applicationChartData" title="投递状态分布" />
             <table v-if="applications.length" class="table">
               <thead>
-                <tr><th>职位</th><th>企业</th><th>状态</th><th>投递时间</th></tr>
+                <tr><th>职位</th><th>企业</th><th>状态</th><th>企业反馈</th><th>更新时间</th><th>附件</th></tr>
               </thead>
               <tbody>
                 <tr v-for="app in applications" :key="app.id">
-                  <td>{{ resolveJobTitle(app.jobId) }}</td>
-                  <td>{{ resolveCompanyName(app.companyId) }}</td>
+                  <td>{{ app.jobTitle || resolveJobTitle(app.jobId) }}</td>
+                  <td>{{ app.companyName || resolveCompanyName(app.companyId) }}</td>
                   <td>{{ app.status }}</td>
-                  <td>{{ formatDate(app.applyTime) }}</td>
+                  <td>{{ app.decisionNote ? app.decisionNote : app.status === '拒绝' ? '企业已拒绝' : '等待企业处理' }}</td>
+                  <td>{{ formatDate(app.updateTime || app.applyTime) }}</td>
+                  <td>
+                    <a
+                      v-if="app.resume?.attachment"
+                      :href="app.resume.attachment"
+                      target="_blank"
+                      rel="noopener"
+                    >
+                      查看附件
+                    </a>
+                    <span v-else class="muted">-</span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -689,12 +701,20 @@ function resetDiscussion() {
 }
 
 function resolveJobTitle(jobId) {
+  const direct = applications.value.find(item => item.jobId === jobId && item.jobTitle);
+  if (direct?.jobTitle) {
+    return direct.jobTitle;
+  }
   const job = jobs.value.find(item => item.id === jobId);
   return job ? job.jobTitle : '职位 #' + jobId;
 }
 
 function resolveCompanyName(companyId) {
   if (!companyId) return '企业';
+  const direct = applications.value.find(item => item.companyId === companyId && item.companyName);
+  if (direct?.companyName) {
+    return direct.companyName;
+  }
   const job = jobs.value.find(item => item.companyId === companyId);
   return job?.companyName ?? `企业 #${companyId}`;
 }

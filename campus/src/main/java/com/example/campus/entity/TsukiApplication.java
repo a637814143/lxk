@@ -49,6 +49,9 @@ public class TsukiApplication {
     @Column(name = "status", length = 20)
     private String status;
 
+    @Column(name = "decision_note", length = 500)
+    private String decisionNote;
+
     @Column(name = "apply_time", updatable = false, insertable = false)
     private LocalDateTime applyTime;
 

@@ -82,6 +82,9 @@ public class ApplicationService {
         if (request.status() != null) {
             application.setStatus(normalizeStatus(request.status()));
         }
+        if (request.decisionNote() != null) {
+            application.setDecisionNote(request.decisionNote().trim());
+        }
         TsukiApplication saved = applicationRepository.save(application);
         return toResponse(saved);
     }
@@ -122,6 +125,29 @@ public class ApplicationService {
         Long resumeId = application.getResume() != null ? application.getResume().getId() : null;
         Long jobId = application.getJob() != null ? application.getJob().getId() : null;
         Long companyId = application.getCompany() != null ? application.getCompany().getId() : null;
+        ApplicationResponse.ResumeSnapshot resumeSnapshot = null;
+        if (application.getResume() != null) {
+            TsukiResume resume = application.getResume();
+            resumeSnapshot = new ApplicationResponse.ResumeSnapshot(
+                    resume.getTitle(),
+                    resume.getEducationExperience(),
+                    resume.getWorkExperience(),
+                    resume.getSkills(),
+                    resume.getSelfEvaluation(),
+                    resume.getAttachment());
+        }
+        String studentName = null;
+        if (application.getStudent() != null) {
+            studentName = application.getStudent().getName();
+        }
+        String companyName = null;
+        if (application.getCompany() != null) {
+            companyName = application.getCompany().getCompanyName();
+        }
+        String jobTitle = null;
+        if (application.getJob() != null) {
+            jobTitle = application.getJob().getJobTitle();
+        }
         return new ApplicationResponse(
                 application.getId(),
                 studentId,
@@ -130,7 +156,12 @@ public class ApplicationService {
                 companyId,
                 application.getStatus(),
                 application.getApplyTime(),
-                application.getUpdateTime());
+                application.getUpdateTime(),
+                studentName,
+                companyName,
+                jobTitle,
+                resumeSnapshot,
+                application.getDecisionNote());
     }
 
     private String normalizeStatus(String status) {

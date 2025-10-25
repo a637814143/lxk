@@ -10,5 +10,19 @@ public record ApplicationResponse(
         Long companyId,
         String status,
         LocalDateTime applyTime,
-        LocalDateTime updateTime) {
+        LocalDateTime updateTime,
+        String studentName,
+        String companyName,
+        String jobTitle,
+        ResumeSnapshot resume,
+        String decisionNote) {
+
+    public record ResumeSnapshot(
+            String title,
+            String educationExperience,
+            String workExperience,
+            String skills,
+            String selfEvaluation,
+            String attachment) {
+    }
 }

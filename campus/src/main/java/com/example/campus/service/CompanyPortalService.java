@@ -151,11 +151,41 @@ public class CompanyPortalService {
         if (!application.getCompany().getId().equals(company.getId())) {
             throw new IllegalArgumentException("无法操作其他企业的投递记录");
         }
-        ApplicationResponse response = applicationService.update(applicationId, new ApplicationUpdateRequest(request.status()));
-        if (request.messageTitle() != null && !request.messageTitle().isBlank()
-                && request.messageContent() != null && !request.messageContent().isBlank()) {
+        String normalizedStatus = request.status();
+        String decisionNote = request.decisionNote();
+        if (decisionNote != null) {
+            decisionNote = decisionNote.trim();
+        }
+        if ("拒绝".equals(normalizedStatus) && (decisionNote == null || decisionNote.isBlank())) {
+            throw new IllegalArgumentException("请填写拒绝原因");
+        }
+        ApplicationResponse response = applicationService
+                .update(applicationId, new ApplicationUpdateRequest(normalizedStatus, decisionNote));
+        boolean notifyStudent = request.notifyStudent() == null || Boolean.TRUE.equals(request.notifyStudent());
+        if (notifyStudent) {
+            String title;
+            String content;
+            if ("面试中".equals(normalizedStatus)) {
+                title = "面试邀请通知";
+                content = decisionNote != null && !decisionNote.isBlank()
+                        ? decisionNote
+                        : "您好，我们已查看您的简历，邀请您进入面试环节，请留意后续安排。";
+            } else if ("拒绝".equals(normalizedStatus)) {
+                title = "简历评估结果";
+                content = decisionNote;
+            } else if ("录用".equals(normalizedStatus)) {
+                title = "录用通知";
+                content = decisionNote != null && !decisionNote.isBlank()
+                        ? decisionNote
+                        : "恭喜您顺利通过，后续将有专人与您联系。";
+            } else {
+                title = "投递状态更新";
+                content = decisionNote != null && !decisionNote.isBlank()
+                        ? decisionNote
+                        : "您好，您的投递状态已更新为：" + normalizedStatus + "。";
+            }
             messageService.create(new MessageCreateRequest(company.getUser().getId(),
-                    application.getStudent().getUser().getId(), request.messageTitle(), request.messageContent(), null));
+                    application.getStudent().getUser().getId(), title, content, null));
         }
         return response;
     }

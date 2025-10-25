@@ -142,27 +142,22 @@
             <h2>简历投递</h2>
             <button class="outline" @click="loadApplications(true)">刷新</button>
           </div>
-          <div style="display: grid; gap: 18px;">
+          <div class="grid-stack">
             <PieChart :data="applicationChartData" title="投递状态分布" />
             <table v-if="applications.length" class="table">
               <thead>
-                <tr><th>职位</th><th>学生ID</th><th>状态</th><th>更新时间</th><th>操作</th></tr>
+                <tr><th>职位</th><th>学生</th><th>状态</th><th>更新时间</th><th>操作</th></tr>
               </thead>
               <tbody>
-                <tr v-for="app in applications" :key="app.id">
-                  <td>{{ resolveJobTitle(app.jobId) }}</td>
-                  <td>{{ app.studentId }}</td>
+                <tr v-for="app in applications" :key="app.id" :class="{ active: app.id === selectedApplicationId }">
+                  <td>{{ app.jobTitle || resolveJobTitle(app.jobId) }}</td>
+                  <td>{{ app.studentName || `学生 #${app.studentId}` }}</td>
                   <td>{{ app.status }}</td>
                   <td>{{ formatDate(app.updateTime) }}</td>
                   <td class="actions">
-                    <select v-model="app.status" @change="updateApplicationStatus(app)">
-                      <option value="待查看">待查看</option>
-                      <option value="已查看">已查看</option>
-                      <option value="面试中">面试中</option>
-                      <option value="录用">录用</option>
-                      <option value="拒绝">拒绝</option>
-                    </select>
-                    <button class="outline" @click="openMessageDialog(app)">发送消息</button>
+                    <button class="outline" type="button" @click="viewApplication(app)">
+                      {{ app.id === selectedApplicationId ? '已展开' : '查看详情' }}
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -170,16 +165,99 @@
             <p v-else class="muted">暂无投递</p>
           </div>
 
-          <section v-if="messageDialog.visible" class="card" style="margin-top: 12px;">
-            <h2>向学生发送消息</h2>
-            <form class="form-grid" @submit.prevent="sendMessage">
-              <label>标题<input v-model="messageDialog.form.title" required /></label>
-              <label class="full">内容<textarea v-model="messageDialog.form.content" required></textarea></label>
-              <div class="full actions">
-                <button class="primary" type="submit">发送</button>
-                <button class="outline" type="button" @click="closeMessageDialog">取消</button>
+          <section v-if="selectedApplication" class="card secondary-card">
+            <div class="application-detail__header">
+              <div>
+                <h3>{{ selectedApplication.resume?.title || '未命名简历' }}</h3>
+                <p class="muted">
+                  投递职位：{{ selectedApplication.jobTitle || resolveJobTitle(selectedApplication.jobId) }} · 当前状态：{{ selectedApplication.status }}
+                </p>
+                <p class="muted">
+                  学生：{{ selectedApplication.studentName || `学生 #${selectedApplication.studentId}` }}
+                </p>
               </div>
-            </form>
+              <button class="outline" type="button" @click="clearSelectedApplication">收起</button>
+            </div>
+
+            <div class="application-detail__content">
+              <article class="resume-pane">
+                <h4>简历概要</h4>
+                <dl>
+                  <div>
+                    <dt>教育经历</dt>
+                    <dd>
+                      <ul>
+                        <li v-for="(item, index) in splitLines(selectedApplication.resume?.educationExperience)" :key="`edu-${index}`">
+                          {{ item }}
+                        </li>
+                      </ul>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>实习 / 项目</dt>
+                    <dd>
+                      <ul>
+                        <li v-for="(item, index) in splitLines(selectedApplication.resume?.workExperience)" :key="`work-${index}`">
+                          {{ item }}
+                        </li>
+                      </ul>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>技能特长</dt>
+                    <dd>
+                      <ul class="tag-list">
+                        <li v-for="(item, index) in splitLines(selectedApplication.resume?.skills)" :key="`skill-${index}`">
+                          {{ item }}
+                        </li>
+                      </ul>
+                    </dd>
+                  </div>
+                  <div v-if="selectedApplication.resume?.selfEvaluation">
+                    <dt>自我评价</dt>
+                    <dd>{{ selectedApplication.resume.selfEvaluation }}</dd>
+                  </div>
+                  <div v-if="selectedApplication.resume?.attachment" class="attachment-row">
+                    <dt>附件下载</dt>
+                    <dd>
+                      <a :href="selectedApplication.resume.attachment" target="_blank" rel="noopener">
+                        点击查看附件简历
+                      </a>
+                    </dd>
+                  </div>
+                </dl>
+              </article>
+
+              <article class="decision-pane">
+                <h4>处理结果</h4>
+                <p class="muted">选择后提交即可同步学生端，并自动推送站内消息。</p>
+                <form class="decision-form" @submit.prevent="submitDecision">
+                  <div class="decision-options">
+                    <label><input type="radio" value="面试中" v-model="decisionForm.status" /> 邀约面试</label>
+                    <label><input type="radio" value="录用" v-model="decisionForm.status" /> 录用通过</label>
+                    <label><input type="radio" value="拒绝" v-model="decisionForm.status" /> 投递不通过</label>
+                  </div>
+                  <label class="full">
+                    补充说明
+                    <textarea
+                      v-model="decisionForm.note"
+                      :placeholder="decisionForm.status === '拒绝' ? '请填写具体拒绝原因，学生端会看到该内容' : '可填写面试安排或录用说明'"
+                      rows="4"
+                    ></textarea>
+                  </label>
+                  <label class="toggle">
+                    <input type="checkbox" v-model="decisionForm.notifyStudent" /> 同步发送站内消息
+                  </label>
+                  <div class="form-actions">
+                    <button class="primary" type="submit">提交结果</button>
+                    <button class="outline" type="button" @click="resetDecisionForm">重置</button>
+                  </div>
+                  <p v-if="selectedApplication.decisionNote && decisionForm.note !== selectedApplication.decisionNote" class="muted" style="margin-top: 8px;">
+                    上次反馈：{{ selectedApplication.decisionNote }}
+                  </p>
+                </form>
+              </article>
+            </div>
           </section>
         </section>
 
@@ -274,15 +352,15 @@ const applications = ref([]);
 const announcements = ref([]);
 const transactions = ref([]);
 const discussions = ref([]);
+const selectedApplicationId = ref(null);
+const decisionForm = reactive({
+  status: '面试中',
+  note: '',
+  notifyStudent: true
+});
 
-const messageDialog = reactive({
-  visible: false,
-  applicationId: null,
-  status: '',
-  form: {
-    title: '',
-    content: ''
-  }
+const selectedApplication = computed(() => {
+  return applications.value.find(item => item.id === selectedApplicationId.value) || null;
 });
 
 const transactionForm = reactive({
@@ -459,7 +537,12 @@ async function changeJobStatus(job) {
 
 async function loadApplications(showToast = false) {
   try {
+    const previousId = selectedApplicationId.value;
     applications.value = await get('/portal/company/applications');
+    if (previousId) {
+      const stillExists = applications.value.some(item => item.id === previousId);
+      selectedApplicationId.value = stillExists ? previousId : null;
+    }
     if (showToast) {
       showFeedback('投递列表已刷新', 'success');
     }
@@ -468,46 +551,54 @@ async function loadApplications(showToast = false) {
   }
 }
 
-async function updateApplicationStatus(app) {
-  try {
-    const updated = await patch(`/portal/company/applications/${app.id}`, { status: app.status });
-    Object.assign(app, updated);
-    showFeedback('投递状态已更新', 'success');
-  } catch (error) {
-    showFeedback(error.message, 'error');
+function viewApplication(app) {
+  selectedApplicationId.value = app.id;
+}
+
+function clearSelectedApplication() {
+  selectedApplicationId.value = null;
+}
+
+function hydrateDecisionForm(app) {
+  if (!app) {
+    decisionForm.status = '面试中';
+    decisionForm.note = '';
+    decisionForm.notifyStudent = true;
+    return;
   }
+  const supportedStatuses = ['面试中', '录用', '拒绝'];
+  decisionForm.status = supportedStatuses.includes(app.status) ? app.status : '面试中';
+  decisionForm.note = app.decisionNote || '';
+  decisionForm.notifyStudent = true;
 }
 
-function openMessageDialog(app) {
-  messageDialog.visible = true;
-  messageDialog.applicationId = app.id;
-  messageDialog.status = app.status;
-  messageDialog.form.title = `关于职位 #${app.jobId}`;
-  messageDialog.form.content = '';
+function resetDecisionForm() {
+  hydrateDecisionForm(selectedApplication.value);
 }
 
-function closeMessageDialog() {
-  messageDialog.visible = false;
-  messageDialog.applicationId = null;
-  messageDialog.status = '';
-  messageDialog.form.title = '';
-  messageDialog.form.content = '';
-}
-
-async function sendMessage() {
+async function submitDecision() {
+  if (!selectedApplication.value) {
+    showFeedback('请选择需要处理的投递', 'error');
+    return;
+  }
+  const note = decisionForm.note.trim();
+  if (decisionForm.status === '拒绝' && !note) {
+    showFeedback('请填写具体的拒绝原因', 'error');
+    return;
+  }
   try {
-    const app = applications.value.find(item => item.id === messageDialog.applicationId);
-    if (!app) {
-      throw new Error('未找到对应的投递记录');
+    const payload = {
+      status: decisionForm.status,
+      decisionNote: note || null,
+      notifyStudent: decisionForm.notifyStudent
+    };
+    const updated = await patch(`/portal/company/applications/${selectedApplication.value.id}`, payload);
+    const index = applications.value.findIndex(item => item.id === updated.id);
+    if (index !== -1) {
+      applications.value[index] = updated;
     }
-    const updated = await patch(`/portal/company/applications/${messageDialog.applicationId}`, {
-      status: messageDialog.status || app.status,
-      messageTitle: messageDialog.form.title,
-      messageContent: messageDialog.form.content
-    });
-    Object.assign(app, updated);
-    showFeedback('消息发送成功', 'success');
-    closeMessageDialog();
+    selectedApplicationId.value = updated.id;
+    showFeedback('处理结果已同步', 'success');
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -604,7 +695,21 @@ async function loadAnnouncements() {
   }
 }
 
+function splitLines(text) {
+  if (!text) {
+    return [];
+  }
+  return text
+    .split(/\r?\n/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
 function resolveJobTitle(jobId) {
+  const direct = applications.value.find(item => item.jobId === jobId && item.jobTitle);
+  if (direct?.jobTitle) {
+    return direct.jobTitle;
+  }
   const job = jobs.value.find(item => item.id === jobId);
   return job ? job.jobTitle : `职位 #${jobId}`;
 }
@@ -613,6 +718,10 @@ function formatDate(value) {
   if (!value) return '';
   return new Date(value).toLocaleString();
 }
+
+watch(selectedApplication, (app) => {
+  hydrateDecisionForm(app);
+}, { immediate: true });
 
 watch(activeSection, (section) => {
   const loaderMap = {
