@@ -43,7 +43,7 @@ public class CompanyInviteService {
                     created_time DATETIME DEFAULT CURRENT_TIMESTAMP,
                     used_time DATETIME NULL,
                     CONSTRAINT fk_invite_admin FOREIGN KEY (admin_id) REFERENCES tsuki_admin(admin_id) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='企业邀请码表';
                 """);
     }
 

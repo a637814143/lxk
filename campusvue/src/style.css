@@ -22,36 +22,79 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #f1f5f9;
+  background: #eef1f6;
   color: var(--text-main);
 }
 
 .app-shell {
   min-height: 100vh;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
 }
 
 .app-shell__background {
   position: fixed;
   inset: 0;
-  background:
-    radial-gradient(1200px circle at 15% 20%, rgba(37, 99, 235, 0.12), transparent 65%),
-    radial-gradient(900px circle at 85% 15%, rgba(14, 165, 233, 0.12), transparent 70%),
-    linear-gradient(180deg, #f8fbff 0%, #eef2ff 45%, #f8fafc 100%);
+  background: linear-gradient(180deg, rgba(226, 232, 240, 0.7) 0%, rgba(241, 245, 249, 0.95) 100%);
   z-index: -2;
 }
 
-.app-shell__inner {
-  min-height: 100vh;
-  padding: clamp(20px, 4vw, 48px) clamp(16px, 4vw, 40px);
-  max-width: 1440px;
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.app-topbar__inner {
+  width: min(1200px, 100% - 32px);
   margin: 0 auto;
   display: flex;
-  flex-direction: column;
-  gap: clamp(16px, 3vw, 32px);
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+}
+
+.app-logo {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--primary-dark);
+}
+
+.app-logo:hover {
+  text-decoration: none;
+}
+
+.app-topbar__nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.app-topbar__nav a {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 999px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.app-topbar__nav a:hover {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--primary-dark);
+  text-decoration: none;
+}
+
+.app-shell__inner {
+  flex: 1;
+  width: min(1200px, 100% - 48px);
+  margin: clamp(24px, 4vw, 48px) auto 56px;
+  display: block;
 }
 
 a {
@@ -76,30 +119,28 @@ select {
 
 
 .dashboard-layout {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) 1fr;
   gap: clamp(20px, 3vw, 32px);
-  padding: clamp(16px, 2.5vw, 28px);
-  max-width: min(1280px, 100%);
-  margin: 0 auto;
+  width: 100%;
   align-items: flex-start;
+  margin-top: clamp(12px, 2vw, 24px);
 }
 
 .dashboard-sidebar {
-  width: clamp(220px, 20vw, 260px);
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 28px 22px;
-  border-radius: 22px;
+  gap: 18px;
+  padding: 28px 24px;
+  border-radius: 18px;
   background: var(--surface);
   color: var(--text-main);
   box-shadow: var(--shadow-md);
   border: 1px solid var(--surface-border);
   position: sticky;
-  top: clamp(16px, 5vh, 48px);
+  top: 96px;
   height: fit-content;
-  max-height: calc(100vh - clamp(32px, 10vh, 96px));
+  max-height: calc(100vh - 140px);
   overflow-y: auto;
 }
 
@@ -151,7 +192,7 @@ select {
 }
 
 .dashboard-main {
-  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: clamp(18px, 3vw, 28px);
@@ -161,7 +202,7 @@ select {
 .dashboard__header {
   background: var(--surface);
   padding: clamp(20px, 3vw, 28px) clamp(22px, 4vw, 32px);
-  border-radius: 22px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -626,19 +667,39 @@ button.outline:hover {
   color: var(--primary);
 }
 
-@media (max-width: 1220px) {
+@media (max-width: 1100px) {
   .dashboard-layout {
-    flex-direction: column;
-    padding: clamp(16px, 4vw, 28px);
+    grid-template-columns: minmax(200px, 240px) 1fr;
+  }
+}
+
+@media (max-width: 960px) {
+  .app-topbar__inner {
+    width: calc(100% - 32px);
+    padding: 12px 0;
+  }
+
+  .app-topbar__nav {
+    gap: 12px;
+  }
+
+  .app-shell__inner {
+    width: calc(100% - 32px);
+    margin: 24px auto 48px;
+  }
+
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
   }
 
   .dashboard-sidebar {
     position: static;
-    width: 100%;
+    max-height: none;
     flex-direction: row;
     flex-wrap: wrap;
     gap: 12px;
-    border-radius: 24px;
+    padding: 22px 20px;
   }
 
   .sidebar-button {
@@ -648,6 +709,10 @@ button.outline:hover {
 }
 
 @media (max-width: 720px) {
+  .app-topbar__nav {
+    display: none;
+  }
+
   .dashboard__header {
     flex-direction: column;
     align-items: flex-start;
@@ -655,6 +720,7 @@ button.outline:hover {
 
   .dashboard-sidebar {
     gap: 10px;
+    padding: 20px 18px;
   }
 
   .list__item {
