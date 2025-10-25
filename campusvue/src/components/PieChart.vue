@@ -1,15 +1,26 @@
 <template>
   <div class="pie-chart">
-    <canvas ref="canvasRef"></canvas>
-    <p v-if="!hasData" class="pie-chart__empty">暂无数据可展示</p>
+    <div class="pie-chart__canvas" :style="chartStyle">
+      <p v-if="!hasData" class="pie-chart__empty">暂无数据可展示</p>
+    </div>
+
+    <div v-if="hasData" class="pie-chart__details">
+      <ul class="pie-chart__legend">
+        <li v-for="segment in segments" :key="segment.label" class="pie-chart__legend-item">
+          <span class="pie-chart__legend-color" :style="{ background: segment.color }"></span>
+          <div class="pie-chart__legend-details">
+            <span class="pie-chart__legend-label">{{ segment.label }}</span>
+            <span class="pie-chart__legend-value">{{ segment.value }}（{{ segment.percentage.toFixed(1) }}%）</span>
+          </div>
+        </li>
+      </ul>
+      <p class="pie-chart__summary">总计 {{ totalValue }} 条记录</p>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { Chart, ArcElement, Legend, Tooltip } from 'chart.js';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-
-Chart.register(ArcElement, Tooltip, Legend);
+import { computed } from 'vue';
 
 const props = defineProps({
   data: {
@@ -22,107 +33,65 @@ const props = defineProps({
   }
 });
 
-const canvasRef = ref(null);
-const chartInstance = ref(null);
-
-const hasData = computed(() => Object.values(props.data).some((value) => Number(value) > 0));
-
 const palette = ['#2563eb', '#10b981', '#f97316', '#facc15', '#14b8a6', '#ec4899', '#8b5cf6', '#6366f1'];
 
-function renderChart() {
-  if (!canvasRef.value) {
-    return;
+const segments = computed(() => {
+  const entries = Object.entries(props.data ?? {}).filter(([, value]) => Number(value) > 0);
+  const total = entries.reduce((sum, [, value]) => sum + Number(value), 0);
+  let current = 0;
+
+  return entries.map(([label, value], index) => {
+    const numericValue = Number(value);
+    const percentage = total ? (numericValue / total) * 100 : 0;
+    const start = current;
+    current += percentage;
+
+    return {
+      label,
+      value: numericValue,
+      percentage,
+      start,
+      color: palette[index % palette.length]
+    };
+  });
+});
+
+const hasData = computed(() => segments.value.length > 0);
+
+const chartStyle = computed(() => {
+  if (!segments.value.length) {
+    return {};
   }
 
-  const labels = Object.keys(props.data ?? {});
-  const values = Object.values(props.data ?? {});
+  const gradients = segments.value.map((segment) => {
+    const end = segment.start + segment.percentage;
+    return `${segment.color} ${segment.start}% ${end}%`;
+  });
 
-  if (!labels.length || !hasData.value) {
-    if (chartInstance.value) {
-      chartInstance.value.destroy();
-      chartInstance.value = null;
-    }
-    return;
-  }
-
-  const datasetColors = labels.map((_, index) => palette[index % palette.length]);
-
-  const config = {
-    type: 'pie',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: props.title || '数据占比',
-          data: values,
-          backgroundColor: datasetColors,
-          borderWidth: 1,
-          borderColor: '#ffffff'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom'
-        },
-        title: props.title
-          ? {
-              display: true,
-              text: props.title
-            }
-          : undefined,
-        tooltip: {
-          callbacks: {
-            label: (context) => {
-              const total = values.reduce((sum, value) => sum + value, 0);
-              const percentage = total ? ((context.parsed / total) * 100).toFixed(1) : 0;
-              return `${context.label}: ${context.parsed} (${percentage}%)`;
-            }
-          }
-        }
-      }
-    }
+  return {
+    background: `conic-gradient(${gradients.join(', ')})`
   };
-
-  if (chartInstance.value) {
-    chartInstance.value.destroy();
-  }
-
-  chartInstance.value = new Chart(canvasRef.value, config);
-}
-
-onMounted(() => {
-  renderChart();
 });
 
-onBeforeUnmount(() => {
-  if (chartInstance.value) {
-    chartInstance.value.destroy();
-    chartInstance.value = null;
-  }
-});
-
-watch(
-  () => ({ ...props.data }),
-  () => {
-    renderChart();
-  },
-  { deep: true }
+const totalValue = computed(() =>
+  segments.value.reduce((sum, segment) => sum + segment.value, 0)
 );
 </script>
 
 <style scoped>
 .pie-chart {
-  position: relative;
-  min-height: 260px;
+  display: grid;
+  gap: 1.5rem;
 }
 
-.pie-chart canvas {
-  width: 100% !important;
-  height: 100% !important;
+.pie-chart__canvas {
+  position: relative;
+  width: min(320px, 100%);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 12px rgba(255, 255, 255, 0.65);
+  background: var(--surface-muted);
 }
 
 .pie-chart__empty {
@@ -131,8 +100,74 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
+  text-align: center;
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.6);
+  font-size: 0.95rem;
+}
+
+.pie-chart__details {
+  display: grid;
+  gap: 1rem;
+}
+
+.pie-chart__legend {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pie-chart__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
   border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.pie-chart__legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.pie-chart__legend-details {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  font-size: 0.95rem;
+}
+
+.pie-chart__legend-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pie-chart__legend-value {
+  color: var(--text-muted);
+}
+
+.pie-chart__summary {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@media (min-width: 960px) {
+  .pie-chart {
+    grid-template-columns: min(320px, 40%) 1fr;
+    align-items: center;
+  }
+
+  .pie-chart__canvas {
+    margin: 0;
+  }
+
+  .pie-chart__details {
+    gap: 1.25rem;
+  }
 }
 </style>
