@@ -1,211 +1,253 @@
 <template>
-  <div class="dashboard">
-    <header class="dashboard__header">
-      <div>
-        <h1>企业工作台</h1>
-        <p>欢迎回来，{{ authInfo?.roleDisplayName }} {{ authInfo?.username }}</p>
-      </div>
-      <button class="outline" @click="handleLogout">退出登录</button>
-    </header>
-
-    <section class="card">
-      <h2>企业资料</h2>
-      <form class="form-grid" @submit.prevent="saveProfile">
-        <label>企业名称<input v-model="profileForm.companyName" required /></label>
-        <label>营业执照号<input v-model="profileForm.licenseNumber" /></label>
-        <label>行业类别<input v-model="profileForm.industry" /></label>
-        <label>企业地址<input v-model="profileForm.address" /></label>
-        <label>企业官网<input v-model="profileForm.website" /></label>
-        <label class="full">企业简介<textarea v-model="profileForm.description"></textarea></label>
-        <label class="full">Logo 链接<input v-model="profileForm.logo" /></label>
-        <label class="full file-input">
-          营业执照文件
-          <div class="file-row">
-            <input ref="licenseFileInput" type="file" accept=".pdf,.jpg,.jpeg,.png" @change="handleLicenseFile" />
-            <button class="outline" type="button" @click="uploadLicense" :disabled="!licenseFile">上传</button>
-          </div>
-          <small v-if="profileForm.licenseDocument">
-            当前文件：
-            <a :href="profileForm.licenseDocument" target="_blank" rel="noopener">点击查看</a>
-          </small>
-        </label>
-        <div class="full actions">
-          <button class="primary" type="submit">保存资料</button>
-        </div>
-      </form>
-    </section>
-
-    <section class="card">
-      <div class="card__title">
-        <h2>职位管理</h2>
-        <button class="outline" @click="loadJobs(true)">刷新</button>
-      </div>
-      <form class="form-grid" @submit.prevent="createJob">
-        <label class="full">职位名称<input v-model="jobForm.jobTitle" required /></label>
-        <label>职位类型<input v-model="jobForm.jobType" /></label>
-        <label>薪资范围<input v-model="jobForm.salaryRange" /></label>
-        <label>工作地点<input v-model="jobForm.location" /></label>
-        <label class="full">岗位要求<textarea v-model="jobForm.requirement"></textarea></label>
-        <label class="full">职位描述<textarea v-model="jobForm.description"></textarea></label>
-        <div class="full actions">
-          <button class="primary" type="submit">发布职位</button>
-          <button class="outline" type="button" @click="resetJobForm">重置</button>
-        </div>
-      </form>
-      <table v-if="jobs.length" class="table">
-        <thead>
-          <tr><th>职位</th><th>类型</th><th>地点</th><th>状态</th><th>操作</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="job in jobs" :key="job.id">
-            <td>{{ job.jobTitle }}</td>
-            <td>{{ job.jobType || '不限' }}</td>
-            <td>{{ job.location || '不限' }}</td>
-            <td><span class="status">{{ job.status }}</span></td>
-            <td class="actions">
-              <button class="outline" @click="prefillJob(job)">编辑</button>
-              <select v-model="job.status" @change="changeJobStatus(job)">
-                <option value="pending">待审核</option>
-                <option value="approved">已发布</option>
-                <option value="rejected">已拒绝</option>
-                <option value="closed">已关闭</option>
-              </select>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else class="muted">暂未发布职位</p>
-    </section>
-
-    <section class="card">
-      <div class="card__title">
-        <h2>财务往来</h2>
-        <button class="outline" @click="loadTransactions(true)">刷新</button>
-      </div>
-      <form class="form-grid" @submit.prevent="submitTransaction">
-        <label>金额（元）<input v-model="transactionForm.amount" type="number" min="0" step="0.01" required /></label>
-        <label>币种<input v-model="transactionForm.currency" placeholder="默认 CNY" /></label>
-        <label class="full">费用用途<input v-model="transactionForm.type" required placeholder="例如：平台服务费" /></label>
-        <label class="full">业务编号<input v-model="transactionForm.reference" placeholder="可选的内部参考编号" /></label>
-        <label class="full">备注<textarea v-model="transactionForm.notes" placeholder="补充说明（可选）"></textarea></label>
-        <div class="full actions">
-          <button class="primary" type="submit">提交审核</button>
-          <button class="outline" type="button" @click="resetTransactionForm">清空</button>
-        </div>
-      </form>
-      <table v-if="transactions.length" class="table">
-        <thead>
-          <tr><th>用途</th><th>金额</th><th>币种</th><th>状态</th><th>更新时间</th><th>备注</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in transactions" :key="item.id">
-            <td>{{ item.type }}</td>
-            <td>{{ Number(item.amount ?? 0).toFixed(2) }}</td>
-            <td>{{ item.currency || 'CNY' }}</td>
-            <td>{{ item.status }}</td>
-            <td>{{ formatDate(item.updatedAt || item.createdAt) }}</td>
-            <td>{{ item.notes || '-' }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else class="muted">暂无财务记录</p>
-    </section>
-
-    <section class="card">
-      <div class="card__title">
-        <h2>简历投递</h2>
-        <button class="outline" @click="loadApplications(true)">刷新</button>
-      </div>
-      <table v-if="applications.length" class="table">
-        <thead>
-          <tr><th>职位</th><th>学生ID</th><th>状态</th><th>更新时间</th><th>操作</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="app in applications" :key="app.id">
-            <td>{{ resolveJobTitle(app.jobId) }}</td>
-            <td>{{ app.studentId }}</td>
-            <td>{{ app.status }}</td>
-            <td>{{ formatDate(app.updateTime) }}</td>
-            <td class="actions">
-              <select v-model="app.status" @change="updateApplicationStatus(app)">
-                <option value="待查看">待查看</option>
-                <option value="已查看">已查看</option>
-                <option value="面试中">面试中</option>
-                <option value="录用">录用</option>
-                <option value="拒绝">拒绝</option>
-              </select>
-              <button class="outline" @click="openMessageDialog(app)">发送消息</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else class="muted">暂无投递</p>
-    </section>
-
-    <section class="card">
-      <div class="card__title">
-        <h2>企业讨论区</h2>
-        <button class="outline" @click="loadDiscussions(true)">刷新</button>
-      </div>
-      <form class="form-grid" @submit.prevent="createDiscussion">
-        <label class="full">讨论主题<input v-model="discussionForm.title" required /></label>
-        <label class="full">讨论内容<textarea v-model="discussionForm.content" required></textarea></label>
-        <div class="full actions">
-          <button class="primary" type="submit">提交审核</button>
-          <button class="outline" type="button" @click="resetDiscussionForm">清空</button>
-        </div>
-      </form>
-      <ul class="list" v-if="discussions.length">
-        <li v-for="item in discussions" :key="item.id" class="list__item">
+  <div class="dashboard-layout">
+    <aside class="dashboard-sidebar">
+      <h2>企业导航</h2>
+      <p>通过侧边栏切换模块，高效完成招聘与交流。</p>
+      <nav class="sidebar-nav">
+        <button
+          v-for="item in sections"
+          :key="item.key"
+          type="button"
+          :class="['sidebar-button', { active: activeSection === item.key }]"
+          @click="selectSection(item.key)"
+        >
+          <span aria-hidden="true">{{ item.icon }}</span>
           <div>
-            <h3>{{ item.title }}</h3>
-            <p class="muted">状态：{{ translateDiscussionStatus(item.status) }} · 提交时间：{{ formatDate(item.createdAt) }}</p>
-            <p>{{ item.sanitizedContent || item.content }}</p>
-            <p v-if="item.reviewComment" class="muted">审核备注：{{ item.reviewComment }}</p>
+            {{ item.label }}
+            <div v-if="item.description" class="muted" style="font-size: 0.75rem; margin-top: 2px;">
+              {{ item.description }}
+            </div>
           </div>
-        </li>
-      </ul>
-      <p v-else class="muted">暂无讨论内容，欢迎提交与学生交流的话题。</p>
-    </section>
+        </button>
+      </nav>
+    </aside>
 
-    <section v-if="messageDialog.visible" class="card">
-      <h2>向学生发送消息</h2>
-      <form class="form-grid" @submit.prevent="sendMessage">
-        <label>标题<input v-model="messageDialog.form.title" required /></label>
-        <label class="full">内容<textarea v-model="messageDialog.form.content" required></textarea></label>
-        <div class="full actions">
-          <button class="primary" type="submit">发送</button>
-          <button class="outline" type="button" @click="closeMessageDialog">取消</button>
+    <div class="dashboard-main">
+      <header class="dashboard__header">
+        <div>
+          <h1>企业工作台</h1>
+          <p>欢迎回来，{{ authInfo?.roleDisplayName }} {{ authInfo?.username }}</p>
         </div>
-      </form>
-    </section>
+        <button class="outline" @click="handleLogout">退出登录</button>
+      </header>
 
-    <section class="card">
-      <h2>平台公告</h2>
-      <ul class="list" v-if="announcements.length">
-        <li v-for="item in announcements" :key="item.id" class="list__item">
-          <div>
-            <h3>{{ item.title }}</h3>
-            <p class="muted">发布时间：{{ formatDate(item.publishTime) }}</p>
-            <p>{{ item.content }}</p>
+      <div class="dashboard-content">
+        <section v-if="activeSection === 'profile'" class="card">
+          <h2>企业资料</h2>
+          <form class="form-grid" @submit.prevent="saveProfile">
+            <label>企业名称<input v-model="profileForm.companyName" required /></label>
+            <label>营业执照号<input v-model="profileForm.licenseNumber" /></label>
+            <label>行业类别<input v-model="profileForm.industry" /></label>
+            <label>企业地址<input v-model="profileForm.address" /></label>
+            <label>企业官网<input v-model="profileForm.website" /></label>
+            <label class="full">企业简介<textarea v-model="profileForm.description"></textarea></label>
+            <label class="full">Logo 链接<input v-model="profileForm.logo" /></label>
+            <label class="full file-input">
+              营业执照文件
+              <div class="file-row">
+                <input ref="licenseFileInput" type="file" accept=".pdf,.jpg,.jpeg,.png" @change="handleLicenseFile" />
+                <button class="outline" type="button" @click="uploadLicense" :disabled="!licenseFile">上传</button>
+              </div>
+              <small v-if="profileForm.licenseDocument">
+                当前文件：
+                <a :href="profileForm.licenseDocument" target="_blank" rel="noopener">点击查看</a>
+              </small>
+            </label>
+            <div class="full actions">
+              <button class="primary" type="submit">保存资料</button>
+            </div>
+          </form>
+        </section>
+
+        <section v-else-if="activeSection === 'jobs'" class="card">
+          <div class="card__title">
+            <h2>职位管理</h2>
+            <button class="outline" @click="loadJobs(true)">刷新</button>
           </div>
-        </li>
-      </ul>
-      <p v-else class="muted">暂无公告</p>
-    </section>
+          <form class="form-grid" @submit.prevent="createJob">
+            <label class="full">职位名称<input v-model="jobForm.jobTitle" required /></label>
+            <label>职位类型<input v-model="jobForm.jobType" /></label>
+            <label>薪资范围<input v-model="jobForm.salaryRange" /></label>
+            <label>工作地点<input v-model="jobForm.location" /></label>
+            <label class="full">岗位要求<textarea v-model="jobForm.requirement"></textarea></label>
+            <label class="full">职位描述<textarea v-model="jobForm.description"></textarea></label>
+            <div class="full actions">
+              <button class="primary" type="submit">发布职位</button>
+              <button class="outline" type="button" @click="resetJobForm">重置</button>
+            </div>
+          </form>
+          <div style="display: grid; gap: 18px;">
+            <PieChart :data="jobStatusChartData" title="职位状态分布" />
+            <table v-if="jobs.length" class="table">
+              <thead>
+                <tr><th>职位</th><th>类型</th><th>地点</th><th>状态</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="job in jobs" :key="job.id">
+                  <td>{{ job.jobTitle }}</td>
+                  <td>{{ job.jobType || '不限' }}</td>
+                  <td>{{ job.location || '不限' }}</td>
+                  <td><span class="status">{{ job.status }}</span></td>
+                  <td class="actions">
+                    <button class="outline" @click="prefillJob(job)">编辑</button>
+                    <select v-model="job.status" @change="changeJobStatus(job)">
+                      <option value="pending">待审核</option>
+                      <option value="approved">已发布</option>
+                      <option value="rejected">已拒绝</option>
+                      <option value="closed">已关闭</option>
+                    </select>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-else class="muted">暂未发布职位</p>
+          </div>
+        </section>
 
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
+        <section v-else-if="activeSection === 'finance'" class="card">
+          <div class="card__title">
+            <h2>财务往来</h2>
+            <button class="outline" @click="loadTransactions(true)">刷新</button>
+          </div>
+          <form class="form-grid" @submit.prevent="submitTransaction">
+            <label>金额（元）<input v-model="transactionForm.amount" type="number" min="0" step="0.01" required /></label>
+            <label>币种<input v-model="transactionForm.currency" placeholder="默认 CNY" /></label>
+            <label class="full">费用用途<input v-model="transactionForm.type" required placeholder="例如：平台服务费" /></label>
+            <label class="full">业务编号<input v-model="transactionForm.reference" placeholder="可选的内部参考编号" /></label>
+            <label class="full">备注<textarea v-model="transactionForm.notes" placeholder="补充说明（可选）"></textarea></label>
+            <div class="full actions">
+              <button class="primary" type="submit">提交审核</button>
+              <button class="outline" type="button" @click="resetTransactionForm">清空</button>
+            </div>
+          </form>
+          <table v-if="transactions.length" class="table">
+            <thead>
+              <tr><th>用途</th><th>金额</th><th>币种</th><th>状态</th><th>更新时间</th><th>备注</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in transactions" :key="item.id">
+                <td>{{ item.type }}</td>
+                <td>{{ Number(item.amount ?? 0).toFixed(2) }}</td>
+                <td>{{ item.currency || 'CNY' }}</td>
+                <td>{{ item.status }}</td>
+                <td>{{ formatDate(item.updatedAt || item.createdAt) }}</td>
+                <td>{{ item.notes || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p v-else class="muted">暂无财务记录</p>
+        </section>
+
+        <section v-else-if="activeSection === 'applications'" class="card">
+          <div class="card__title">
+            <h2>简历投递</h2>
+            <button class="outline" @click="loadApplications(true)">刷新</button>
+          </div>
+          <div style="display: grid; gap: 18px;">
+            <PieChart :data="applicationChartData" title="投递状态分布" />
+            <table v-if="applications.length" class="table">
+              <thead>
+                <tr><th>职位</th><th>学生ID</th><th>状态</th><th>更新时间</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="app in applications" :key="app.id">
+                  <td>{{ resolveJobTitle(app.jobId) }}</td>
+                  <td>{{ app.studentId }}</td>
+                  <td>{{ app.status }}</td>
+                  <td>{{ formatDate(app.updateTime) }}</td>
+                  <td class="actions">
+                    <select v-model="app.status" @change="updateApplicationStatus(app)">
+                      <option value="待查看">待查看</option>
+                      <option value="已查看">已查看</option>
+                      <option value="面试中">面试中</option>
+                      <option value="录用">录用</option>
+                      <option value="拒绝">拒绝</option>
+                    </select>
+                    <button class="outline" @click="openMessageDialog(app)">发送消息</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-else class="muted">暂无投递</p>
+          </div>
+
+          <section v-if="messageDialog.visible" class="card" style="margin-top: 12px;">
+            <h2>向学生发送消息</h2>
+            <form class="form-grid" @submit.prevent="sendMessage">
+              <label>标题<input v-model="messageDialog.form.title" required /></label>
+              <label class="full">内容<textarea v-model="messageDialog.form.content" required></textarea></label>
+              <div class="full actions">
+                <button class="primary" type="submit">发送</button>
+                <button class="outline" type="button" @click="closeMessageDialog">取消</button>
+              </div>
+            </form>
+          </section>
+        </section>
+
+        <section v-else-if="activeSection === 'discussions'" class="card">
+          <div class="card__title">
+            <h2>企业讨论区</h2>
+            <button class="outline" @click="loadDiscussions(true)">刷新</button>
+          </div>
+          <form class="form-grid" @submit.prevent="createDiscussion">
+            <label class="full">讨论主题<input v-model="discussionForm.title" required /></label>
+            <label class="full">讨论内容<textarea v-model="discussionForm.content" required></textarea></label>
+            <div class="full actions">
+              <button class="primary" type="submit">提交审核</button>
+              <button class="outline" type="button" @click="resetDiscussionForm">清空</button>
+            </div>
+          </form>
+          <ul class="list" v-if="discussions.length">
+            <li v-for="item in discussions" :key="item.id" class="list__item">
+              <div>
+                <h3>{{ item.title }}</h3>
+                <p class="muted">状态：{{ translateDiscussionStatus(item.status) }} · 提交时间：{{ formatDate(item.createdAt) }}</p>
+                <p>{{ item.sanitizedContent || item.content }}</p>
+                <p v-if="item.reviewComment" class="muted">审核备注：{{ item.reviewComment }}</p>
+              </div>
+            </li>
+          </ul>
+          <p v-else class="muted">暂无讨论内容，欢迎提交与学生交流的话题。</p>
+        </section>
+
+        <section v-else-if="activeSection === 'announcements'" class="card">
+          <h2>平台公告</h2>
+          <ul class="list" v-if="announcements.length">
+            <li v-for="item in announcements" :key="item.id" class="list__item">
+              <div>
+                <h3>{{ item.title }}</h3>
+                <p class="muted">发布时间：{{ formatDate(item.publishTime) }}</p>
+                <p>{{ item.content }}</p>
+              </div>
+            </li>
+          </ul>
+          <p v-else class="muted">暂无公告</p>
+        </section>
+
+        <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { clearAuthInfo, getAuthInfo, get, post, put, patch, upload } from '../api/http';
 import { notifyError, notifyInfo, notifySuccess } from '../composables/useNotifier';
+import PieChart from '../components/PieChart.vue';
 
 const router = useRouter();
 const authInfo = getAuthInfo();
+const sections = [
+  { key: 'profile', label: '企业资料', icon: '🏢', description: '完善企业信息与资质' },
+  { key: 'jobs', label: '职位管理', icon: '💼', description: '发布并维护招聘岗位' },
+  { key: 'finance', label: '财务往来', icon: '💳', description: '查看平台费用往来记录' },
+  { key: 'applications', label: '简历投递', icon: '📬', description: '跟进学生投递进度' },
+  { key: 'discussions', label: '企业讨论', icon: '💬', description: '与平台审核后的讨论互动' },
+  { key: 'announcements', label: '平台公告', icon: '📢', description: '了解最新平台通知' }
+];
+const activeSection = ref('profile');
 
 const profileForm = reactive({
   companyName: '',
@@ -262,6 +304,28 @@ const licenseFileInput = ref(null);
 
 const feedback = reactive({ message: '', type: 'info' });
 
+const jobStatusChartData = computed(() => {
+  if (!jobs.value.length) {
+    return {};
+  }
+  return jobs.value.reduce((accumulator, job) => {
+    const status = job.status || '未标记';
+    accumulator[status] = (accumulator[status] ?? 0) + 1;
+    return accumulator;
+  }, {});
+});
+
+const applicationChartData = computed(() => {
+  if (!applications.value.length) {
+    return {};
+  }
+  return applications.value.reduce((accumulator, app) => {
+    const status = app.status || '未标记';
+    accumulator[status] = (accumulator[status] ?? 0) + 1;
+    return accumulator;
+  }, {});
+});
+
 function showFeedback(message, type = 'info') {
   feedback.message = message;
   feedback.type = type;
@@ -282,6 +346,10 @@ function showFeedback(message, type = 'info') {
 function handleLogout() {
   clearAuthInfo();
   router.replace({ name: 'login' });
+}
+
+function selectSection(sectionKey) {
+  activeSection.value = sectionKey;
 }
 
 async function loadProfile() {
@@ -547,6 +615,43 @@ function formatDate(value) {
   return new Date(value).toLocaleString();
 }
 
+watch(activeSection, (section) => {
+  const loaderMap = {
+    profile: () => {
+      if (!profileForm.companyName) {
+        loadProfile();
+      }
+    },
+    jobs: () => {
+      if (!jobs.value.length) {
+        loadJobs();
+      }
+    },
+    finance: () => {
+      if (!transactions.value.length) {
+        loadTransactions();
+      }
+    },
+    applications: () => {
+      if (!applications.value.length) {
+        loadApplications();
+      }
+    },
+    discussions: () => {
+      if (!discussions.value.length) {
+        loadDiscussions();
+      }
+    },
+    announcements: () => {
+      if (!announcements.value.length) {
+        loadAnnouncements();
+      }
+    }
+  };
+
+  loaderMap[section]?.();
+});
+
 onMounted(async () => {
   await loadProfile();
   await loadJobs();
@@ -558,163 +663,18 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+.dashboard-content > * {
+  animation: fade-in 0.25s ease;
 }
 
-.dashboard__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.card__title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.form-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.form-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-weight: 600;
-}
-
-.form-grid input,
-.form-grid textarea,
-.table select {
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 10px;
-  font-size: 14px;
-}
-
-.form-grid textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-.form-grid .full {
-  grid-column: 1 / -1;
-}
-
-.file-input .file-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-top: 6px;
-}
-
-.file-input input[type='file'] {
-  flex: 1;
-  padding: 8px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-}
-
-.file-input small {
-  display: block;
-  margin-top: 6px;
-  color: #64748b;
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
-  text-align: left;
-  padding: 8px 12px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.list__item {
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-}
-
-.muted {
-  color: #6b7280;
-}
-
-.primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  border: none;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.outline {
-  background: transparent;
-  border: 1px solid #2563eb;
-  color: #2563eb;
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.feedback {
-  text-align: center;
-  padding: 12px;
-  border-radius: 12px;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.status {
-  padding: 4px 10px;
-  background: #e0f2fe;
-  color: #0369a1;
-  border-radius: 999px;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
