@@ -65,7 +65,7 @@ public class CompanyPortalService {
                                 request.licenseDocument(), null, null)))
                 .orElseGet(() -> companyService.create(new CompanyCreateRequest(userId, request.companyName(),
                         request.licenseNumber(), request.industry(), request.address(), request.website(),
-                        request.description(), request.logo(), request.licenseDocument(), "pending", null)));
+                        request.description(), request.logo(), request.licenseDocument(), "approved", null)));
     }
 
     @Transactional(readOnly = true)
@@ -78,7 +78,7 @@ public class CompanyPortalService {
     public JobResponse createJob(Long userId, CompanyJobRequest request) {
         TsukiCompany company = requireCompany(userId);
         JobCreateRequest createRequest = new JobCreateRequest(company.getId(), request.jobTitle(), request.jobType(),
-                request.salaryRange(), request.location(), request.requirement(), request.description(), "pending");
+                request.salaryRange(), request.location(), request.requirement(), request.description(), "approved");
         return jobService.create(createRequest);
     }
 

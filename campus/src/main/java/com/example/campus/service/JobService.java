@@ -134,7 +134,7 @@ public class JobService {
 
     private String normalizeStatus(String status) {
         if (status == null || status.isBlank()) {
-            return "pending";
+            return "approved";
         }
         String normalized = status.toLowerCase();
         if (!ALLOWED_STATUSES.contains(normalized)) {

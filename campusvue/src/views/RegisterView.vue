@@ -50,6 +50,17 @@
           <span>企业名称</span>
           <input v-model.trim="form.companyName" type="text" maxlength="100" required />
         </label>
+        <label v-if="requiresInviteCode" class="invite-field">
+          <span>企业邀请码</span>
+          <input
+            v-model.trim="form.inviteCode"
+            type="text"
+            maxlength="64"
+            placeholder="请输入管理员提供的邀请码"
+            :required="requiresInviteCode"
+          />
+          <small>只有受邀企业才能入驻平台，如需邀请码请联系系统管理员。</small>
+        </label>
         <button class="primary" type="submit" :disabled="loading">
           {{ loading ? '提交中…' : '注册' }}
         </button>
@@ -78,7 +89,8 @@ const form = reactive({
   phone: '',
   role: 'STUDENT',
   displayName: '',
-  companyName: ''
+  companyName: '',
+  inviteCode: ''
 });
 
 const loading = ref(false);
@@ -86,6 +98,7 @@ const feedback = reactive({ message: '', type: 'info' });
 
 const requiresDisplayName = computed(() => form.role === 'STUDENT' || form.role === 'ADMIN');
 const requiresCompanyName = computed(() => form.role === 'COMPANY');
+const requiresInviteCode = computed(() => form.role === 'COMPANY');
 
 function showFeedback(message, type = 'info') {
   feedback.message = message;
@@ -121,6 +134,9 @@ function validateForm() {
   if (requiresCompanyName.value && !form.companyName) {
     return '请输入企业名称';
   }
+  if (requiresInviteCode.value && !form.inviteCode) {
+    return '请输入企业邀请码';
+  }
   return null;
 }
 
@@ -143,7 +159,8 @@ async function handleSubmit() {
       phone: form.phone || null,
       role: form.role,
       displayName: requiresDisplayName.value ? form.displayName : null,
-      companyName: requiresCompanyName.value ? form.companyName : null
+      companyName: requiresCompanyName.value ? form.companyName : null,
+      inviteCode: requiresInviteCode.value ? form.inviteCode : null
     };
     await post('/auth/register', payload);
     showFeedback('注册成功，请使用新账户登录', 'success');
@@ -209,6 +226,11 @@ label {
   gap: 8px;
   font-weight: 600;
   color: #1f2937;
+}
+
+.invite-field small {
+  color: #64748b;
+  font-weight: 400;
 }
 
 input[type='text'],

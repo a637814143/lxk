@@ -14,6 +14,8 @@ import com.example.campus.dto.message.MessageCreateRequest;
 import com.example.campus.dto.portal.admin.AdminDashboardSummary;
 import com.example.campus.dto.portal.admin.AnnouncementPublishRequest;
 import com.example.campus.dto.portal.admin.CompanyAuditRequest;
+import com.example.campus.dto.portal.admin.CompanyInviteCreateRequest;
+import com.example.campus.dto.portal.admin.CompanyInviteResponse;
 import com.example.campus.dto.portal.admin.JobAuditRequest;
 import com.example.campus.dto.portal.admin.UserStatusRequest;
 import com.example.campus.dto.user.UserResponse;
@@ -63,6 +65,7 @@ public class AdminPortalService {
     private final FinancialTransactionService financialTransactionService;
     private final DataBackupService dataBackupService;
     private final DiscussionService discussionService;
+    private final CompanyInviteService companyInviteService;
 
     @Transactional(readOnly = true)
     public AdminDashboardSummary loadSummary(Long adminUserId) {
@@ -70,6 +73,7 @@ public class AdminPortalService {
         long totalStudents = userRepository.countByRole(UserRole.STUDENT);
         long totalCompanies = userRepository.countByRole(UserRole.COMPANY);
         long pendingCompanies = companyRepository.countByAuditStatus("pending");
+        long activeInvites = companyInviteService.countActiveInvites();
         long totalJobs = jobRepository.count();
         long approvedJobs = jobRepository.countByStatus("approved");
         long pendingJobs = jobRepository.countByStatus("pending");
@@ -81,8 +85,8 @@ public class AdminPortalService {
         breakdown.put("录用", applicationRepository.countByStatus("录用"));
         breakdown.put("拒绝", applicationRepository.countByStatus("拒绝"));
         long unreadMessages = messageRepository.countByReceiver_IdAndIsRead(admin.getUser().getId(), Boolean.FALSE);
-        return new AdminDashboardSummary(totalStudents, totalCompanies, pendingCompanies, totalJobs, approvedJobs,
-                pendingJobs, totalApplications, breakdown, unreadMessages);
+        return new AdminDashboardSummary(totalStudents, totalCompanies, pendingCompanies, activeInvites, totalJobs,
+                approvedJobs, pendingJobs, totalApplications, breakdown, unreadMessages);
     }
 
     @Transactional(readOnly = true)
@@ -186,6 +190,21 @@ public class AdminPortalService {
     @Transactional
     public BackupResponse createBackup(Long adminUserId, BackupCreateRequest request) {
         return dataBackupService.createBackup(adminUserId, request);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompanyInviteResponse> listInvites() {
+        return companyInviteService.listInvites();
+    }
+
+    @Transactional
+    public CompanyInviteResponse createInvite(Long adminUserId, CompanyInviteCreateRequest request) {
+        return companyInviteService.createInvite(adminUserId, request);
+    }
+
+    @Transactional
+    public CompanyInviteResponse revokeInvite(Long adminUserId, Long inviteId) {
+        return companyInviteService.revokeInvite(adminUserId, inviteId);
     }
 
     @Transactional

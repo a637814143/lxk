@@ -32,5 +32,9 @@ public record RegisterRequest(
         String displayName,
 
         @Size(max = 100, message = "企业名称不能超过100个字符")
-        String companyName) {
+        String companyName,
+
+        @Size(max = 64, message = "邀请码长度不能超过64个字符")
+        @Pattern(regexp = "^$|^[A-Za-z0-9-]{6,64}$", message = "邀请码需为6-64位字母、数字或连字符")
+        String inviteCode) {
 }

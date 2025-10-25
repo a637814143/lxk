@@ -6,6 +6,7 @@ public record AdminDashboardSummary(
         long totalStudents,
         long totalCompanies,
         long pendingCompanies,
+        long activeInvites,
         long totalJobs,
         long approvedJobs,
         long pendingJobs,

@@ -91,10 +91,9 @@
                   <td class="actions">
                     <button class="outline" @click="prefillJob(job)">编辑</button>
                     <select v-model="job.status" @change="changeJobStatus(job)">
-                      <option value="pending">待审核</option>
                       <option value="approved">已发布</option>
-                      <option value="rejected">已拒绝</option>
                       <option value="closed">已关闭</option>
+                      <option value="rejected" disabled>已拒绝</option>
                     </select>
                   </td>
                 </tr>
@@ -116,7 +115,7 @@
             <label class="full">业务编号<input v-model="transactionForm.reference" placeholder="可选的内部参考编号" /></label>
             <label class="full">备注<textarea v-model="transactionForm.notes" placeholder="补充说明（可选）"></textarea></label>
             <div class="full actions">
-              <button class="primary" type="submit">提交审核</button>
+              <button class="primary" type="submit">提交记录</button>
               <button class="outline" type="button" @click="resetTransactionForm">清空</button>
             </div>
           </form>
@@ -241,7 +240,7 @@ const router = useRouter();
 const authInfo = getAuthInfo();
 const sections = [
   { key: 'profile', label: '企业资料', icon: '🏢', description: '完善企业信息与资质' },
-  { key: 'jobs', label: '职位管理', icon: '💼', description: '发布并维护招聘岗位' },
+  { key: 'jobs', label: '职位管理', icon: '💼', description: '发布并即时上线招聘岗位' },
   { key: 'finance', label: '财务往来', icon: '💳', description: '查看平台费用往来记录' },
   { key: 'applications', label: '简历投递', icon: '📬', description: '跟进学生投递进度' },
   { key: 'discussions', label: '企业讨论', icon: '💬', description: '与平台审核后的讨论互动' },
@@ -388,7 +387,7 @@ async function uploadLicense() {
     formData.append('file', licenseFile.value);
     const data = await upload('/portal/company/profile/license', formData);
     Object.assign(profileForm, data);
-    showFeedback('营业执照上传成功，等待管理员审核', 'success');
+    showFeedback('营业执照上传成功，管理员可查看最新资料', 'success');
   } catch (error) {
     showFeedback(error.message, 'error');
   } finally {
@@ -435,7 +434,7 @@ async function createJob() {
       showFeedback('职位已更新', 'success');
     } else {
       await post('/portal/company/jobs', payload);
-      showFeedback('职位已提交审核', 'success');
+      showFeedback('职位已发布，学生端已同步', 'success');
     }
     resetJobForm();
     await loadJobs();

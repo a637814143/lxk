@@ -13,6 +13,8 @@ import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.portal.admin.AdminDashboardSummary;
 import com.example.campus.dto.portal.admin.AnnouncementPublishRequest;
 import com.example.campus.dto.portal.admin.CompanyAuditRequest;
+import com.example.campus.dto.portal.admin.CompanyInviteCreateRequest;
+import com.example.campus.dto.portal.admin.CompanyInviteResponse;
 import com.example.campus.dto.portal.admin.JobAuditRequest;
 import com.example.campus.dto.portal.admin.UserStatusRequest;
 import com.example.campus.dto.user.UserResponse;
@@ -54,6 +56,23 @@ public class AdminPortalController {
     public CompanyResponse reviewCompany(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long companyId,
             @Valid @RequestBody CompanyAuditRequest request) {
         return adminPortalService.reviewCompany(principal.getUserId(), companyId, request);
+    }
+
+    @GetMapping("/invites")
+    public List<CompanyInviteResponse> listInvites() {
+        return adminPortalService.listInvites();
+    }
+
+    @PostMapping("/invites")
+    public CompanyInviteResponse createInvite(@AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody CompanyInviteCreateRequest request) {
+        return adminPortalService.createInvite(principal.getUserId(), request);
+    }
+
+    @PostMapping("/invites/{inviteId}/revoke")
+    public CompanyInviteResponse revokeInvite(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long inviteId) {
+        return adminPortalService.revokeInvite(principal.getUserId(), inviteId);
     }
 
     @GetMapping("/jobs/pending")

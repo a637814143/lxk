@@ -27,6 +27,7 @@ public class AuthService {
     private final StudentService studentService;
     private final CompanyService companyService;
     private final AdminService adminService;
+    private final CompanyInviteService companyInviteService;
 
     @Transactional
     public void register(RegisterRequest request) {
@@ -37,9 +38,10 @@ public class AuthService {
         String phone = normalizeNullable(request.phone());
         String displayName = normalizeNullable(request.displayName());
         String companyName = normalizeNullable(request.companyName());
+        String inviteCode = normalizeNullable(request.inviteCode());
         UserRole role = request.role();
 
-        validateRoleDetails(role, displayName, companyName);
+        validateRoleDetails(role, displayName, companyName, inviteCode);
 
         userRepository.findByUsernameIgnoreCase(username)
                 .ifPresent(existing -> {
@@ -49,6 +51,10 @@ public class AuthService {
                 .ifPresent(existing -> {
                     throw new UserAlreadyExistsException("邮箱已注册，请直接登录");
                 });
+
+        if (role == UserRole.COMPANY) {
+            companyInviteService.consumeInvite(inviteCode, companyName);
+        }
 
         TsukiUser user = TsukiUser.builder()
                 .username(username)
@@ -99,7 +105,7 @@ public class AuthService {
         return new LoginResult(user.getId(), username, role, role.getDisplayName(), role.getRedirectPath(), token);
     }
 
-    private void validateRoleDetails(UserRole role, String displayName, String companyName) {
+    private void validateRoleDetails(UserRole role, String displayName, String companyName, String inviteCode) {
         if (role == null) {
             throw new IllegalArgumentException("用户角色不能为空");
         }
@@ -112,6 +118,9 @@ public class AuthService {
             case COMPANY -> {
                 if (companyName == null || companyName.isEmpty()) {
                     throw new IllegalArgumentException("企业名称不能为空");
+                }
+                if (inviteCode == null || inviteCode.isEmpty()) {
+                    throw new IllegalArgumentException("企业注册需要填写管理员发放的邀请码");
                 }
             }
             case ADMIN -> {
@@ -147,7 +156,7 @@ public class AuthService {
             return;
         }
         companyService.create(new CompanyCreateRequest(userId, companyName, null, null, null, null, null, null, null,
-                "pending", null));
+                "approved", null));
     }
 
     private void createAdminProfile(Long userId, String displayName) {

@@ -49,44 +49,144 @@
           </form>
         </section>
 
-        <section v-else-if="activeSection === 'resumes'" class="card">
+        <section v-else-if="activeSection === 'resumes'" class="card resume-card">
           <div class="card__title">
             <h2>我的简历</h2>
-            <button class="outline" @click="refreshResumes(true)">刷新</button>
-          </div>
-          <form class="form-grid" @submit.prevent="createResume">
-            <label class="full">简历标题<input v-model="resumeForm.title" required /></label>
-            <label class="full">教育经历<textarea v-model="resumeForm.educationExperience"></textarea></label>
-            <label class="full">实习/工作经历<textarea v-model="resumeForm.workExperience"></textarea></label>
-            <label class="full">技能特长<textarea v-model="resumeForm.skills"></textarea></label>
-            <label class="full">自我评价<textarea v-model="resumeForm.selfEvaluation"></textarea></label>
-            <label class="full file-input">
-              附件上传
-              <input ref="resumeFileInput" type="file" accept=".pdf,.doc,.docx" @change="handleResumeFile" />
-              <small>支持 PDF/DOC/DOCX，最大 15MB。上传后系统会生成附件链接。</small>
-            </label>
-            <label class="full">附件链接（可选）<input v-model="resumeForm.attachment" placeholder="也可填写已有附件链接" /></label>
-            <div class="full actions">
-              <button class="primary" type="submit">{{ editingResumeId ? '更新简历' : '新建简历' }}</button>
-              <button class="outline" type="button" @click="resetResumeForm">取消</button>
+            <div class="card__actions">
+              <button class="outline" type="button" @click="refreshResumes(true)">刷新</button>
+              <button class="outline" type="button" @click="resetResumeForm">新建空白</button>
             </div>
-          </form>
-          <ul class="list" v-if="resumes.length">
-            <li v-for="resume in resumes" :key="resume.id" class="list__item">
-              <div>
-                <h3>{{ resume.title }}</h3>
-                <p class="muted">更新于 {{ formatDate(resume.updateTime) }}</p>
+          </div>
+          <div class="resume-builder">
+            <form class="resume-form" @submit.prevent="createResume">
+              <fieldset>
+                <legend>基础信息</legend>
+                <label class="full">
+                  简历标题
+                  <input
+                    v-model="resumeForm.title"
+                    required
+                    placeholder="例如：产品运营实习生简历"
+                  />
+                </label>
+              </fieldset>
+              <fieldset>
+                <legend>教育经历</legend>
+                <textarea
+                  v-model="resumeForm.educationExperience"
+                  placeholder="按时间倒序填写：\n2022.09-至今  XX大学  计算机科学与技术  本科"
+                  rows="4"
+                ></textarea>
+              </fieldset>
+              <fieldset>
+                <legend>实习 / 项目经历</legend>
+                <textarea
+                  v-model="resumeForm.workExperience"
+                  placeholder="突出成果与贡献：\n2024.03-2024.08  XX科技  产品实习生  负责需求调研..."
+                  rows="4"
+                ></textarea>
+              </fieldset>
+              <fieldset class="grid-two">
+                <label>
+                  核心技能
+                  <textarea
+                    v-model="resumeForm.skills"
+                    placeholder="使用换行分隔技能：\nJava\nSpring Boot\n数据库优化"
+                    rows="4"
+                  ></textarea>
+                </label>
+                <label>
+                  自我评价 / 求职意向
+                  <textarea
+                    v-model="resumeForm.selfEvaluation"
+                    placeholder="概括个人优势、职业目标或求职意向"
+                    rows="4"
+                  ></textarea>
+                </label>
+              </fieldset>
+              <fieldset>
+                <legend>附件简历</legend>
+                <label class="file-input">
+                  上传文件
+                  <input ref="resumeFileInput" type="file" accept=".pdf,.doc,.docx" @change="handleResumeFile" />
+                  <small>支持 PDF/DOC/DOCX，最大 15MB。若已上传过附件，可直接填写附件链接。</small>
+                  <span v-if="resumeFileName" class="muted">当前选择：{{ resumeFileName }}</span>
+                </label>
+                <label>
+                  附件链接（可选）
+                  <input v-model="resumeForm.attachment" placeholder="若文件托管于云盘，可在此粘贴访问链接" />
+                </label>
+              </fieldset>
+              <div class="form-actions">
+                <button class="primary" type="submit">{{ editingResumeId ? '保存修改' : '创建简历' }}</button>
+                <button class="outline" type="button" @click="resetResumeForm">清空内容</button>
               </div>
-              <div class="list__actions">
-                <button class="outline" @click="selectResumeForApply(resume.id)">
-                  {{ resume.id === selectedResumeId ? '已选择' : '投递使用' }}
+            </form>
+            <aside class="resume-preview" aria-label="简历实时预览">
+              <h3>{{ resumePreview.title }}</h3>
+              <p class="resume-preview__hint">内容会随着左侧表单实时更新，方便检查排版与要点。</p>
+              <div class="resume-preview__section" v-if="resumePreview.education.length">
+                <h4>教育经历</h4>
+                <ul>
+                  <li v-for="(item, index) in resumePreview.education" :key="`edu-${index}`">{{ item }}</li>
+                </ul>
+              </div>
+              <div class="resume-preview__section" v-if="resumePreview.experience.length">
+                <h4>实习 / 项目经历</h4>
+                <ul>
+                  <li v-for="(item, index) in resumePreview.experience" :key="`exp-${index}`">{{ item }}</li>
+                </ul>
+              </div>
+              <div class="resume-preview__section" v-if="resumePreview.skills.length">
+                <h4>技能特长</h4>
+                <ul class="skill-list">
+                  <li v-for="(item, index) in resumePreview.skills" :key="`skill-${index}`">{{ item }}</li>
+                </ul>
+              </div>
+              <div class="resume-preview__section">
+                <h4>自我评价</h4>
+                <p>{{ resumePreview.summary }}</p>
+              </div>
+              <div class="resume-preview__section" v-if="resumePreview.attachment">
+                <h4>附件</h4>
+                <p>{{ resumePreview.attachment }}</p>
+              </div>
+            </aside>
+          </div>
+          <div v-if="resumes.length" class="resume-gallery">
+            <article
+              v-for="resume in resumes"
+              :key="resume.id"
+              :class="['resume-card-item', { selected: resume.id === selectedResumeId }]"
+            >
+              <header>
+                <div>
+                  <h3>{{ resume.title }}</h3>
+                  <p class="muted">更新于 {{ formatDate(resume.updateTime) }}</p>
+                </div>
+                <span class="tag">{{ resume.id === selectedResumeId ? '投递使用中' : '备选' }}</span>
+              </header>
+              <section class="resume-card-body">
+                <p v-if="resume.educationExperience" class="resume-snippet">
+                  <strong>教育：</strong>{{ renderSnippet(resume.educationExperience) }}
+                </p>
+                <p v-if="resume.workExperience" class="resume-snippet">
+                  <strong>经历：</strong>{{ renderSnippet(resume.workExperience) }}
+                </p>
+                <p v-if="resume.skills" class="resume-snippet">
+                  <strong>技能：</strong>{{ renderSnippet(resume.skills) }}
+                </p>
+              </section>
+              <footer class="resume-card-actions">
+                <button class="primary" type="button" @click="selectResumeForApply(resume.id)">
+                  {{ resume.id === selectedResumeId ? '已选择用于投递' : '选择此简历' }}
                 </button>
-                <button class="outline" @click="editResume(resume)">编辑</button>
-                <button class="danger" @click="deleteResume(resume.id)">删除</button>
-              </div>
-            </li>
-          </ul>
-          <p v-else class="muted">还没有简历，填写上方表单即可新建。</p>
+                <button class="outline" type="button" @click="editResume(resume)">编辑</button>
+                <button class="danger" type="button" @click="deleteResume(resume.id)">删除</button>
+              </footer>
+            </article>
+          </div>
+          <p v-else class="muted">还没有简历，先在左侧填写信息即可生成第一份完整简历。</p>
         </section>
 
         <section v-else-if="activeSection === 'jobs'" class="card">
@@ -280,6 +380,28 @@ const discussionFeedback = reactive({ message: '', type: 'info' });
 
 const feedback = reactive({ message: '', type: 'info' });
 
+function splitLines(value) {
+  if (!value) return [];
+  return value
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+}
+
+const resumePreview = computed(() => {
+  return {
+    title: resumeForm.title || '未命名简历',
+    education: splitLines(resumeForm.educationExperience),
+    experience: splitLines(resumeForm.workExperience),
+    skills: splitLines(resumeForm.skills),
+    summary:
+      resumeForm.selfEvaluation?.trim() || '完善自我评价，突出你的优势、价值观与求职目标。',
+    attachment: resumeFile.value?.name || resumeForm.attachment || ''
+  };
+});
+
+const resumeFileName = computed(() => resumePreview.value.attachment);
+
 const applicationChartData = computed(() => {
   if (!applications.value.length) {
     return {};
@@ -306,6 +428,14 @@ function showFeedback(message, type = 'info') {
       notifyInfo(message);
     }
   }
+}
+
+function renderSnippet(value) {
+  const lines = splitLines(value);
+  if (!lines.length) {
+    return '暂未填写';
+  }
+  return lines.slice(0, 2).join('；');
 }
 
 function handleLogout() {
@@ -629,6 +759,160 @@ onMounted(async () => {
 <style scoped>
 .dashboard-content > * {
   animation: fade-in 0.25s ease;
+}
+
+.resume-card .card__actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.resume-builder {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+  align-items: start;
+}
+
+.resume-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.resume-form fieldset {
+  border: 1px solid rgba(59, 130, 246, 0.18);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(248, 250, 252, 0.85);
+}
+
+.resume-form fieldset legend {
+  font-weight: 600;
+  color: #1e3a8a;
+  padding: 0 4px;
+}
+
+.resume-form textarea,
+.resume-form input {
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+}
+
+.resume-form textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.resume-form .grid-two {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.resume-form .form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.resume-preview {
+  background: linear-gradient(165deg, rgba(219, 234, 254, 0.55), rgba(226, 232, 240, 0.45));
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resume-preview h3 {
+  margin: 0;
+  color: #1e293b;
+}
+
+.resume-preview__hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.resume-preview__section h4 {
+  margin: 0 0 4px;
+  color: #1f2937;
+}
+
+.resume-preview__section ul {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+}
+
+.skill-list {
+  list-style: disc;
+  columns: 2;
+  column-gap: 16px;
+}
+
+.resume-gallery {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.resume-card-item {
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 18px;
+  padding: 18px;
+  background: #ffffff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resume-card-item.selected {
+  border-color: #2563eb;
+  box-shadow: 0 22px 48px rgba(37, 99, 235, 0.18);
+}
+
+.resume-card-item header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.resume-card-body {
+  display: grid;
+  gap: 8px;
+  color: #475569;
+}
+
+.resume-snippet {
+  margin: 0;
+}
+
+.resume-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (max-width: 960px) {
+  .resume-builder {
+    grid-template-columns: 1fr;
+  }
+
+  .resume-preview {
+    order: -1;
+  }
 }
 
 @keyframes fade-in {

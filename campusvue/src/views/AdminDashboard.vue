@@ -40,7 +40,7 @@
             <div class="summary-item"><span>待审企业</span><strong>{{ summary.pendingCompanies }}</strong></div>
             <div class="summary-item"><span>职位总数</span><strong>{{ summary.totalJobs }}</strong></div>
             <div class="summary-item"><span>已发布职位</span><strong>{{ summary.approvedJobs }}</strong></div>
-            <div class="summary-item"><span>待审核职位</span><strong>{{ summary.pendingJobs }}</strong></div>
+            <div class="summary-item"><span>有效邀请码</span><strong>{{ summary.activeInvites }}</strong></div>
             <div class="summary-item"><span>投递总量</span><strong>{{ summary.totalApplications }}</strong></div>
             <div class="summary-item"><span>管理员未读消息</span><strong>{{ summary.unreadMessages }}</strong></div>
           </div>
@@ -74,26 +74,52 @@
           <p v-else class="muted">暂无待审核企业</p>
         </section>
 
-        <section v-else-if="activeSection === 'jobs'" class="card">
+        <section v-else-if="activeSection === 'invites'" class="card">
           <div class="card__title">
-            <h2>职位审核</h2>
-            <button class="outline" @click="loadPendingJobs(true)">刷新</button>
+            <h2>企业邀请码</h2>
+            <button class="outline" @click="loadInvites(true)">刷新</button>
           </div>
-          <table v-if="pendingJobs.length" class="table">
-            <thead><tr><th>职位名称</th><th>企业ID</th><th>状态</th><th>操作</th></tr></thead>
+          <form class="form-grid" @submit.prevent="createInvite">
+            <label>预设邀请码（可选）<input v-model.trim="inviteForm.code" maxlength="64" placeholder="留空将自动生成" /></label>
+            <label>企业名称提示（可选）<input v-model.trim="inviteForm.companyNameHint" maxlength="100" placeholder="例如：未来科技有限公司" /></label>
+            <label class="full">备注<textarea v-model.trim="inviteForm.note" placeholder="填写发放对象、注意事项等信息"></textarea></label>
+            <div class="full actions">
+              <button class="primary" type="submit">生成邀请码</button>
+              <button class="outline" type="button" @click="resetInviteForm">清空</button>
+            </div>
+          </form>
+          <table v-if="invites.length" class="table">
+            <thead>
+              <tr><th>邀请码</th><th>状态</th><th>创建时间</th><th>使用时间</th><th>信息</th><th>操作</th></tr>
+            </thead>
             <tbody>
-              <tr v-for="job in pendingJobs" :key="job.id">
-                <td>{{ job.jobTitle }}</td>
-                <td>{{ job.companyId }}</td>
-                <td>{{ job.status }}</td>
+              <tr v-for="invite in invites" :key="invite.id">
+                <td>{{ invite.code }}</td>
+                <td>{{ translateInviteStatus(invite.status) }}</td>
+                <td>{{ formatDate(invite.createdTime) }}</td>
+                <td>{{ invite.usedTime ? formatDate(invite.usedTime) : '未使用' }}</td>
+                <td>
+                  <div class="muted invite-meta">
+                    <span v-if="invite.companyNameHint">企业：{{ invite.companyNameHint }}</span>
+                    <span v-if="invite.note">备注：{{ invite.note }}</span>
+                    <span>创建人：{{ invite.adminName || '管理员' }}</span>
+                  </div>
+                </td>
                 <td class="actions">
-                  <button class="primary" @click="reviewJob(job.id, 'approved')">通过</button>
-                  <button class="danger" @click="reviewJob(job.id, 'rejected')">驳回</button>
+                  <button
+                    v-if="invite.status === 'active'"
+                    class="danger"
+                    type="button"
+                    @click="revokeInvite(invite.id)"
+                  >
+                    撤销
+                  </button>
+                  <span v-else class="muted">-</span>
                 </td>
               </tr>
             </tbody>
           </table>
-          <p v-else class="muted">暂无待审核职位</p>
+          <p v-else class="muted">暂无邀请码记录，生成后可分发给企业进行注册。</p>
         </section>
 
         <section v-else-if="activeSection === 'discussions'" class="card">
@@ -268,7 +294,7 @@ const authInfo = getAuthInfo();
 const sections = [
   { key: 'overview', label: '平台概览', icon: '📊', description: '掌握当前用户与职位数据' },
   { key: 'companies', label: '企业审核', icon: '🏢', description: '审批企业入驻与资料' },
-  { key: 'jobs', label: '职位审核', icon: '💼', description: '确认岗位信息后发布' },
+  { key: 'invites', label: '企业邀请码', icon: '🔐', description: '发放邀请码授权企业注册' },
   { key: 'discussions', label: '讨论审核', icon: '💬', description: '维护企业讨论区内容' },
   { key: 'users', label: '用户管理', icon: '👥', description: '封禁或恢复账号权限' },
   { key: 'finance', label: '财务往来', icon: '💳', description: '记录平台与企业的资金往来' },
@@ -280,7 +306,7 @@ const activeSection = ref('overview');
 
 const summary = ref(null);
 const pendingCompanies = ref([]);
-const pendingJobs = ref([]);
+const invites = ref([]);
 const users = ref([]);
 const announcements = ref([]);
 const transactions = ref([]);
@@ -301,6 +327,12 @@ const transactionForm = reactive({
   currency: 'CNY',
   reference: '',
   notes: ''
+});
+
+const inviteForm = reactive({
+  code: '',
+  note: '',
+  companyNameHint: ''
 });
 
 const backupForm = reactive({
@@ -371,28 +403,6 @@ async function reviewCompany(companyId, status) {
     await patch(`/portal/admin/companies/${companyId}/review`, { status, reason });
     showFeedback('企业审核结果已提交', 'success');
     await Promise.all([loadPendingCompanies(), loadSummary()]);
-  } catch (error) {
-    showFeedback(error.message, 'error');
-  }
-}
-
-async function loadPendingJobs(showToast = false) {
-  try {
-    pendingJobs.value = await get('/portal/admin/jobs/pending');
-    if (showToast) {
-      showFeedback('待审核职位列表已刷新', 'success');
-    }
-  } catch (error) {
-    showFeedback(error.message, 'error');
-  }
-}
-
-async function reviewJob(jobId, status) {
-  const reason = status === 'rejected' ? prompt('请输入驳回原因', '') ?? '' : '';
-  try {
-    await patch(`/portal/admin/jobs/${jobId}/review`, { status, reason });
-    showFeedback('职位审核结果已提交', 'success');
-    await Promise.all([loadPendingJobs(), loadSummary()]);
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -473,6 +483,64 @@ async function updateTransactionStatus(transaction, status) {
   } catch (error) {
     showFeedback(error.message, 'error');
     await loadTransactions();
+  }
+}
+
+function resetInviteForm() {
+  inviteForm.code = '';
+  inviteForm.note = '';
+  inviteForm.companyNameHint = '';
+}
+
+async function loadInvites(showToast = false) {
+  try {
+    invites.value = await get('/portal/admin/invites');
+    if (showToast) {
+      showFeedback('邀请码列表已刷新', 'success');
+    }
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+async function createInvite() {
+  try {
+    await post('/portal/admin/invites', {
+      code: inviteForm.code || null,
+      note: inviteForm.note || null,
+      companyNameHint: inviteForm.companyNameHint || null
+    });
+    showFeedback('已生成新的企业邀请码', 'success');
+    resetInviteForm();
+    await Promise.all([loadInvites(), loadSummary()]);
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+async function revokeInvite(inviteId) {
+  if (!confirm('确定要撤销该邀请码吗？')) {
+    return;
+  }
+  try {
+    await post(`/portal/admin/invites/${inviteId}/revoke`);
+    showFeedback('邀请码已撤销', 'success');
+    await Promise.all([loadInvites(), loadSummary()]);
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+function translateInviteStatus(status) {
+  switch ((status || '').toLowerCase()) {
+    case 'active':
+      return '可使用';
+    case 'used':
+      return '已使用';
+    case 'revoked':
+      return '已撤销';
+    default:
+      return status || '未知';
   }
 }
 
@@ -597,10 +665,8 @@ watch(activeSection, (section) => {
         loadPendingCompanies();
       }
     },
-    jobs: () => {
-      if (!pendingJobs.value.length) {
-        loadPendingJobs();
-      }
+    invites: () => {
+      loadInvites();
     },
     discussions: () => {
       if (!pendingDiscussions.value.length) {
@@ -636,7 +702,7 @@ onMounted(async () => {
   await Promise.all([
     loadSummary(),
     loadPendingCompanies(),
-    loadPendingJobs(),
+    loadInvites(),
     loadUsers(),
     loadAnnouncements(),
     loadTransactions(),
@@ -649,6 +715,12 @@ onMounted(async () => {
 <style scoped>
 .dashboard-content > * {
   animation: fade-in 0.25s ease;
+}
+
+.invite-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 @keyframes fade-in {
