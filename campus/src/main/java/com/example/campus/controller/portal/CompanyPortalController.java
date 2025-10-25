@@ -82,6 +82,12 @@ public class CompanyPortalController {
         return companyPortalService.listApplications(principal.getUserId());
     }
 
+    @GetMapping("/applications/{applicationId}")
+    public ApplicationResponse getApplication(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long applicationId) {
+        return companyPortalService.viewApplication(principal.getUserId(), applicationId);
+    }
+
     @PatchMapping("/applications/{applicationId}")
     public ApplicationResponse updateApplicationStatus(@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long applicationId, @Valid @RequestBody ApplicationStatusRequest request) {

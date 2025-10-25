@@ -551,8 +551,19 @@ async function loadApplications(showToast = false) {
   }
 }
 
-function viewApplication(app) {
-  selectedApplicationId.value = app.id;
+async function viewApplication(app) {
+  try {
+    const detail = await get(`/portal/company/applications/${app.id}`);
+    const index = applications.value.findIndex(item => item.id === detail.id);
+    if (index !== -1) {
+      applications.value.splice(index, 1, detail);
+    } else {
+      applications.value.unshift(detail);
+    }
+    selectedApplicationId.value = detail.id;
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
 }
 
 function clearSelectedApplication() {
@@ -595,7 +606,9 @@ async function submitDecision() {
     const updated = await patch(`/portal/company/applications/${selectedApplication.value.id}`, payload);
     const index = applications.value.findIndex(item => item.id === updated.id);
     if (index !== -1) {
-      applications.value[index] = updated;
+      applications.value.splice(index, 1, updated);
+    } else {
+      applications.value.unshift(updated);
     }
     selectedApplicationId.value = updated.id;
     showFeedback('处理结果已同步', 'success');

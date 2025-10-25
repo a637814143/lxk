@@ -144,6 +144,21 @@ public class CompanyPortalService {
     }
 
     @Transactional
+    public ApplicationResponse viewApplication(Long userId, Long applicationId) {
+        TsukiCompany company = requireCompany(userId);
+        TsukiApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到投递记录"));
+        if (!application.getCompany().getId().equals(company.getId())) {
+            throw new IllegalArgumentException("无法查看其他企业的投递记录");
+        }
+        if ("待查看".equals(application.getStatus())) {
+            return applicationService.update(applicationId,
+                    new ApplicationUpdateRequest("已查看", application.getDecisionNote()));
+        }
+        return applicationService.findById(applicationId);
+    }
+
+    @Transactional
     public ApplicationResponse updateApplicationStatus(Long userId, Long applicationId, ApplicationStatusRequest request) {
         TsukiCompany company = requireCompany(userId);
         TsukiApplication application = applicationRepository.findById(applicationId)
