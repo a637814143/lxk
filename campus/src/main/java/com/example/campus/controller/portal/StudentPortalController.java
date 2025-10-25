@@ -7,13 +7,13 @@ import com.example.campus.dto.message.MessageResponse;
 import com.example.campus.dto.portal.student.StudentApplicationRequest;
 import com.example.campus.dto.portal.student.StudentProfileRequest;
 import com.example.campus.dto.portal.student.StudentResumeRequest;
+import com.example.campus.dto.resume.ResumeAttachmentResponse;
 import com.example.campus.dto.resume.ResumeResponse;
 import com.example.campus.dto.resume.ResumeUpdateRequest;
 import com.example.campus.dto.student.StudentResponse;
 import com.example.campus.security.UserPrincipal;
 import com.example.campus.service.StudentPortalService;
 import jakarta.validation.Valid;
-import java.util.Map;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -60,10 +60,9 @@ public class StudentPortalController {
     }
 
     @PostMapping(value = "/resumes/attachments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Map<String, String> uploadResumeAttachment(@AuthenticationPrincipal UserPrincipal principal,
+    public ResumeAttachmentResponse uploadResumeAttachment(@AuthenticationPrincipal UserPrincipal principal,
             @RequestPart("file") MultipartFile file) {
-        String path = studentPortalService.uploadAttachment(principal.getUserId(), file);
-        return Map.of("attachment", path);
+        return studentPortalService.uploadAttachment(principal.getUserId(), file);
     }
 
     @PostMapping(value = "/resumes/{resumeId}/attachment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

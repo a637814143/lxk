@@ -1,8 +1,8 @@
 package com.example.campus.controller.portal;
 
 import com.example.campus.dto.announcement.AnnouncementResponse;
-import com.example.campus.dto.company.CompanyResponse;
 import com.example.campus.dto.application.ApplicationResponse;
+import com.example.campus.dto.company.CompanyResponse;
 import com.example.campus.dto.discussion.DiscussionCreateRequest;
 import com.example.campus.dto.discussion.DiscussionResponse;
 import com.example.campus.dto.finance.FinancialTransactionResponse;
@@ -12,6 +12,7 @@ import com.example.campus.dto.portal.company.CompanyJobRequest;
 import com.example.campus.dto.portal.company.CompanyProfileRequest;
 import com.example.campus.dto.portal.company.CompanyTransactionRequest;
 import com.example.campus.dto.portal.company.JobStatusUpdateRequest;
+import com.example.campus.dto.resume.ResumeAttachmentResponse;
 import com.example.campus.security.UserPrincipal;
 import com.example.campus.service.CompanyPortalService;
 import jakarta.validation.Valid;
@@ -92,6 +93,12 @@ public class CompanyPortalController {
     public ApplicationResponse updateApplicationStatus(@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long applicationId, @Valid @RequestBody ApplicationStatusRequest request) {
         return companyPortalService.updateApplicationStatus(principal.getUserId(), applicationId, request);
+    }
+
+    @GetMapping("/applications/{applicationId}/attachments")
+    public List<ResumeAttachmentResponse> listApplicationAttachments(
+            @AuthenticationPrincipal UserPrincipal principal, @PathVariable Long applicationId) {
+        return companyPortalService.listApplicationAttachments(principal.getUserId(), applicationId);
     }
 
     @GetMapping("/transactions")

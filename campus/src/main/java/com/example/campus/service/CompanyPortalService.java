@@ -18,6 +18,7 @@ import com.example.campus.dto.portal.company.CompanyProfileRequest;
 import com.example.campus.dto.portal.company.JobStatusUpdateRequest;
 import com.example.campus.dto.company.CompanyCreateRequest;
 import com.example.campus.dto.portal.company.CompanyTransactionRequest;
+import com.example.campus.dto.resume.ResumeAttachmentResponse;
 import com.example.campus.entity.TsukiApplication;
 import com.example.campus.entity.TsukiCompany;
 import com.example.campus.entity.TsukiJob;
@@ -203,6 +204,21 @@ public class CompanyPortalService {
                     application.getStudent().getUser().getId(), title, content, null));
         }
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ResumeAttachmentResponse> listApplicationAttachments(Long userId, Long applicationId) {
+        TsukiCompany company = requireCompany(userId);
+        TsukiApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到投递记录"));
+        if (!application.getCompany().getId().equals(company.getId())) {
+            throw new IllegalArgumentException("无法查看其他企业的投递附件");
+        }
+        ApplicationResponse response = applicationService.findById(applicationId);
+        if (response.resume() == null || response.resume().attachments() == null) {
+            return List.of();
+        }
+        return response.resume().attachments();
     }
 
     @Transactional(readOnly = true)

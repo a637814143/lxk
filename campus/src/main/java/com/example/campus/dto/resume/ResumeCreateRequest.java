@@ -21,5 +21,7 @@ public record ResumeCreateRequest(
         String selfEvaluation,
 
         @Size(max = 255, message = "附件链接不能超过255个字符")
-        String attachment) {
+        String attachment,
+
+        Long attachmentId) {
 }

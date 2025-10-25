@@ -3,6 +3,7 @@ package com.example.campus.service;
 import com.example.campus.dto.application.ApplicationCreateRequest;
 import com.example.campus.dto.application.ApplicationResponse;
 import com.example.campus.dto.application.ApplicationUpdateRequest;
+import com.example.campus.dto.resume.ResumeAttachmentResponse;
 import com.example.campus.entity.TsukiApplication;
 import com.example.campus.entity.TsukiCompany;
 import com.example.campus.entity.TsukiJob;
@@ -128,13 +129,18 @@ public class ApplicationService {
         ApplicationResponse.ResumeSnapshot resumeSnapshot = null;
         if (application.getResume() != null) {
             TsukiResume resume = application.getResume();
+            List<ResumeAttachmentResponse> attachments = resume.getAttachments().stream()
+                    .map(att -> new ResumeAttachmentResponse(att.getId(), att.getFileName(), att.getFilePath(),
+                            att.getContentType(), att.getFileSize(), att.getUploadedAt()))
+                    .collect(Collectors.toList());
             resumeSnapshot = new ApplicationResponse.ResumeSnapshot(
                     resume.getTitle(),
                     resume.getEducationExperience(),
                     resume.getWorkExperience(),
                     resume.getSkills(),
                     resume.getSelfEvaluation(),
-                    resume.getAttachment());
+                    resume.getAttachment(),
+                    attachments);
         }
         String studentName = null;
         if (application.getStudent() != null) {

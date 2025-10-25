@@ -1,6 +1,8 @@
 package com.example.campus.dto.application;
 
+import com.example.campus.dto.resume.ResumeAttachmentResponse;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record ApplicationResponse(
         Long id,
@@ -23,6 +25,7 @@ public record ApplicationResponse(
             String workExperience,
             String skills,
             String selfEvaluation,
-            String attachment) {
+            String attachment,
+            List<ResumeAttachmentResponse> attachments) {
     }
 }

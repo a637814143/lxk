@@ -217,7 +217,19 @@
                     <dt>自我评价</dt>
                     <dd>{{ selectedApplication.resume.selfEvaluation }}</dd>
                   </div>
-                  <div v-if="selectedApplication.resume?.attachment" class="attachment-row">
+                  <div v-if="selectedApplication.resume?.attachments?.length" class="attachment-row">
+                    <dt>附件下载</dt>
+                    <dd>
+                      <ul class="attachment-list">
+                        <li v-for="file in selectedApplication.resume.attachments" :key="file.id">
+                          <a :href="file.fileUrl" target="_blank" rel="noopener">
+                            {{ file.fileName || '查看附件简历' }}
+                          </a>
+                        </li>
+                      </ul>
+                    </dd>
+                  </div>
+                  <div v-else-if="selectedApplication.resume?.attachment" class="attachment-row">
                     <dt>附件下载</dt>
                     <dd>
                       <a :href="selectedApplication.resume.attachment" target="_blank" rel="noopener">
@@ -554,6 +566,15 @@ async function loadApplications(showToast = false) {
 async function viewApplication(app) {
   try {
     const detail = await get(`/portal/company/applications/${app.id}`);
+    if (detail.resume) {
+      try {
+        const attachments = await get(`/portal/company/applications/${detail.id}/attachments`);
+        detail.resume = detail.resume || {};
+        detail.resume.attachments = attachments;
+      } catch (attachError) {
+        showFeedback('附件加载失败，请稍后重试', 'error');
+      }
+    }
     const index = applications.value.findIndex(item => item.id === detail.id);
     if (index !== -1) {
       applications.value.splice(index, 1, detail);

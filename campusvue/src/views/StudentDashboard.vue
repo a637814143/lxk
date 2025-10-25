@@ -114,7 +114,11 @@
                 </label>
                 <label>
                   附件链接（可选）
-                  <input v-model="resumeForm.attachment" placeholder="若文件托管于云盘，可在此粘贴访问链接" />
+                  <input
+                    v-model="resumeForm.attachment"
+                    @input="handleAttachmentInput"
+                    placeholder="若文件托管于云盘，可在此粘贴访问链接"
+                  />
                 </label>
               </fieldset>
               <div class="form-actions">
@@ -147,9 +151,11 @@
                 <h4>自我评价</h4>
                 <p>{{ resumePreview.summary }}</p>
               </div>
-              <div class="resume-preview__section" v-if="resumePreview.attachment">
+              <div class="resume-preview__section" v-if="resumePreview.attachmentLink">
                 <h4>附件</h4>
-                <p>{{ resumePreview.attachment }}</p>
+                <a :href="resumePreview.attachmentLink" target="_blank" rel="noopener">
+                  {{ resumePreview.attachmentLabel }}
+                </a>
               </div>
             </aside>
           </div>
@@ -242,14 +248,18 @@
                   <td>{{ app.decisionNote ? app.decisionNote : app.status === '拒绝' ? '企业已拒绝' : '等待企业处理' }}</td>
                   <td>{{ formatDate(app.updateTime || app.applyTime) }}</td>
                   <td>
-                    <a
-                      v-if="app.resume?.attachment"
-                      :href="app.resume.attachment"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      查看附件
-                    </a>
+                    <template v-if="app.resume?.attachments?.length">
+                      <ul class="attachment-list">
+                        <li v-for="file in app.resume.attachments" :key="`${app.id}-${file.id}`">
+                          <a :href="file.fileUrl" target="_blank" rel="noopener">
+                            {{ file.fileName || '查看附件' }}
+                          </a>
+                        </li>
+                      </ul>
+                    </template>
+                    <template v-else-if="app.resume?.attachment">
+                      <a :href="app.resume.attachment" target="_blank" rel="noopener">查看附件</a>
+                    </template>
                     <span v-else class="muted">-</span>
                   </td>
                 </tr>
@@ -365,7 +375,9 @@ const resumeForm = reactive({
   workExperience: '',
   skills: '',
   selfEvaluation: '',
-  attachment: ''
+  attachment: '',
+  attachmentId: null,
+  attachmentName: ''
 });
 const resumes = ref([]);
 const selectedResumeId = ref(null);
@@ -408,11 +420,12 @@ const resumePreview = computed(() => {
     skills: splitLines(resumeForm.skills),
     summary:
       resumeForm.selfEvaluation?.trim() || '完善自我评价，突出你的优势、价值观与求职目标。',
-    attachment: resumeFile.value?.name || resumeForm.attachment || ''
+    attachmentLabel: resumeFile.value?.name || resumeForm.attachmentName || resumeForm.attachment || '',
+    attachmentLink: resumeForm.attachment
   };
 });
 
-const resumeFileName = computed(() => resumePreview.value.attachment);
+const resumeFileName = computed(() => resumePreview.value.attachmentLabel);
 
 const applicationChartData = computed(() => {
   if (!applications.value.length) {
@@ -466,6 +479,8 @@ function resetResumeForm() {
   resumeForm.skills = '';
   resumeForm.selfEvaluation = '';
   resumeForm.attachment = '';
+  resumeForm.attachmentId = null;
+  resumeForm.attachmentName = '';
   editingResumeId.value = null;
   resumeFile.value = null;
   if (resumeFileInput.value) {
@@ -476,6 +491,18 @@ function resetResumeForm() {
 function handleResumeFile(event) {
   const [file] = event.target.files ?? [];
   resumeFile.value = file ?? null;
+  if (file) {
+    resumeForm.attachmentId = null;
+    resumeForm.attachment = '';
+    resumeForm.attachmentName = file.name;
+  }
+}
+
+function handleAttachmentInput() {
+  if (!resumeFile.value) {
+    resumeForm.attachmentId = null;
+    resumeForm.attachmentName = resumeForm.attachment;
+  }
 }
 
 async function loadProfile() {
@@ -520,7 +547,15 @@ async function refreshResumes(showToast = false) {
 async function createResume() {
   try {
     if (editingResumeId.value) {
-      const payload = { ...resumeForm };
+      const payload = {
+        title: resumeForm.title,
+        educationExperience: resumeForm.educationExperience,
+        workExperience: resumeForm.workExperience,
+        skills: resumeForm.skills,
+        selfEvaluation: resumeForm.selfEvaluation,
+        attachment: resumeForm.attachment,
+        attachmentId: resumeForm.attachmentId
+      };
       const updated = await put(`/portal/student/resumes/${editingResumeId.value}`, payload);
       let finalResume = updated;
       if (resumeFile.value) {
@@ -536,15 +571,22 @@ async function createResume() {
       showFeedback('简历更新成功', 'success');
     } else {
       let attachmentPath = resumeForm.attachment;
+      let attachmentId = resumeForm.attachmentId;
       if (resumeFile.value) {
         const formData = new FormData();
         formData.append('file', resumeFile.value);
         const uploaded = await upload('/portal/student/resumes/attachments', formData);
-        attachmentPath = uploaded.attachment;
+        attachmentPath = uploaded.fileUrl || uploaded.attachment || '';
+        attachmentId = uploaded.id ?? null;
       }
       const created = await post('/portal/student/resumes', {
-        ...resumeForm,
-        attachment: attachmentPath
+        title: resumeForm.title,
+        educationExperience: resumeForm.educationExperience,
+        workExperience: resumeForm.workExperience,
+        skills: resumeForm.skills,
+        selfEvaluation: resumeForm.selfEvaluation,
+        attachment: attachmentPath,
+        attachmentId
       });
       resumes.value.unshift(created);
       selectedResumeId.value = created.id;
@@ -557,14 +599,21 @@ async function createResume() {
 }
 
 function editResume(resume) {
+  const primaryAttachment = resume.attachments?.[0] ?? null;
   Object.assign(resumeForm, {
     title: resume.title,
     educationExperience: resume.educationExperience,
     workExperience: resume.workExperience,
     skills: resume.skills,
     selfEvaluation: resume.selfEvaluation,
-    attachment: resume.attachment
+    attachment: primaryAttachment?.fileUrl || resume.attachment || '',
+    attachmentId: primaryAttachment?.id ?? null,
+    attachmentName: primaryAttachment?.fileName || primaryAttachment?.fileUrl || resume.attachment || ''
   });
+  resumeFile.value = null;
+  if (resumeFileInput.value) {
+    resumeFileInput.value.value = '';
+  }
   selectedResumeId.value = resume.id;
   editingResumeId.value = resume.id;
   showFeedback('已加载简历内容，可修改后再次保存创建', 'info');

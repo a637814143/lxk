@@ -8,8 +8,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -51,6 +54,10 @@ public class TsukiResume {
 
     @Column(name = "attachment", length = 255)
     private String attachment;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "resume", fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<TsukiResumeAttachment> attachments = new ArrayList<>();
 
     @Column(name = "create_time", updatable = false, insertable = false)
     private LocalDateTime createTime;

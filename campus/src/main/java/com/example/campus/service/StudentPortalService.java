@@ -7,6 +7,7 @@ import com.example.campus.dto.message.MessageUpdateRequest;
 import com.example.campus.dto.portal.student.StudentApplicationRequest;
 import com.example.campus.dto.portal.student.StudentProfileRequest;
 import com.example.campus.dto.portal.student.StudentResumeRequest;
+import com.example.campus.dto.resume.ResumeAttachmentResponse;
 import com.example.campus.dto.resume.ResumeResponse;
 import com.example.campus.dto.resume.ResumeUpdateRequest;
 import com.example.campus.dto.student.StudentCreateRequest;
@@ -15,6 +16,7 @@ import com.example.campus.dto.student.StudentUpdateRequest;
 import com.example.campus.entity.TsukiApplication;
 import com.example.campus.entity.TsukiJob;
 import com.example.campus.entity.TsukiResume;
+import com.example.campus.entity.TsukiResumeAttachment;
 import com.example.campus.entity.TsukiStudent;
 import com.example.campus.exception.ResourceNotFoundException;
 import com.example.campus.repository.TsukiApplicationRepository;
@@ -22,11 +24,13 @@ import com.example.campus.repository.TsukiJobRepository;
 import com.example.campus.repository.TsukiMessageRepository;
 import com.example.campus.repository.TsukiResumeRepository;
 import com.example.campus.repository.TsukiStudentRepository;
+import com.example.campus.repository.TsukiResumeAttachmentRepository;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -44,6 +48,7 @@ public class StudentPortalService {
     private final TsukiApplicationRepository applicationRepository;
     private final TsukiJobRepository jobRepository;
     private final TsukiMessageRepository messageRepository;
+    private final TsukiResumeAttachmentRepository attachmentRepository;
     private final FileStorageService fileStorageService;
 
     @Transactional(readOnly = true)
@@ -73,7 +78,7 @@ public class StudentPortalService {
         TsukiStudent student = requireStudent(userId);
         return resumeService.create(new com.example.campus.dto.resume.ResumeCreateRequest(student.getId(),
                 request.title(), request.educationExperience(), request.workExperience(), request.skills(),
-                request.selfEvaluation(), request.attachment()));
+                request.selfEvaluation(), request.attachment(), request.attachmentId()));
     }
 
     @Transactional
@@ -140,11 +145,25 @@ public class StudentPortalService {
     }
 
     @Transactional
-    public String uploadAttachment(Long userId, MultipartFile file) {
+    public ResumeAttachmentResponse uploadAttachment(Long userId, MultipartFile file) {
         TsukiStudent student = requireStudent(userId);
         try {
-            return fileStorageService.store(file, FileStorageService.StorageArea.RESUME,
+            String path = fileStorageService.store(file, FileStorageService.StorageArea.RESUME,
                     "resume-" + student.getId());
+            String fileName = file.getOriginalFilename();
+            if (!StringUtils.hasText(fileName)) {
+                fileName = "简历附件";
+            }
+            var attachment = attachmentRepository.save(
+                    TsukiResumeAttachment.builder()
+                            .student(student)
+                            .fileName(fileName)
+                            .filePath(path)
+                            .contentType(file.getContentType())
+                            .fileSize(file.getSize())
+                            .build());
+            return new ResumeAttachmentResponse(attachment.getId(), attachment.getFileName(), attachment.getFilePath(),
+                    attachment.getContentType(), attachment.getFileSize(), attachment.getUploadedAt());
         } catch (Exception ex) {
             throw new IllegalStateException("上传附件失败: " + ex.getMessage(), ex);
         }
@@ -157,9 +176,27 @@ public class StudentPortalService {
         try {
             if (resume.getAttachment() != null) {
                 fileStorageService.deleteIfExists(resume.getAttachment());
+                attachmentRepository.findByFilePath(resume.getAttachment())
+                        .ifPresent(attachmentRepository::delete);
             }
             String path = fileStorageService.store(file, FileStorageService.StorageArea.RESUME,
                     "resume-" + resume.getId());
+            String fileName = file.getOriginalFilename();
+            if (!StringUtils.hasText(fileName)) {
+                fileName = "简历附件";
+            }
+            var newAttachment = attachmentRepository.save(
+                    TsukiResumeAttachment.builder()
+                            .resume(resume)
+                            .student(student)
+                            .fileName(fileName)
+                            .filePath(path)
+                            .contentType(file.getContentType())
+                            .fileSize(file.getSize())
+                            .build());
+            attachmentRepository.findByResume_Id(resume.getId()).stream()
+                    .filter(existing -> !existing.getId().equals(newAttachment.getId()))
+                    .forEach(attachmentRepository::delete);
             resume.setAttachment(path);
             resumeRepository.save(resume);
             return resumeService.findById(resume.getId());
