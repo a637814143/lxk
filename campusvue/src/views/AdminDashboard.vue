@@ -1,253 +1,41 @@
 <template>
-  <div class="dashboard">
-    <header class="dashboard__header">
-      <div>
-        <h1>系统管理员工作台</h1>
-        <p>欢迎回来，{{ authInfo?.roleDisplayName }} {{ authInfo?.username }}</p>
-      </div>
-      <button class="outline" @click="handleLogout">退出登录</button>
-    </header>
-
-    <section class="card">
-      <h2>平台概览</h2>
-      <div class="summary-grid" v-if="summary">
-        <div class="summary-item"><span>学生人数</span><strong>{{ summary.totalStudents }}</strong></div>
-        <div class="summary-item"><span>企业数量</span><strong>{{ summary.totalCompanies }}</strong></div>
-        <div class="summary-item"><span>待审企业</span><strong>{{ summary.pendingCompanies }}</strong></div>
-        <div class="summary-item"><span>职位总数</span><strong>{{ summary.totalJobs }}</strong></div>
-        <div class="summary-item"><span>已发布职位</span><strong>{{ summary.approvedJobs }}</strong></div>
-        <div class="summary-item"><span>待审核职位</span><strong>{{ summary.pendingJobs }}</strong></div>
-        <div class="summary-item"><span>投递总量</span><strong>{{ summary.totalApplications }}</strong></div>
-        <div class="summary-item"><span>管理员未读消息</span><strong>{{ summary.unreadMessages }}</strong></div>
-      </div>
-      <div class="status-breakdown" v-if="summary">
-        <h3>投递状态统计</h3>
-        <ul>
-          <li v-for="(value, key) in summary.statusBreakdown" :key="key">{{ key }}：{{ value }}</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="card__title">
-        <h2>企业审核</h2>
-        <button class="outline" @click="loadPendingCompanies">刷新</button>
-      </div>
-      <table v-if="pendingCompanies.length" class="table">
-        <thead><tr><th>企业名称</th><th>行业</th><th>状态</th><th>操作</th></tr></thead>
-        <tbody>
-          <tr v-for="company in pendingCompanies" :key="company.id">
-            <td>{{ company.companyName }}</td>
-            <td>{{ company.industry || '未填写' }}</td>
-            <td>{{ company.auditStatus }}</td>
-            <td class="actions">
-              <button class="primary" @click="reviewCompany(company.id, 'approved')">通过</button>
-              <button class="danger" @click="reviewCompany(company.id, 'rejected')">驳回</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else class="muted">暂无待审核企业</p>
-    </section>
-
-    <section class="card">
-      <div class="card__title">
-        <h2>职位审核</h2>
-        <button class="outline" @click="loadPendingJobs">刷新</button>
-      </div>
-      <table v-if="pendingJobs.length" class="table">
-        <thead><tr><th>职位名称</th><th>企业ID</th><th>状态</th><th>操作</th></tr></thead>
-        <tbody>
-          <tr v-for="job in pendingJobs" :key="job.id">
-            <td>{{ job.jobTitle }}</td>
-            <td>{{ job.companyId }}</td>
-            <td>{{ job.status }}</td>
-            <td class="actions">
-              <button class="primary" @click="reviewJob(job.id, 'approved')">通过</button>
-              <button class="danger" @click="reviewJob(job.id, 'rejected')">驳回</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else class="muted">暂无待审核职位</p>
-    </section>
-
-    <section class="card">
-      <div class="card__title">
-        <h2>讨论审核</h2>
-        <button class="outline" @click="loadPendingDiscussions">刷新</button>
-      </div>
-      <ul class="list" v-if="pendingDiscussions.length">
-        <li v-for="item in pendingDiscussions" :key="item.id" class="list__item">
-          <div>
-            <h3>{{ item.title }} <small class="muted">企业 #{{ item.companyId }}</small></h3>
-            <p class="muted">提交时间：{{ formatDate(item.createdAt) }}</p>
-            <p>{{ item.sanitizedContent || item.content }}</p>
-            <p v-if="item.reviewComment" class="muted">备注：{{ item.reviewComment }}</p>
-          </div>
-          <div class="list__actions">
-            <button class="primary" @click="handleDiscussionReview(item, 'approved')">通过</button>
-            <button class="danger" @click="handleDiscussionReview(item, 'rejected')">驳回</button>
-          </div>
-        </li>
-      </ul>
-      <p v-else class="muted">暂无待审核的讨论内容</p>
-    </section>
-
-    <section class="card">
-      <div class="card__title">
-        <h2>用户管理</h2>
-        <button class="outline" @click="loadUsers">刷新</button>
-      </div>
-      <table v-if="users.length" class="table">
-        <thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>状态</th><th>操作</th></tr></thead>
-        <tbody>
-          <tr v-for="user in users" :key="user.id">
-            <td>{{ user.id }}</td>
-            <td>{{ user.username }}</td>
-            <td>{{ user.role }}</td>
-            <td>{{ user.status === 1 ? '启用' : '禁用' }}</td>
-            <td class="actions">
-              <button class="outline" @click="toggleUserStatus(user)">
-                {{ user.status === 1 ? '禁用账号' : '恢复账号' }}
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else class="muted">暂无用户数据</p>
-    </section>
-
-    <section class="card">
-      <div class="card__title">
-        <h2>财务记录管理</h2>
-        <button class="outline" @click="loadTransactions">刷新</button>
-      </div>
-      <div class="billing-summary">
-        <span>季度单价：￥{{ formatCurrency(quarterFee) }}</span>
-        <span>当前选择：{{ transactionForm.durationQuarters }} 个季度</span>
-        <span>预计扣款：￥{{ formatCurrency(calculatedAmount) }}</span>
-      </div>
-      <form class="form-grid" @submit.prevent="createTransaction">
-        <label>企业ID<input v-model="transactionForm.companyId" type="number" min="1" required /></label>
-        <label>
-          使用时长
-          <select v-model.number="transactionForm.durationQuarters">
-            <option v-for="option in durationOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
-        </label>
-        <label class="full">费用用途<input v-model="transactionForm.type" placeholder="季度服务费" /></label>
-        <label class="full">业务编号<input v-model="transactionForm.reference" placeholder="可选的内部参考编号" /></label>
-        <label class="full">备注<textarea v-model="transactionForm.notes" placeholder="补充说明（可选）"></textarea></label>
-        <div class="full actions">
-          <button class="primary" type="submit">创建记录</button>
-          <button class="outline" type="button" @click="resetTransactionForm">重置</button>
-        </div>
-      </form>
-      <table v-if="transactions.length" class="table">
-        <thead><tr><th>ID</th><th>企业ID</th><th>用途</th><th>金额</th><th>服务时长</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead>
-        <tbody>
-          <tr v-for="item in transactions" :key="item.id">
-            <td>{{ item.id }}</td>
-            <td>{{ item.companyId }}</td>
-            <td>{{ item.type }}</td>
-            <td>{{ Number(item.amount ?? 0).toFixed(2) }} {{ item.currency || 'CNY' }}</td>
-            <td>{{ formatDuration(item.durationMonths) }}</td>
-            <td>{{ item.status }}</td>
-            <td>{{ formatDate(item.updatedAt || item.createdAt) }}</td>
-            <td class="actions">
-              <select v-model="item.status" @change="updateTransactionStatus(item, item.status)">
-                <option value="pending">待处理</option>
-                <option value="completed">已完成</option>
-                <option value="cancelled">已取消</option>
-              </select>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else class="muted">暂无财务记录</p>
-    </section>
-
-    <section class="card">
-      <div class="card__title">
-        <h2>公告管理</h2>
-        <button class="outline" @click="loadAnnouncements">刷新</button>
-      </div>
-      <form class="form-grid" @submit.prevent="saveAnnouncement">
-        <label>标题<input v-model="announcementForm.title" required /></label>
-        <label>目标
-          <select v-model="announcementForm.target" required>
-            <option value="all">全部用户</option>
-            <option value="student">学生</option>
-            <option value="company">企业</option>
-          </select>
-        </label>
-        <label class="full">内容<textarea v-model="announcementForm.content" required></textarea></label>
-        <div class="full actions">
-          <button class="primary" type="submit">{{ announcementForm.id ? '更新公告' : '发布公告' }}</button>
-          <button class="outline" type="button" @click="resetAnnouncementForm">取消编辑</button>
-        </div>
-      </form>
-      <ul class="list" v-if="announcements.length">
-        <li v-for="item in announcements" :key="item.id" class="list__item">
-          <div>
-            <h3>{{ item.title }} <small class="muted">({{ item.target }})</small></h3>
-            <p class="muted">发布时间：{{ formatDate(item.publishTime) }}</p>
-            <p>{{ item.content }}</p>
-          </div>
-          <div class="list__actions">
-            <button class="outline" @click="editAnnouncement(item)">编辑</button>
-            <button class="danger" @click="deleteAnnouncement(item.id)">删除</button>
-          </div>
-        </li>
-      </ul>
-      <p v-else class="muted">暂无公告</p>
-    </section>
-
-    <section class="card">
-      <div class="card__title">
-        <h2>数据备份</h2>
-        <button class="outline" @click="loadBackups">刷新</button>
-      </div>
-      <form class="form-grid" @submit.prevent="triggerBackup">
-        <label>备份类型<input v-model="backupForm.backupType" placeholder="例如 daily/system" /></label>
-        <label class="full">备注<textarea v-model="backupForm.message" placeholder="可选备注"></textarea></label>
-        <div class="full actions">
-          <button class="primary" type="submit">立即备份</button>
-          <button class="outline" type="button" @click="backupForm.message = ''">清空备注</button>
-        </div>
-      </form>
-      <table v-if="backups.length" class="table">
-        <thead><tr><th>ID</th><th>类型</th><th>状态</th><th>创建时间</th><th>文件</th></tr></thead>
-        <tbody>
-          <tr v-for="item in backups" :key="item.id">
-            <td>{{ item.id }}</td>
-            <td>{{ item.backupType || 'system' }}</td>
-            <td>{{ item.status }}</td>
-            <td>{{ formatDate(item.createdAt) }}</td>
-            <td>
-              <a v-if="item.downloadUrl" :href="item.downloadUrl" target="_blank" rel="noopener">下载</a>
-              <span v-else class="muted">生成中</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p v-else class="muted">暂无备份记录</p>
-    </section>
-
+  <DashboardLayout
+    title="系统管理员工作台"
+    :subtitle="subtitle"
+    :nav-items="navItems"
+    @logout="handleLogout"
+  >
+    <router-view />
     <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
-  </div>
+  </DashboardLayout>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, provide, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import DashboardLayout from '../components/dashboard/DashboardLayout.vue';
 import { clearAuthInfo, getAuthInfo, get, patch, post, put, del } from '../api/http';
 
 const router = useRouter();
 const authInfo = getAuthInfo();
+
+const subtitle = computed(() => {
+  if (!authInfo) return '';
+  const roleName = authInfo.roleDisplayName ?? '';
+  const username = authInfo.username ?? '';
+  return `欢迎回来，${roleName} ${username}`.trim();
+});
+
+const navItems = [
+  { label: '平台概览', to: '/admin/overview' },
+  { label: '企业审核', to: '/admin/company-review' },
+  { label: '职位审核', to: '/admin/job-review' },
+  { label: '讨论审核', to: '/admin/discussion-review' },
+  { label: '用户管理', to: '/admin/users' },
+  { label: '财务管理', to: '/admin/finance' },
+  { label: '公告管理', to: '/admin/announcements' },
+  { label: '数据备份', to: '/admin/backups' }
+];
 
 const summary = ref(null);
 const pendingCompanies = ref([]);
@@ -279,18 +67,18 @@ const transactionForm = reactive({
   notes: ''
 });
 
-const calculatedAmount = computed(() => {
-  const quarters = Number(transactionForm.durationQuarters || 0);
-  const fee = Number(quarterFee.value || 0);
-  return Number.isFinite(quarters) && Number.isFinite(fee) ? fee * quarters : 0;
-});
-
 const backupForm = reactive({
   backupType: 'system',
   message: ''
 });
 
 const feedback = reactive({ message: '', type: 'info' });
+
+const calculatedAmount = computed(() => {
+  const quarters = Number(transactionForm.durationQuarters || 0);
+  const fee = Number(quarterFee.value || 0);
+  return Number.isFinite(quarters) && Number.isFinite(fee) ? fee * quarters : 0;
+});
 
 function showFeedback(message, type = 'info') {
   feedback.message = message;
@@ -545,6 +333,52 @@ function formatDate(value) {
   return new Date(value).toLocaleString();
 }
 
+const adminContext = {
+  authInfo,
+  summary,
+  pendingCompanies,
+  pendingJobs,
+  users,
+  announcements,
+  transactions,
+  pendingDiscussions,
+  backups,
+  quarterFee,
+  durationOptions,
+  announcementForm,
+  transactionForm,
+  backupForm,
+  feedback,
+  calculatedAmount,
+  loadSummary,
+  loadPendingCompanies,
+  reviewCompany,
+  loadPendingJobs,
+  reviewJob,
+  loadUsers,
+  toggleUserStatus,
+  loadTransactions,
+  createTransaction,
+  resetTransactionForm,
+  updateTransactionStatus,
+  loadPendingDiscussions,
+  handleDiscussionReview,
+  loadBackups,
+  triggerBackup,
+  loadAnnouncements,
+  saveAnnouncement,
+  resetAnnouncementForm,
+  editAnnouncement,
+  deleteAnnouncement,
+  showFeedback,
+  formatDuration,
+  formatCurrency,
+  formatDate,
+  loadBillingConfig
+};
+
+provide('adminContext', adminContext);
+
 onMounted(async () => {
   await loadBillingConfig();
   await Promise.all([
@@ -559,196 +393,3 @@ onMounted(async () => {
   ]);
 });
 </script>
-
-<style scoped>
-.dashboard {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.dashboard__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.card__title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.billing-summary {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: 14px;
-  color: #0f172a;
-}
-
-.billing-summary span {
-  background: #f8fafc;
-  border-radius: 999px;
-  padding: 6px 12px;
-}
-
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 16px;
-}
-
-.summary-item {
-  background: #eff6ff;
-  padding: 16px;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  color: #1e3a8a;
-}
-
-.summary-item strong {
-  font-size: 20px;
-}
-
-.status-breakdown ul {
-  padding-left: 18px;
-  margin: 0;
-  color: #475569;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
-  text-align: left;
-  padding: 8px 12px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.form-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.form-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-weight: 600;
-}
-
-.form-grid input,
-.form-grid textarea,
-.form-grid select {
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 10px;
-  font-size: 14px;
-}
-
-.form-grid textarea {
-  min-height: 100px;
-  resize: vertical;
-}
-
-.form-grid .full {
-  grid-column: 1 / -1;
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.list__item {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.list__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.muted {
-  color: #6b7280;
-}
-
-.primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  border: none;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.outline {
-  background: transparent;
-  border: 1px solid #2563eb;
-  color: #2563eb;
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.danger {
-  background: transparent;
-  border: 1px solid #dc2626;
-  color: #dc2626;
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.feedback {
-  text-align: center;
-  padding: 12px;
-  border-radius: 12px;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-</style>
