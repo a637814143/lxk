@@ -10,7 +10,7 @@ SET @tsuki_job_duration_months_exists := (
 SET @add_duration_months_sql := IF(
     @tsuki_job_duration_months_exists = 0,
     'ALTER TABLE tsuki_job ADD COLUMN duration_months INT NULL;',
-    'SELECT 1'
+    'DO 0'
 );
 
 PREPARE add_duration_months_stmt FROM @add_duration_months_sql;

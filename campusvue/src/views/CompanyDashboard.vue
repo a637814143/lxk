@@ -46,6 +46,7 @@
         <label>薪资范围<input v-model="jobForm.salaryRange" /></label>
         <label>工作地点<input v-model="jobForm.location" /></label>
         <label class="full">岗位要求<textarea v-model="jobForm.requirement"></textarea></label>
+        <label>合同时长（月）<input v-model.number="jobForm.durationMonths" type="number" min="1" step="1" placeholder="可选，整数月" /></label>
         <label class="full">职位描述<textarea v-model="jobForm.description"></textarea></label>
         <div class="full actions">
           <button class="primary" type="submit">发布职位</button>
@@ -54,13 +55,14 @@
       </form>
       <table v-if="jobs.length" class="table">
         <thead>
-          <tr><th>职位</th><th>类型</th><th>地点</th><th>状态</th><th>操作</th></tr>
+          <tr><th>职位</th><th>类型</th><th>地点</th><th>合同时长</th><th>状态</th><th>操作</th></tr>
         </thead>
         <tbody>
           <tr v-for="job in jobs" :key="job.id">
             <td>{{ job.jobTitle }}</td>
             <td>{{ job.jobType || '不限' }}</td>
             <td>{{ job.location || '不限' }}</td>
+            <td>{{ job.durationMonths ? `${job.durationMonths} 个月` : '不限' }}</td>
             <td><span class="status">{{ job.status }}</span></td>
             <td class="actions">
               <button class="outline" @click="prefillJob(job)">编辑</button>
@@ -224,6 +226,7 @@ const jobForm = reactive({
   salaryRange: '',
   location: '',
   requirement: '',
+  durationMonths: null,
   description: ''
 });
 
@@ -338,18 +341,23 @@ function resetJobForm() {
   jobForm.salaryRange = '';
   jobForm.location = '';
   jobForm.requirement = '';
+  jobForm.durationMonths = null;
   jobForm.description = '';
 }
 
 async function createJob() {
   try {
+    const normalizedDuration = jobForm.durationMonths === null || jobForm.durationMonths === ''
+      ? null
+      : Number(jobForm.durationMonths);
     const payload = {
       jobTitle: jobForm.jobTitle,
       jobType: jobForm.jobType,
       salaryRange: jobForm.salaryRange,
       location: jobForm.location,
       requirement: jobForm.requirement,
-      description: jobForm.description
+      description: jobForm.description,
+      durationMonths: Number.isFinite(normalizedDuration) ? normalizedDuration : null
     };
     if (jobForm.jobId) {
       await put(`/portal/company/jobs/${jobForm.jobId}`, payload);
@@ -366,7 +374,10 @@ async function createJob() {
 }
 
 function prefillJob(job) {
-  Object.assign(jobForm, job, { jobId: job.id });
+  Object.assign(jobForm, job, {
+    jobId: job.id,
+    durationMonths: job.durationMonths ?? null
+  });
 }
 
 async function changeJobStatus(job) {
