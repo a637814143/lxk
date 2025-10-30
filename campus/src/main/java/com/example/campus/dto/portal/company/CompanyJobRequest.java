@@ -1,6 +1,7 @@
 package com.example.campus.dto.portal.company;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record CompanyJobRequest(
@@ -19,5 +20,8 @@ public record CompanyJobRequest(
 
         String requirement,
 
-        String description) {
+        String description,
+
+        @Positive(message = "合同时长必须为正数（单位：月）")
+        Integer durationMonths) {
 }

@@ -67,6 +67,7 @@ public class JobService {
                 .location(request.location())
                 .requirement(request.requirement())
                 .description(request.description())
+                .durationMonths(request.durationMonths())
                 .status(normalizeStatus(request.status()))
                 .build();
         TsukiJob saved = jobRepository.save(job);
@@ -93,6 +94,9 @@ public class JobService {
         }
         if (request.description() != null) {
             job.setDescription(request.description());
+        }
+        if (request.durationMonths() != null) {
+            job.setDurationMonths(request.durationMonths());
         }
         if (request.status() != null) {
             job.setStatus(normalizeStatus(request.status()));
@@ -127,6 +131,7 @@ public class JobService {
                 job.getLocation(),
                 job.getRequirement(),
                 job.getDescription(),
+                job.getDurationMonths(),
                 job.getStatus(),
                 job.getCreateTime(),
                 job.getUpdateTime());

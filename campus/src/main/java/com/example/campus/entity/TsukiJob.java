@@ -55,6 +55,9 @@ public class TsukiJob {
     @Column(name = "status", length = 20)
     private String status;
 
+    @Column(name = "duration_months")
+    private Integer durationMonths;
+
     @Column(name = "create_time", updatable = false, insertable = false)
     private LocalDateTime createTime;
 

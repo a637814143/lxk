@@ -1,5 +1,6 @@
 package com.example.campus.dto.job;
 
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public record JobUpdateRequest(
@@ -18,6 +19,9 @@ public record JobUpdateRequest(
         String requirement,
 
         String description,
+
+        @Positive(message = "合同时长必须为正数（单位：月）")
+        Integer durationMonths,
 
         @Size(max = 20, message = "职位状态不能超过20个字符")
         String status) {
