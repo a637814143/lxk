@@ -11,6 +11,7 @@ public record FinancialTransactionResponse(
         String adminName,
         BigDecimal amount,
         String currency,
+        Integer durationMonths,
         String type,
         String status,
         String reference,

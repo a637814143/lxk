@@ -82,26 +82,41 @@
         <h2>财务往来</h2>
         <button class="outline" @click="loadTransactions">刷新</button>
       </div>
+      <div class="billing-summary">
+        <span>钱包余额：￥{{ formatCurrency(walletBalance) }}</span>
+        <span>季度单价：￥{{ formatCurrency(quarterFee) }}</span>
+        <span>本次扣款：￥{{ formatCurrency(calculatedAmount) }}</span>
+      </div>
       <form class="form-grid" @submit.prevent="submitTransaction">
-        <label>金额（元）<input v-model="transactionForm.amount" type="number" min="0" step="0.01" required /></label>
-        <label>币种<input v-model="transactionForm.currency" placeholder="默认 CNY" /></label>
-        <label class="full">费用用途<input v-model="transactionForm.type" required placeholder="例如：平台服务费" /></label>
+        <label>
+          使用时长
+          <select v-model.number="transactionForm.durationQuarters">
+            <option v-for="option in durationOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+        <label>
+          费用用途
+          <input v-model="transactionForm.type" placeholder="季度服务费" />
+        </label>
         <label class="full">业务编号<input v-model="transactionForm.reference" placeholder="可选的内部参考编号" /></label>
         <label class="full">备注<textarea v-model="transactionForm.notes" placeholder="补充说明（可选）"></textarea></label>
         <div class="full actions">
-          <button class="primary" type="submit">提交审核</button>
+          <button class="primary" type="submit">立即扣款</button>
           <button class="outline" type="button" @click="resetTransactionForm">清空</button>
         </div>
       </form>
       <table v-if="transactions.length" class="table">
         <thead>
-          <tr><th>用途</th><th>金额</th><th>币种</th><th>状态</th><th>更新时间</th><th>备注</th></tr>
+          <tr><th>用途</th><th>金额</th><th>币种</th><th>服务时长</th><th>状态</th><th>更新时间</th><th>备注</th></tr>
         </thead>
         <tbody>
           <tr v-for="item in transactions" :key="item.id">
             <td>{{ item.type }}</td>
             <td>{{ Number(item.amount ?? 0).toFixed(2) }}</td>
             <td>{{ item.currency || 'CNY' }}</td>
+            <td>{{ formatDuration(item.durationMonths) }}</td>
             <td>{{ item.status }}</td>
             <td>{{ formatDate(item.updatedAt || item.createdAt) }}</td>
             <td>{{ item.notes || '-' }}</td>
@@ -199,7 +214,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { clearAuthInfo, getAuthInfo, get, post, put, patch, upload } from '../api/http';
 
@@ -232,6 +247,13 @@ const applications = ref([]);
 const announcements = ref([]);
 const transactions = ref([]);
 const discussions = ref([]);
+const walletBalance = ref(0);
+const quarterFee = ref(0);
+const durationOptions = [
+  { value: 1, label: '1个季度（3个月）' },
+  { value: 2, label: '2个季度（6个月）' },
+  { value: 4, label: '4个季度（12个月）' }
+];
 
 const messageDialog = reactive({
   visible: false,
@@ -244,11 +266,16 @@ const messageDialog = reactive({
 });
 
 const transactionForm = reactive({
-  amount: '',
-  type: '',
-  currency: 'CNY',
+  durationQuarters: 1,
+  type: '季度服务费',
   reference: '',
   notes: ''
+});
+
+const calculatedAmount = computed(() => {
+  const quarters = Number(transactionForm.durationQuarters || 0);
+  const fee = Number(quarterFee.value || 0);
+  return Number.isFinite(quarters) && Number.isFinite(fee) ? fee * quarters : 0;
 });
 
 const discussionForm = reactive({
@@ -271,6 +298,20 @@ function showFeedback(message, type = 'info') {
   }
 }
 
+function applyProfileData(data = {}) {
+  Object.assign(profileForm, {
+    companyName: data.companyName ?? '',
+    licenseNumber: data.licenseNumber ?? '',
+    industry: data.industry ?? '',
+    address: data.address ?? '',
+    website: data.website ?? '',
+    description: data.description ?? '',
+    logo: data.logo ?? '',
+    licenseDocument: data.licenseDocument ?? ''
+  });
+  walletBalance.value = Number(data.walletBalance ?? 0);
+}
+
 function handleLogout() {
   clearAuthInfo();
   router.replace({ name: 'login' });
@@ -279,7 +320,7 @@ function handleLogout() {
 async function loadProfile() {
   try {
     const data = await get('/portal/company/profile');
-    Object.assign(profileForm, data);
+    applyProfileData(data);
   } catch (error) {
     if (error.status !== 404) {
       showFeedback(error.message, 'error');
@@ -287,10 +328,19 @@ async function loadProfile() {
   }
 }
 
+async function loadBillingConfig() {
+  try {
+    const data = await get('/billing/config');
+    quarterFee.value = Number(data?.quarterFee ?? 0);
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
 async function saveProfile() {
   try {
     const data = await put('/portal/company/profile', profileForm);
-    Object.assign(profileForm, data);
+    applyProfileData(data);
     showFeedback('企业资料已保存', 'success');
   } catch (error) {
     showFeedback(error.message, 'error');
@@ -311,7 +361,7 @@ async function uploadLicense() {
     const formData = new FormData();
     formData.append('file', licenseFile.value);
     const data = await upload('/portal/company/profile/license', formData);
-    Object.assign(profileForm, data);
+    applyProfileData(data);
     showFeedback('营业执照上传成功，等待管理员审核', 'success');
   } catch (error) {
     showFeedback(error.message, 'error');
@@ -441,29 +491,32 @@ async function loadTransactions() {
 }
 
 function resetTransactionForm() {
-  transactionForm.amount = '';
-  transactionForm.type = '';
-  transactionForm.currency = 'CNY';
+  transactionForm.durationQuarters = 1;
+  transactionForm.type = '季度服务费';
   transactionForm.reference = '';
   transactionForm.notes = '';
 }
 
 async function submitTransaction() {
-  if (!transactionForm.amount || !transactionForm.type) {
-    showFeedback('请填写金额和费用用途', 'error');
+  if (!transactionForm.durationQuarters) {
+    showFeedback('请选择使用时长', 'error');
+    return;
+  }
+  const amount = calculatedAmount.value;
+  if (walletBalance.value < amount) {
+    showFeedback('钱包余额不足，请先充值', 'error');
     return;
   }
   try {
     await post('/portal/company/transactions', {
-      amount: transactionForm.amount,
+      durationQuarters: transactionForm.durationQuarters,
       type: transactionForm.type,
-      currency: transactionForm.currency || 'CNY',
       reference: transactionForm.reference,
       notes: transactionForm.notes
     });
-    showFeedback('财务申请已提交，等待管理员处理', 'success');
+    showFeedback('季度服务费已扣款，感谢使用', 'success');
     resetTransactionForm();
-    await loadTransactions();
+    await Promise.all([loadTransactions(), loadProfile()]);
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -527,7 +580,21 @@ function formatDate(value) {
   return new Date(value).toLocaleString();
 }
 
+function formatDuration(months) {
+  if (!months) return '—';
+  const quarters = months / 3;
+  if (Number.isInteger(quarters)) {
+    return `${quarters}个季度（${months}个月）`;
+  }
+  return `${months}个月`;
+}
+
+function formatCurrency(value) {
+  return Number(value ?? 0).toFixed(2);
+}
+
 onMounted(async () => {
+  await loadBillingConfig();
   await loadProfile();
   await loadJobs();
   await loadApplications();
@@ -569,6 +636,20 @@ onMounted(async () => {
   justify-content: space-between;
 }
 
+.billing-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.billing-summary span {
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
 .form-grid {
   display: grid;
   gap: 12px;
@@ -584,6 +665,7 @@ onMounted(async () => {
 
 .form-grid input,
 .form-grid textarea,
+.form-grid select,
 .table select {
   border: 1px solid #d1d5db;
   border-radius: 10px;

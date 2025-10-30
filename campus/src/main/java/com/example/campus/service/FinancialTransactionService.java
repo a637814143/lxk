@@ -1,5 +1,6 @@
 package com.example.campus.service;
 
+import com.example.campus.config.BillingProperties;
 import com.example.campus.dto.finance.FinancialTransactionRequest;
 import com.example.campus.dto.finance.FinancialTransactionResponse;
 import com.example.campus.dto.finance.FinancialTransactionStatusRequest;
@@ -11,6 +12,7 @@ import com.example.campus.exception.ResourceNotFoundException;
 import com.example.campus.repository.TsukiAdminRepository;
 import com.example.campus.repository.TsukiCompanyRepository;
 import com.example.campus.repository.TsukiFinancialTransactionRepository;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -24,10 +26,13 @@ import org.springframework.util.StringUtils;
 public class FinancialTransactionService {
 
     private static final Set<String> STATUSES = Set.of("pending", "completed", "cancelled");
+    private static final String BILLING_CURRENCY = "CNY";
+    private static final int MONTHS_PER_QUARTER = 3;
 
     private final TsukiFinancialTransactionRepository transactionRepository;
     private final TsukiCompanyRepository companyRepository;
     private final TsukiAdminRepository adminRepository;
+    private final BillingProperties billingProperties;
 
     @Transactional(readOnly = true)
     public List<FinancialTransactionResponse> findAll() {
@@ -48,13 +53,17 @@ public class FinancialTransactionService {
         TsukiAdmin admin = requireAdmin(adminUserId);
         TsukiCompany company = companyRepository.findById(request.companyId())
                 .orElseThrow(() -> new ResourceNotFoundException("未找到企业信息"));
+        int durationQuarters = normalizeDuration(request.durationQuarters());
+        BigDecimal amount = calculateAmount(durationQuarters);
+        deductFromWallet(company, amount);
         TsukiFinancialTransaction transaction = TsukiFinancialTransaction.builder()
                 .admin(admin)
                 .company(company)
-                .amount(request.amount())
-                .currency(resolveCurrency(request.currency()))
-                .type(request.type())
-                .status("pending")
+                .amount(amount)
+                .currency(BILLING_CURRENCY)
+                .durationMonths(durationQuarters * MONTHS_PER_QUARTER)
+                .type(resolveType(request.type()))
+                .status("completed")
                 .reference(request.reference())
                 .notes(request.notes())
                 .build();
@@ -65,12 +74,16 @@ public class FinancialTransactionService {
     public FinancialTransactionResponse submitByCompany(Long companyUserId, CompanyTransactionRequest request) {
         TsukiCompany company = companyRepository.findByUser_Id(companyUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("请先完善企业资料"));
+        int durationQuarters = normalizeDuration(request.durationQuarters());
+        BigDecimal amount = calculateAmount(durationQuarters);
+        deductFromWallet(company, amount);
         TsukiFinancialTransaction transaction = TsukiFinancialTransaction.builder()
                 .company(company)
-                .amount(request.amount())
-                .currency(resolveCurrency(request.currency()))
-                .type(request.type())
-                .status("pending")
+                .amount(amount)
+                .currency(BILLING_CURRENCY)
+                .durationMonths(durationQuarters * MONTHS_PER_QUARTER)
+                .type(resolveType(request.type()))
+                .status("completed")
                 .reference(request.reference())
                 .notes(request.notes())
                 .build();
@@ -90,13 +103,6 @@ public class FinancialTransactionService {
             transaction.setAdmin(admin);
         }
         return toResponse(transactionRepository.save(transaction));
-    }
-
-    private String resolveCurrency(String currency) {
-        if (!StringUtils.hasText(currency)) {
-            return "CNY";
-        }
-        return currency.trim().toUpperCase(Locale.ROOT);
     }
 
     private String normalizeStatus(String status) {
@@ -125,11 +131,42 @@ public class FinancialTransactionService {
                         ? transaction.getAdmin().getUser().getUsername() : null,
                 transaction.getAmount(),
                 transaction.getCurrency(),
+                transaction.getDurationMonths(),
                 transaction.getType(),
                 transaction.getStatus(),
                 transaction.getReference(),
                 transaction.getNotes(),
                 transaction.getCreatedAt(),
                 transaction.getUpdatedAt());
+    }
+
+    private BigDecimal calculateAmount(int durationQuarters) {
+        if (durationQuarters <= 0) {
+            throw new IllegalArgumentException("使用时长必须大于0");
+        }
+        BigDecimal quarterFee = billingProperties.getQuarterFee();
+        return quarterFee.multiply(BigDecimal.valueOf(durationQuarters));
+    }
+
+    private int normalizeDuration(Integer durationQuarters) {
+        if (durationQuarters == null || durationQuarters <= 0) {
+            throw new IllegalArgumentException("使用时长必须大于0");
+        }
+        return durationQuarters;
+    }
+
+    private void deductFromWallet(TsukiCompany company, BigDecimal amount) {
+        BigDecimal current = company.getWalletBalance() == null ? BigDecimal.ZERO : company.getWalletBalance();
+        if (current.compareTo(amount) < 0) {
+            throw new IllegalArgumentException("企业钱包余额不足，无法完成扣款");
+        }
+        company.setWalletBalance(current.subtract(amount));
+    }
+
+    private String resolveType(String type) {
+        if (!StringUtils.hasText(type)) {
+            return "季度服务费";
+        }
+        return type.trim();
     }
 }

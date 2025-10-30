@@ -123,11 +123,22 @@
         <h2>财务记录管理</h2>
         <button class="outline" @click="loadTransactions">刷新</button>
       </div>
+      <div class="billing-summary">
+        <span>季度单价：￥{{ formatCurrency(quarterFee) }}</span>
+        <span>当前选择：{{ transactionForm.durationQuarters }} 个季度</span>
+        <span>预计扣款：￥{{ formatCurrency(calculatedAmount) }}</span>
+      </div>
       <form class="form-grid" @submit.prevent="createTransaction">
         <label>企业ID<input v-model="transactionForm.companyId" type="number" min="1" required /></label>
-        <label>金额（元）<input v-model="transactionForm.amount" type="number" min="0" step="0.01" required /></label>
-        <label>币种<input v-model="transactionForm.currency" placeholder="默认 CNY" /></label>
-        <label class="full">费用用途<input v-model="transactionForm.type" required placeholder="例如：平台服务费" /></label>
+        <label>
+          使用时长
+          <select v-model.number="transactionForm.durationQuarters">
+            <option v-for="option in durationOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+        <label class="full">费用用途<input v-model="transactionForm.type" placeholder="季度服务费" /></label>
         <label class="full">业务编号<input v-model="transactionForm.reference" placeholder="可选的内部参考编号" /></label>
         <label class="full">备注<textarea v-model="transactionForm.notes" placeholder="补充说明（可选）"></textarea></label>
         <div class="full actions">
@@ -136,13 +147,14 @@
         </div>
       </form>
       <table v-if="transactions.length" class="table">
-        <thead><tr><th>ID</th><th>企业ID</th><th>用途</th><th>金额</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead>
+        <thead><tr><th>ID</th><th>企业ID</th><th>用途</th><th>金额</th><th>服务时长</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead>
         <tbody>
           <tr v-for="item in transactions" :key="item.id">
             <td>{{ item.id }}</td>
             <td>{{ item.companyId }}</td>
             <td>{{ item.type }}</td>
             <td>{{ Number(item.amount ?? 0).toFixed(2) }} {{ item.currency || 'CNY' }}</td>
+            <td>{{ formatDuration(item.durationMonths) }}</td>
             <td>{{ item.status }}</td>
             <td>{{ formatDate(item.updatedAt || item.createdAt) }}</td>
             <td class="actions">
@@ -230,7 +242,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { clearAuthInfo, getAuthInfo, get, patch, post, put, del } from '../api/http';
 
@@ -245,6 +257,12 @@ const announcements = ref([]);
 const transactions = ref([]);
 const pendingDiscussions = ref([]);
 const backups = ref([]);
+const quarterFee = ref(0);
+const durationOptions = [
+  { value: 1, label: '1个季度（3个月）' },
+  { value: 2, label: '2个季度（6个月）' },
+  { value: 4, label: '4个季度（12个月）' }
+];
 
 const announcementForm = reactive({
   id: null,
@@ -255,11 +273,16 @@ const announcementForm = reactive({
 
 const transactionForm = reactive({
   companyId: '',
-  amount: '',
-  type: '',
-  currency: 'CNY',
+  durationQuarters: 1,
+  type: '季度服务费',
   reference: '',
   notes: ''
+});
+
+const calculatedAmount = computed(() => {
+  const quarters = Number(transactionForm.durationQuarters || 0);
+  const fee = Number(quarterFee.value || 0);
+  return Number.isFinite(quarters) && Number.isFinite(fee) ? fee * quarters : 0;
 });
 
 const backupForm = reactive({
@@ -287,6 +310,15 @@ function handleLogout() {
 async function loadSummary() {
   try {
     summary.value = await get('/portal/admin/summary');
+  } catch (error) {
+    showFeedback(error.message, 'error');
+  }
+}
+
+async function loadBillingConfig() {
+  try {
+    const data = await get('/billing/config');
+    quarterFee.value = Number(data?.quarterFee ?? 0);
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -359,28 +391,26 @@ async function loadTransactions() {
 
 function resetTransactionForm() {
   transactionForm.companyId = '';
-  transactionForm.amount = '';
-  transactionForm.type = '';
-  transactionForm.currency = 'CNY';
+  transactionForm.durationQuarters = 1;
+  transactionForm.type = '季度服务费';
   transactionForm.reference = '';
   transactionForm.notes = '';
 }
 
 async function createTransaction() {
-  if (!transactionForm.companyId || !transactionForm.amount || !transactionForm.type) {
-    showFeedback('请填写企业ID、金额和用途', 'error');
+  if (!transactionForm.companyId || !transactionForm.durationQuarters) {
+    showFeedback('请填写企业ID并选择使用时长', 'error');
     return;
   }
   try {
     await post('/portal/admin/transactions', {
       companyId: Number(transactionForm.companyId),
-      amount: transactionForm.amount,
+      durationQuarters: transactionForm.durationQuarters,
       type: transactionForm.type,
-      currency: transactionForm.currency || 'CNY',
       reference: transactionForm.reference,
       notes: transactionForm.notes
     });
-    showFeedback('已创建财务记录', 'success');
+    showFeedback('已创建季度扣款记录', 'success');
     resetTransactionForm();
     await loadTransactions();
   } catch (error) {
@@ -497,12 +527,26 @@ async function deleteAnnouncement(id) {
   }
 }
 
+function formatDuration(months) {
+  if (!months) return '—';
+  const quarters = months / 3;
+  if (Number.isInteger(quarters)) {
+    return `${quarters}个季度（${months}个月）`;
+  }
+  return `${months}个月`;
+}
+
+function formatCurrency(value) {
+  return Number(value ?? 0).toFixed(2);
+}
+
 function formatDate(value) {
   if (!value) return '';
   return new Date(value).toLocaleString();
 }
 
 onMounted(async () => {
+  await loadBillingConfig();
   await Promise.all([
     loadSummary(),
     loadPendingCompanies(),
@@ -546,6 +590,20 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.billing-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.billing-summary span {
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 6px 12px;
 }
 
 .summary-grid {
