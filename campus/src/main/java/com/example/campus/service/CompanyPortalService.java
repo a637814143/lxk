@@ -78,7 +78,8 @@ public class CompanyPortalService {
     public JobResponse createJob(Long userId, CompanyJobRequest request) {
         TsukiCompany company = requireCompany(userId);
         JobCreateRequest createRequest = new JobCreateRequest(company.getId(), request.jobTitle(), request.jobType(),
-                request.salaryRange(), request.location(), request.requirement(), request.description(), "pending");
+                request.salaryRange(), request.location(), request.requirement(), request.description(),
+                request.durationMonths(), "pending");
         return jobService.create(createRequest);
     }
 
@@ -87,7 +88,8 @@ public class CompanyPortalService {
         TsukiCompany company = requireCompany(userId);
         TsukiJob job = requireJob(jobId, company.getId());
         JobUpdateRequest updateRequest = new JobUpdateRequest(request.jobTitle(), request.jobType(),
-                request.salaryRange(), request.location(), request.requirement(), request.description(), null);
+                request.salaryRange(), request.location(), request.requirement(), request.description(),
+                request.durationMonths(), null);
         return jobService.update(job.getId(), updateRequest);
     }
 
@@ -95,7 +97,7 @@ public class CompanyPortalService {
     public JobResponse updateJobStatus(Long userId, Long jobId, JobStatusUpdateRequest request) {
         TsukiCompany company = requireCompany(userId);
         TsukiJob job = requireJob(jobId, company.getId());
-        JobUpdateRequest updateRequest = new JobUpdateRequest(null, null, null, null, null, null, request.status());
+        JobUpdateRequest updateRequest = new JobUpdateRequest(null, null, null, null, null, null, null, request.status());
         return jobService.update(job.getId(), updateRequest);
     }
 

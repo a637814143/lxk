@@ -12,6 +12,7 @@ public record JobResponse(
         String location,
         String requirement,
         String description,
+        Integer durationMonths,
         String status,
         LocalDateTime createTime,
         LocalDateTime updateTime) {
