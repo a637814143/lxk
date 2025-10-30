@@ -1,5 +1,7 @@
 package com.example.campus.dto.company;
 
+import java.math.BigDecimal;
+
 public record CompanyResponse(
         Long id,
         Long userId,
@@ -12,5 +14,6 @@ public record CompanyResponse(
         String logo,
         String licenseDocument,
         String auditStatus,
-        String auditReason) {
+        String auditReason,
+        BigDecimal walletBalance) {
 }

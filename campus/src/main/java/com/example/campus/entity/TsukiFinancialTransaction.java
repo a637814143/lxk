@@ -53,6 +53,9 @@ public class TsukiFinancialTransaction {
     @Column(name = "status", length = 20)
     private String status;
 
+    @Column(name = "duration_months")
+    private Integer durationMonths;
+
     @Column(name = "reference", length = 100)
     private String reference;
 
