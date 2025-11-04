@@ -10,8 +10,10 @@ import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.portal.company.ApplicationStatusRequest;
 import com.example.campus.dto.portal.company.CompanyJobRequest;
 import com.example.campus.dto.portal.company.CompanyProfileRequest;
+import com.example.campus.dto.portal.company.CompanySubscriptionRequest;
 import com.example.campus.dto.portal.company.CompanyTransactionRequest;
 import com.example.campus.dto.portal.company.JobStatusUpdateRequest;
+import com.example.campus.dto.wallet.WalletSummaryResponse;
 import com.example.campus.security.UserPrincipal;
 import com.example.campus.service.CompanyPortalService;
 import jakarta.validation.Valid;
@@ -97,6 +99,17 @@ public class CompanyPortalController {
     public FinancialTransactionResponse submitTransaction(@AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody CompanyTransactionRequest request) {
         return companyPortalService.submitTransaction(principal.getUserId(), request);
+    }
+
+    @GetMapping("/wallet")
+    public WalletSummaryResponse loadWallet(@AuthenticationPrincipal UserPrincipal principal) {
+        return companyPortalService.loadWallet(principal.getUserId());
+    }
+
+    @PostMapping("/wallet/subscription")
+    public FinancialTransactionResponse purchaseSubscription(@AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody CompanySubscriptionRequest request) {
+        return companyPortalService.purchaseSubscription(principal.getUserId(), request);
     }
 
     @GetMapping("/discussions")

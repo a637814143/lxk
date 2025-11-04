@@ -5,10 +5,13 @@ import com.example.campus.dto.company.CompanyResponse;
 import com.example.campus.dto.company.CompanyUpdateRequest;
 import com.example.campus.entity.TsukiCompany;
 import com.example.campus.entity.TsukiUser;
+import com.example.campus.entity.TsukiWallet;
 import com.example.campus.entity.UserRole;
 import com.example.campus.exception.ResourceNotFoundException;
 import com.example.campus.repository.TsukiCompanyRepository;
+import com.example.campus.repository.TsukiWalletRepository;
 import com.example.campus.repository.TsukiUserRepository;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 import java.util.Optional;
@@ -25,6 +28,7 @@ public class CompanyService {
 
     private final TsukiCompanyRepository companyRepository;
     private final TsukiUserRepository userRepository;
+    private final TsukiWalletRepository walletRepository;
 
     @Transactional(readOnly = true)
     public List<CompanyResponse> findAll() {
@@ -59,8 +63,10 @@ public class CompanyService {
                 .licenseDocument(request.licenseDocument())
                 .auditStatus(normalizeStatus(request.auditStatus()))
                 .auditReason(request.auditReason())
+                .walletBalance(BigDecimal.ZERO)
                 .build();
         TsukiCompany saved = companyRepository.save(company);
+        ensureCompanyWallet(saved.getId());
         return toResponse(saved);
     }
 
@@ -121,6 +127,12 @@ public class CompanyService {
     }
 
     private CompanyResponse toResponse(TsukiCompany company) {
+        BigDecimal walletBalance = company.getWalletBalance();
+        if (walletBalance == null) {
+            walletBalance = walletRepository.findByOwnerIdAndOwnerType(company.getId(), "company")
+                    .map(TsukiWallet::getBalance)
+                    .orElse(BigDecimal.ZERO);
+        }
         return new CompanyResponse(
                 company.getId(),
                 company.getUser().getId(),
@@ -133,7 +145,8 @@ public class CompanyService {
                 company.getLogo(),
                 company.getLicenseDocument(),
                 company.getAuditStatus(),
-                company.getAuditReason());
+                company.getAuditReason(),
+                walletBalance);
     }
 
     private String normalizeStatus(String status) {
@@ -145,5 +158,14 @@ public class CompanyService {
             throw new IllegalArgumentException("审核状态仅支持: " + String.join("/", ALLOWED_STATUSES));
         }
         return normalized;
+    }
+
+    private TsukiWallet ensureCompanyWallet(Long companyId) {
+        return walletRepository.findByOwnerIdAndOwnerType(companyId, "company")
+                .orElseGet(() -> walletRepository.save(TsukiWallet.builder()
+                        .ownerId(companyId)
+                        .ownerType("company")
+                        .balance(BigDecimal.ZERO)
+                        .build()));
     }
 }

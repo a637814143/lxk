@@ -27,6 +27,7 @@ public class AuthService {
     private final StudentService studentService;
     private final CompanyService companyService;
     private final AdminService adminService;
+    private final CompanyInviteService companyInviteService;
 
     @Transactional
     public void register(RegisterRequest request) {
@@ -37,9 +38,10 @@ public class AuthService {
         String phone = normalizeNullable(request.phone());
         String displayName = normalizeNullable(request.displayName());
         String companyName = normalizeNullable(request.companyName());
+        String inviteCode = normalizeNullable(request.inviteCode());
         UserRole role = request.role();
 
-        validateRoleDetails(role, displayName, companyName);
+        validateRoleDetails(role, displayName, companyName, inviteCode);
 
         userRepository.findByUsernameIgnoreCase(username)
                 .ifPresent(existing -> {
@@ -60,7 +62,7 @@ public class AuthService {
                 .build();
 
         TsukiUser savedUser = userRepository.save(user);
-        initializeRoleProfile(savedUser, role, displayName, companyName);
+        initializeRoleProfile(savedUser, role, displayName, companyName, inviteCode);
     }
 
     @Transactional(readOnly = true)
@@ -99,7 +101,7 @@ public class AuthService {
         return new LoginResult(user.getId(), username, role, role.getDisplayName(), role.getRedirectPath(), token);
     }
 
-    private void validateRoleDetails(UserRole role, String displayName, String companyName) {
+    private void validateRoleDetails(UserRole role, String displayName, String companyName, String inviteCode) {
         if (role == null) {
             throw new IllegalArgumentException("用户角色不能为空");
         }
@@ -113,6 +115,9 @@ public class AuthService {
                 if (companyName == null || companyName.isEmpty()) {
                     throw new IllegalArgumentException("企业名称不能为空");
                 }
+                if (inviteCode == null || inviteCode.isEmpty()) {
+                    throw new IllegalArgumentException("企业注册必须填写邀请码");
+                }
             }
             case ADMIN -> {
                 if (displayName == null || displayName.isEmpty()) {
@@ -124,11 +129,12 @@ public class AuthService {
         }
     }
 
-    private void initializeRoleProfile(TsukiUser user, UserRole role, String displayName, String companyName) {
+    private void initializeRoleProfile(TsukiUser user, UserRole role, String displayName, String companyName,
+            String inviteCode) {
         Long userId = user.getId();
         switch (role) {
             case STUDENT -> createStudentProfile(userId, displayName);
-            case COMPANY -> createCompanyProfile(userId, companyName);
+            case COMPANY -> createCompanyProfile(userId, companyName, inviteCode);
             case ADMIN -> createAdminProfile(userId, displayName);
             default -> {
             }
@@ -142,10 +148,11 @@ public class AuthService {
         studentService.create(new StudentCreateRequest(userId, displayName, null, null, null, null, null, null));
     }
 
-    private void createCompanyProfile(Long userId, String companyName) {
+    private void createCompanyProfile(Long userId, String companyName, String inviteCode) {
         if (companyService.findByUserId(userId).isPresent()) {
             return;
         }
+        companyInviteService.consumeInvite(inviteCode, companyName);
         companyService.create(new CompanyCreateRequest(userId, companyName, null, null, null, null, null, null, null,
                 "pending", null));
     }

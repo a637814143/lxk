@@ -3,6 +3,9 @@ package com.example.campus.controller.portal;
 import com.example.campus.dto.announcement.AnnouncementResponse;
 import com.example.campus.dto.backup.BackupCreateRequest;
 import com.example.campus.dto.backup.BackupResponse;
+import com.example.campus.dto.company.CompanyInviteCreateRequest;
+import com.example.campus.dto.company.CompanyInviteResponse;
+import com.example.campus.dto.company.CompanyInviteStatusRequest;
 import com.example.campus.dto.company.CompanyResponse;
 import com.example.campus.dto.discussion.DiscussionResponse;
 import com.example.campus.dto.discussion.DiscussionReviewRequest;
@@ -16,6 +19,7 @@ import com.example.campus.dto.portal.admin.CompanyAuditRequest;
 import com.example.campus.dto.portal.admin.JobAuditRequest;
 import com.example.campus.dto.portal.admin.UserStatusRequest;
 import com.example.campus.dto.user.UserResponse;
+import com.example.campus.dto.wallet.WalletSummaryResponse;
 import com.example.campus.security.UserPrincipal;
 import com.example.campus.service.AdminPortalService;
 import jakarta.validation.Valid;
@@ -93,6 +97,28 @@ public class AdminPortalController {
     public FinancialTransactionResponse updateTransaction(@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long transactionId, @Valid @RequestBody FinancialTransactionStatusRequest request) {
         return adminPortalService.updateTransactionStatus(principal.getUserId(), transactionId, request);
+    }
+
+    @GetMapping("/wallet")
+    public WalletSummaryResponse loadWallet(@AuthenticationPrincipal UserPrincipal principal) {
+        return adminPortalService.loadWallet(principal.getUserId());
+    }
+
+    @GetMapping("/invites")
+    public List<CompanyInviteResponse> listInvites() {
+        return adminPortalService.listCompanyInvites();
+    }
+
+    @PostMapping("/invites")
+    public CompanyInviteResponse createInvite(@AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody CompanyInviteCreateRequest request) {
+        return adminPortalService.createCompanyInvite(principal.getUserId(), request);
+    }
+
+    @PatchMapping("/invites/{inviteId}")
+    public CompanyInviteResponse updateInviteStatus(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long inviteId, @Valid @RequestBody CompanyInviteStatusRequest request) {
+        return adminPortalService.updateCompanyInvite(principal.getUserId(), inviteId, request);
     }
 
     @GetMapping("/users")

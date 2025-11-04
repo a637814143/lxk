@@ -1,8 +1,8 @@
 package com.example.campus.entity;
 
 public enum UserRole {
-    ADMIN("admin", "系统管理员", "/admin/dashboard"),
-    COMPANY("company", "企业", "/company/home"),
+    ADMIN("admin", "系统管理员", "/admin/overview"),
+    COMPANY("company", "企业", "/company/profile"),
     STUDENT("student", "学生", "/student/home");
 
     private final String dbValue;

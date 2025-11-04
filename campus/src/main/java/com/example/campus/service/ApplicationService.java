@@ -71,6 +71,7 @@ public class ApplicationService {
                 .job(job)
                 .company(company)
                 .status(normalizeStatus(request.status()))
+                .decisionNote(request.decisionNote())
                 .build();
         TsukiApplication saved = applicationRepository.save(application);
         return toResponse(saved);
@@ -81,6 +82,9 @@ public class ApplicationService {
         TsukiApplication application = getApplication(id);
         if (request.status() != null) {
             application.setStatus(normalizeStatus(request.status()));
+        }
+        if (request.decisionNote() != null) {
+            application.setDecisionNote(request.decisionNote());
         }
         return toResponse(application);
     }
@@ -124,6 +128,7 @@ public class ApplicationService {
                 application.getJob().getId(),
                 application.getCompany().getId(),
                 application.getStatus(),
+                application.getDecisionNote(),
                 application.getApplyTime(),
                 application.getUpdateTime());
     }

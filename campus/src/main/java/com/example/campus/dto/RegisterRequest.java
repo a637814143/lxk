@@ -32,5 +32,8 @@ public record RegisterRequest(
         String displayName,
 
         @Size(max = 100, message = "企业名称不能超过100个字符")
-        String companyName) {
+        String companyName,
+
+        @Size(max = 64, message = "邀请码不能超过64个字符")
+        String inviteCode) {
 }

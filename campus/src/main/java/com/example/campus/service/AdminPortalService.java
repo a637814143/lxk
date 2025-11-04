@@ -3,6 +3,9 @@ package com.example.campus.service;
 import com.example.campus.dto.announcement.AnnouncementResponse;
 import com.example.campus.dto.announcement.AnnouncementCreateRequest;
 import com.example.campus.dto.announcement.AnnouncementUpdateRequest;
+import com.example.campus.dto.company.CompanyInviteCreateRequest;
+import com.example.campus.dto.company.CompanyInviteResponse;
+import com.example.campus.dto.company.CompanyInviteStatusRequest;
 import com.example.campus.dto.company.CompanyResponse;
 import com.example.campus.dto.discussion.DiscussionResponse;
 import com.example.campus.dto.discussion.DiscussionReviewRequest;
@@ -18,9 +21,11 @@ import com.example.campus.dto.portal.admin.JobAuditRequest;
 import com.example.campus.dto.portal.admin.UserStatusRequest;
 import com.example.campus.dto.user.UserResponse;
 import com.example.campus.dto.user.UserUpdateRequest;
+import com.example.campus.dto.wallet.WalletSummaryResponse;
 import com.example.campus.entity.TsukiAdmin;
 import com.example.campus.entity.TsukiCompany;
 import com.example.campus.entity.TsukiJob;
+import com.example.campus.entity.TsukiWallet;
 import com.example.campus.entity.UserRole;
 import com.example.campus.exception.ResourceNotFoundException;
 import com.example.campus.repository.TsukiAdminRepository;
@@ -29,8 +34,10 @@ import com.example.campus.repository.TsukiCompanyRepository;
 import com.example.campus.repository.TsukiJobRepository;
 import com.example.campus.repository.TsukiMessageRepository;
 import com.example.campus.repository.TsukiUserRepository;
+import com.example.campus.repository.TsukiWalletRepository;
 import com.example.campus.dto.backup.BackupResponse;
 import com.example.campus.dto.backup.BackupCreateRequest;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -63,6 +70,8 @@ public class AdminPortalService {
     private final FinancialTransactionService financialTransactionService;
     private final DataBackupService dataBackupService;
     private final DiscussionService discussionService;
+    private final CompanyInviteService companyInviteService;
+    private final TsukiWalletRepository walletRepository;
 
     @Transactional(readOnly = true)
     public AdminDashboardSummary loadSummary(Long adminUserId) {
@@ -106,6 +115,35 @@ public class AdminPortalService {
     public FinancialTransactionResponse updateTransactionStatus(Long adminUserId, Long transactionId,
             FinancialTransactionStatusRequest request) {
         return financialTransactionService.updateStatus(adminUserId, transactionId, request);
+    }
+
+    @Transactional
+    public WalletSummaryResponse loadWallet(Long adminUserId) {
+        TsukiAdmin admin = requireAdmin(adminUserId);
+        TsukiWallet wallet = walletRepository.findByOwnerIdAndOwnerType(admin.getId(), "admin")
+                .orElseGet(() -> walletRepository.save(TsukiWallet.builder()
+                        .ownerId(admin.getId())
+                        .ownerType("admin")
+                        .balance(BigDecimal.ZERO)
+                        .build()));
+        return new WalletSummaryResponse(wallet.getOwnerId(), wallet.getOwnerType(), wallet.getBalance(),
+                wallet.getUpdatedAt());
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompanyInviteResponse> listCompanyInvites() {
+        return companyInviteService.listAll();
+    }
+
+    @Transactional
+    public CompanyInviteResponse createCompanyInvite(Long adminUserId, CompanyInviteCreateRequest request) {
+        return companyInviteService.create(adminUserId, request);
+    }
+
+    @Transactional
+    public CompanyInviteResponse updateCompanyInvite(Long adminUserId, Long inviteId,
+            CompanyInviteStatusRequest request) {
+        return companyInviteService.updateStatus(adminUserId, inviteId, request);
     }
 
     @Transactional

@@ -17,15 +17,20 @@ import com.example.campus.dto.portal.company.CompanyJobRequest;
 import com.example.campus.dto.portal.company.CompanyProfileRequest;
 import com.example.campus.dto.portal.company.JobStatusUpdateRequest;
 import com.example.campus.dto.company.CompanyCreateRequest;
+import com.example.campus.dto.portal.company.CompanySubscriptionRequest;
 import com.example.campus.dto.portal.company.CompanyTransactionRequest;
+import com.example.campus.dto.wallet.WalletSummaryResponse;
 import com.example.campus.entity.TsukiApplication;
 import com.example.campus.entity.TsukiCompany;
 import com.example.campus.entity.TsukiJob;
+import com.example.campus.entity.TsukiWallet;
 import com.example.campus.exception.ResourceNotFoundException;
 import com.example.campus.repository.TsukiApplicationRepository;
 import com.example.campus.repository.TsukiCompanyRepository;
 import com.example.campus.repository.TsukiJobRepository;
 import com.example.campus.repository.TsukiMessageRepository;
+import com.example.campus.repository.TsukiWalletRepository;
+import java.math.BigDecimal;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -49,6 +54,7 @@ public class CompanyPortalService {
     private final TsukiJobRepository jobRepository;
     private final TsukiApplicationRepository applicationRepository;
     private final TsukiMessageRepository messageRepository;
+    private final TsukiWalletRepository walletRepository;
 
     @Transactional(readOnly = true)
     public CompanyResponse loadProfile(Long userId) {
@@ -127,6 +133,28 @@ public class CompanyPortalService {
         return financialTransactionService.submitByCompany(userId, request);
     }
 
+    @Transactional
+    public WalletSummaryResponse loadWallet(Long userId) {
+        TsukiCompany company = requireCompany(userId);
+        TsukiWallet wallet = walletRepository.findByOwnerIdAndOwnerType(company.getId(), "company")
+                .orElseGet(() -> walletRepository.save(TsukiWallet.builder()
+                        .ownerId(company.getId())
+                        .ownerType("company")
+                        .balance(BigDecimal.ZERO)
+                        .build()));
+        company.setWalletBalance(wallet.getBalance());
+        companyRepository.save(company);
+        return new WalletSummaryResponse(wallet.getOwnerId(), wallet.getOwnerType(), wallet.getBalance(),
+                wallet.getUpdatedAt());
+    }
+
+    @Transactional
+    public FinancialTransactionResponse purchaseSubscription(Long userId, CompanySubscriptionRequest request) {
+        FinancialTransactionResponse response = financialTransactionService.purchaseSubscription(userId, request);
+        loadWallet(userId);
+        return response;
+    }
+
     @Transactional(readOnly = true)
     public List<DiscussionResponse> listDiscussions(Long userId) {
         return discussionService.findByCompany(userId);
@@ -151,7 +179,8 @@ public class CompanyPortalService {
         if (!application.getCompany().getId().equals(company.getId())) {
             throw new IllegalArgumentException("无法操作其他企业的投递记录");
         }
-        ApplicationResponse response = applicationService.update(applicationId, new ApplicationUpdateRequest(request.status()));
+        ApplicationResponse response = applicationService.update(applicationId,
+                new ApplicationUpdateRequest(request.status(), request.decisionNote()));
         if (request.messageTitle() != null && !request.messageTitle().isBlank()
                 && request.messageContent() != null && !request.messageContent().isBlank()) {
             messageService.create(new MessageCreateRequest(company.getUser().getId(),
