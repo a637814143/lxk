@@ -8,10 +8,11 @@
       <button class="outline" @click="handleLogout">退出登录</button>
     </header>
 
-    <section class="card">
-      <h2>企业资料</h2>
-      <form class="form-grid" @submit.prevent="saveProfile">
-        <label>企业名称<input v-model="profileForm.companyName" required /></label>
+    <div class="dashboard__content">
+      <section class="card card--wide">
+        <h2>企业资料</h2>
+        <form class="form-grid" @submit.prevent="saveProfile">
+          <label>企业名称<input v-model="profileForm.companyName" required /></label>
         <label>营业执照号<input v-model="profileForm.licenseNumber" /></label>
         <label>行业类别<input v-model="profileForm.industry" /></label>
         <label>企业地址<input v-model="profileForm.address" /></label>
@@ -35,10 +36,10 @@
       </form>
     </section>
 
-    <section class="card">
-      <div class="card__title">
-        <h2>职位管理</h2>
-        <button class="outline" @click="loadJobs">刷新</button>
+      <section class="card card--wide">
+        <div class="card__title">
+          <h2>职位管理</h2>
+          <button class="outline" @click="loadJobs">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="createJob">
         <label class="full">职位名称<input v-model="jobForm.jobTitle" required /></label>
@@ -77,10 +78,10 @@
       <p v-else class="muted">暂未发布职位</p>
     </section>
 
-    <section class="card">
-      <div class="card__title">
-        <h2>财务往来</h2>
-        <button class="outline" @click="loadTransactions">刷新</button>
+      <section class="card card--wide">
+        <div class="card__title">
+          <h2>财务往来</h2>
+          <button class="outline" @click="loadTransactions">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="submitTransaction">
         <label>金额（元）<input v-model="transactionForm.amount" type="number" min="0" step="0.01" required /></label>
@@ -111,10 +112,10 @@
       <p v-else class="muted">暂无财务记录</p>
     </section>
 
-    <section class="card">
-      <div class="card__title">
-        <h2>简历投递</h2>
-        <button class="outline" @click="loadApplications">刷新</button>
+      <section class="card card--wide">
+        <div class="card__title">
+          <h2>简历投递</h2>
+          <button class="outline" @click="loadApplications">刷新</button>
       </div>
       <table v-if="applications.length" class="table">
         <thead>
@@ -142,10 +143,10 @@
       <p v-else class="muted">暂无投递</p>
     </section>
 
-    <section class="card">
-      <div class="card__title">
-        <h2>企业讨论区</h2>
-        <button class="outline" @click="loadDiscussions">刷新</button>
+      <section class="card card--wide">
+        <div class="card__title">
+          <h2>企业讨论区</h2>
+          <button class="outline" @click="loadDiscussions">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="createDiscussion">
         <label class="full">讨论主题<input v-model="discussionForm.title" required /></label>
@@ -168,10 +169,10 @@
       <p v-else class="muted">暂无讨论内容，欢迎提交与学生交流的话题。</p>
     </section>
 
-    <section v-if="messageDialog.visible" class="card">
-      <h2>向学生发送消息</h2>
-      <form class="form-grid" @submit.prevent="sendMessage">
-        <label>标题<input v-model="messageDialog.form.title" required /></label>
+      <section v-if="messageDialog.visible" class="card card--wide">
+        <h2>向学生发送消息</h2>
+        <form class="form-grid" @submit.prevent="sendMessage">
+          <label>标题<input v-model="messageDialog.form.title" required /></label>
         <label class="full">内容<textarea v-model="messageDialog.form.content" required></textarea></label>
         <div class="full actions">
           <button class="primary" type="submit">发送</button>
@@ -180,10 +181,10 @@
       </form>
     </section>
 
-    <section class="card">
-      <h2>平台公告</h2>
-      <ul class="list" v-if="announcements.length">
-        <li v-for="item in announcements" :key="item.id" class="list__item">
+      <section class="card">
+        <h2>平台公告</h2>
+        <ul class="list" v-if="announcements.length">
+          <li v-for="item in announcements" :key="item.id" class="list__item">
           <div>
             <h3>{{ item.title }}</h3>
             <p class="muted">发布时间：{{ formatDate(item.publishTime) }}</p>
@@ -193,6 +194,7 @@
       </ul>
       <p v-else class="muted">暂无公告</p>
     </section>
+    </div>
 
     <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </div>
@@ -539,39 +541,91 @@ onMounted(async () => {
 
 <style scoped>
 .dashboard {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  gap: 32px;
 }
 
 .dashboard__header {
+  background: linear-gradient(135deg, #0ea5e9, #22d3ee);
+  color: #0f172a;
+  padding: 28px 32px;
+  border-radius: 28px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: 0 24px 48px rgba(14, 165, 233, 0.22);
+}
+
+.dashboard__header h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.dashboard__header p {
+  margin: 0;
+  font-size: 15px;
+  opacity: 0.85;
+}
+
+.dashboard__header .outline {
+  border-color: rgba(15, 23, 42, 0.2);
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.dashboard__header .outline:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.dashboard__content {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
 }
 
 .card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 24px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.7);
+  backdrop-filter: blur(6px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 26px 48px rgba(15, 23, 42, 0.12);
+}
+
+.card--wide {
+  grid-column: 1 / -1;
 }
 
 .card__title {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #0f172a;
 }
 
 .form-grid {
   display: grid;
-  gap: 12px;
+  gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
@@ -580,19 +634,32 @@ onMounted(async () => {
   flex-direction: column;
   gap: 6px;
   font-weight: 600;
+  color: #1e293b;
 }
 
 .form-grid input,
 .form-grid textarea,
-.table select {
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 10px;
+.form-grid select,
+.card select {
+  border: 1px solid #bae6fd;
+  border-radius: 14px;
+  padding: 10px 14px;
   font-size: 14px;
+  background: #f0f9ff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-grid input:focus,
+.form-grid textarea:focus,
+.form-grid select:focus,
+.card select:focus {
+  outline: none;
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
 }
 
 .form-grid textarea {
-  min-height: 80px;
+  min-height: 120px;
   resize: vertical;
 }
 
@@ -609,9 +676,10 @@ onMounted(async () => {
 
 .file-input input[type='file'] {
   flex: 1;
-  padding: 8px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
+  padding: 9px 12px;
+  border-radius: 14px;
+  border: 1px solid #bae6fd;
+  background: #f0f9ff;
 }
 
 .file-input small {
@@ -624,18 +692,32 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.8);
+}
+
+.table th {
+  background: #e0f2fe;
+  color: #0f172a;
 }
 
 .table th,
 .table td {
+  padding: 12px 16px;
   text-align: left;
-  padding: 8px 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 14px;
+}
+
+.table tbody tr:hover {
+  background: #f8fafc;
 }
 
 .list {
@@ -644,41 +726,80 @@ onMounted(async () => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .list__item {
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  padding: 18px;
+  border-radius: 20px;
+  background: #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 .muted {
-  color: #6b7280;
+  color: #64748b;
+}
+
+.status {
+  padding: 6px 14px;
+  background: #cffafe;
+  color: #0f172a;
+  border-radius: 999px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.primary,
+.outline,
+.danger {
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
   border: none;
   color: #fff;
-  padding: 10px 18px;
-  border-radius: 10px;
-  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(14, 165, 233, 0.25);
+}
+
+.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(14, 165, 233, 0.3);
 }
 
 .outline {
   background: transparent;
-  border: 1px solid #2563eb;
-  color: #2563eb;
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
+  border: 1px solid #0ea5e9;
+  color: #0284c7;
+}
+
+.outline:hover {
+  background: rgba(14, 165, 233, 0.08);
+  transform: translateY(-1px);
+}
+
+.danger {
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid #dc2626;
+  color: #b91c1c;
+}
+
+.danger:hover {
+  background: rgba(248, 113, 113, 0.16);
+  transform: translateY(-1px);
 }
 
 .feedback {
   text-align: center;
-  padding: 12px;
-  border-radius: 12px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  max-width: 600px;
+  margin: 0 auto 32px;
+  font-weight: 600;
 }
 
 .feedback.success {
@@ -691,10 +812,30 @@ onMounted(async () => {
   color: #b91c1c;
 }
 
-.status {
-  padding: 4px 10px;
-  background: #e0f2fe;
-  color: #0369a1;
-  border-radius: 999px;
+@media (max-width: 900px) {
+  .dashboard__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .dashboard__header .outline {
+    align-self: stretch;
+    text-align: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard {
+    padding: 24px 16px 48px;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -8,10 +8,11 @@
       <button class="outline" @click="handleLogout">退出登录</button>
     </header>
 
-    <section class="card">
-      <h2>基本资料</h2>
-      <form class="form-grid" @submit.prevent="saveProfile">
-        <label>姓名<input v-model="profileForm.name" required /></label>
+    <div class="dashboard__content">
+      <section class="card card--wide">
+        <h2>基本资料</h2>
+        <form class="form-grid" @submit.prevent="saveProfile">
+          <label>姓名<input v-model="profileForm.name" required /></label>
         <label>性别<input v-model="profileForm.gender" placeholder="男/女/其他" /></label>
         <label>学校<input v-model="profileForm.school" /></label>
         <label>专业<input v-model="profileForm.major" /></label>
@@ -25,7 +26,7 @@
       </form>
     </section>
 
-    <section class="card">
+    <section class="card card--wide">
       <div class="card__title">
         <h2>我的简历</h2>
         <button class="outline" @click="refreshResumes">刷新</button>
@@ -65,7 +66,7 @@
       <p v-else class="muted">还没有简历，填写上方表单即可新建。</p>
     </section>
 
-    <section class="card">
+    <section class="card card--wide">
       <div class="card__title">
         <h2>职位浏览</h2>
         <button class="outline" @click="searchJobs">搜索</button>
@@ -147,7 +148,7 @@
       <p v-else class="muted">暂无公告</p>
     </section>
 
-    <section class="card">
+    <section class="card card--wide">
       <div class="card__title">
         <h2>企业讨论区</h2>
         <button v-if="currentDiscussionCompany.id" class="outline" type="button" @click="resetDiscussion">
@@ -178,6 +179,7 @@
         </div>
       </template>
     </section>
+    </div>
 
     <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </div>
@@ -510,39 +512,91 @@ onMounted(async () => {
 
 <style scoped>
 .dashboard {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  gap: 32px;
 }
 
 .dashboard__header {
+  background: linear-gradient(135deg, #2563eb, #0ea5e9);
+  color: #fff;
+  padding: 28px 32px;
+  border-radius: 28px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+}
+
+.dashboard__header h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.dashboard__header p {
+  margin: 0;
+  font-size: 15px;
+  opacity: 0.92;
+}
+
+.dashboard__header .outline {
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dashboard__header .outline:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.dashboard__content {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
 }
 
 .card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 24px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.7);
+  backdrop-filter: blur(6px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 26px 48px rgba(15, 23, 42, 0.12);
+}
+
+.card--wide {
+  grid-column: 1 / -1;
 }
 
 .card__title {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #0f172a;
 }
 
 .form-grid {
   display: grid;
-  gap: 12px;
+  gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
@@ -551,18 +605,30 @@ onMounted(async () => {
   flex-direction: column;
   gap: 6px;
   font-weight: 600;
+  color: #1e293b;
 }
 
 .form-grid input,
-.form-grid textarea {
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 10px;
+.form-grid textarea,
+.form-grid select {
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  padding: 10px 14px;
   font-size: 14px;
+  background: #f8fbff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-grid input:focus,
+.form-grid textarea:focus,
+.form-grid select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .form-grid textarea {
-  min-height: 80px;
+  min-height: 120px;
   resize: vertical;
 }
 
@@ -571,9 +637,10 @@ onMounted(async () => {
 }
 
 .file-input input[type='file'] {
-  padding: 8px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
+  padding: 9px 12px;
+  border-radius: 14px;
+  border: 1px solid #dbeafe;
+  background: #f8fafc;
 }
 
 .file-input small {
@@ -581,10 +648,17 @@ onMounted(async () => {
   font-size: 12px;
 }
 
+.file-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
 .actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .list {
@@ -593,34 +667,53 @@ onMounted(async () => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .list__item {
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 20px;
+  background: #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.list__item > div {
+  flex: 1;
 }
 
 .list__actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  min-width: 120px;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.8);
+}
+
+.table th {
+  background: #f1f5f9;
+  color: #1f2937;
 }
 
 .table th,
 .table td {
+  padding: 12px 16px;
   text-align: left;
-  padding: 8px 12px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 14px;
+}
+
+.table tbody tr:hover {
+  background: #f8fafc;
 }
 
 .filters {
@@ -631,24 +724,32 @@ onMounted(async () => {
 
 .filters input {
   flex: 1 1 180px;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 8px 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  padding: 10px 14px;
+  background: #f8fbff;
 }
 
 .job-grid {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .job-card {
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 20px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  background: linear-gradient(145deg, #ffffff 0%, #f5f9ff 100%);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.job-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.12);
 }
 
 .job-card header {
@@ -658,54 +759,81 @@ onMounted(async () => {
 }
 
 .job-card__desc {
-  line-height: 1.5;
+  line-height: 1.6;
   color: #475569;
 }
 
+.job-card footer {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .tag {
-  background: #e0f2fe;
+  background: linear-gradient(135deg, #bae6fd, #7dd3fc);
   color: #0369a1;
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 4px 12px;
   font-size: 12px;
+  font-weight: 600;
 }
 
 .muted {
-  color: #6b7280;
+  color: #64748b;
   margin: 0;
+}
+
+.primary,
+.outline,
+.danger {
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .primary {
   background: linear-gradient(135deg, #2563eb, #1d4ed8);
   border: none;
   color: #fff;
-  padding: 10px 18px;
-  border-radius: 10px;
-  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.25);
+}
+
+.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.3);
 }
 
 .outline {
   background: transparent;
   border: 1px solid #2563eb;
-  color: #2563eb;
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
+  color: #1d4ed8;
+}
+
+.outline:hover {
+  background: rgba(37, 99, 235, 0.08);
+  transform: translateY(-1px);
 }
 
 .danger {
-  background: transparent;
+  background: rgba(220, 38, 38, 0.08);
   border: 1px solid #dc2626;
-  color: #dc2626;
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
+  color: #b91c1c;
+}
+
+.danger:hover {
+  background: rgba(248, 113, 113, 0.16);
+  transform: translateY(-1px);
 }
 
 .feedback {
   text-align: center;
-  padding: 12px;
-  border-radius: 12px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  max-width: 600px;
+  margin: 0 auto 32px;
+  font-weight: 600;
 }
 
 .feedback.success {
@@ -725,5 +853,50 @@ onMounted(async () => {
 
 .hint {
   color: #10b981;
+  font-weight: 500;
+}
+
+@media (max-width: 900px) {
+  .dashboard__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .dashboard__header .outline {
+    align-self: stretch;
+    text-align: center;
+  }
+
+  .card--wide {
+    grid-column: 1 / -1;
+  }
+
+  .list__item {
+    flex-direction: column;
+  }
+
+  .list__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard {
+    padding: 24px 16px 48px;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .job-card footer {
+    flex-direction: column;
+  }
 }
 </style>

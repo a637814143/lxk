@@ -8,10 +8,11 @@
       <button class="outline" @click="handleLogout">退出登录</button>
     </header>
 
-    <section class="card">
-      <h2>平台概览</h2>
-      <div class="summary-grid" v-if="summary">
-        <div class="summary-item"><span>学生人数</span><strong>{{ summary.totalStudents }}</strong></div>
+    <div class="dashboard__content">
+      <section class="card card--wide">
+        <h2>平台概览</h2>
+        <div class="summary-grid" v-if="summary">
+          <div class="summary-item"><span>学生人数</span><strong>{{ summary.totalStudents }}</strong></div>
         <div class="summary-item"><span>企业数量</span><strong>{{ summary.totalCompanies }}</strong></div>
         <div class="summary-item"><span>待审企业</span><strong>{{ summary.pendingCompanies }}</strong></div>
         <div class="summary-item"><span>职位总数</span><strong>{{ summary.totalJobs }}</strong></div>
@@ -28,10 +29,10 @@
       </div>
     </section>
 
-    <section class="card">
-      <div class="card__title">
-        <h2>企业审核</h2>
-        <button class="outline" @click="loadPendingCompanies">刷新</button>
+      <section class="card card--wide">
+        <div class="card__title">
+          <h2>企业审核</h2>
+          <button class="outline" @click="loadPendingCompanies">刷新</button>
       </div>
       <table v-if="pendingCompanies.length" class="table">
         <thead><tr><th>企业名称</th><th>行业</th><th>状态</th><th>操作</th></tr></thead>
@@ -50,10 +51,10 @@
       <p v-else class="muted">暂无待审核企业</p>
     </section>
 
-    <section class="card">
-      <div class="card__title">
-        <h2>职位审核</h2>
-        <button class="outline" @click="loadPendingJobs">刷新</button>
+      <section class="card card--wide">
+        <div class="card__title">
+          <h2>职位审核</h2>
+          <button class="outline" @click="loadPendingJobs">刷新</button>
       </div>
       <table v-if="pendingJobs.length" class="table">
         <thead><tr><th>职位名称</th><th>企业ID</th><th>状态</th><th>操作</th></tr></thead>
@@ -72,10 +73,10 @@
       <p v-else class="muted">暂无待审核职位</p>
     </section>
 
-    <section class="card">
-      <div class="card__title">
-        <h2>讨论审核</h2>
-        <button class="outline" @click="loadPendingDiscussions">刷新</button>
+      <section class="card">
+        <div class="card__title">
+          <h2>讨论审核</h2>
+          <button class="outline" @click="loadPendingDiscussions">刷新</button>
       </div>
       <ul class="list" v-if="pendingDiscussions.length">
         <li v-for="item in pendingDiscussions" :key="item.id" class="list__item">
@@ -94,10 +95,10 @@
       <p v-else class="muted">暂无待审核的讨论内容</p>
     </section>
 
-    <section class="card">
-      <div class="card__title">
-        <h2>用户管理</h2>
-        <button class="outline" @click="loadUsers">刷新</button>
+      <section class="card card--wide">
+        <div class="card__title">
+          <h2>用户管理</h2>
+          <button class="outline" @click="loadUsers">刷新</button>
       </div>
       <table v-if="users.length" class="table">
         <thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>状态</th><th>操作</th></tr></thead>
@@ -118,10 +119,10 @@
       <p v-else class="muted">暂无用户数据</p>
     </section>
 
-    <section class="card">
-      <div class="card__title">
-        <h2>财务记录管理</h2>
-        <button class="outline" @click="loadTransactions">刷新</button>
+      <section class="card card--wide">
+        <div class="card__title">
+          <h2>财务记录管理</h2>
+          <button class="outline" @click="loadTransactions">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="createTransaction">
         <label>企业ID<input v-model="transactionForm.companyId" type="number" min="1" required /></label>
@@ -158,10 +159,10 @@
       <p v-else class="muted">暂无财务记录</p>
     </section>
 
-    <section class="card">
-      <div class="card__title">
-        <h2>公告管理</h2>
-        <button class="outline" @click="loadAnnouncements">刷新</button>
+      <section class="card card--wide">
+        <div class="card__title">
+          <h2>公告管理</h2>
+          <button class="outline" @click="loadAnnouncements">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="saveAnnouncement">
         <label>标题<input v-model="announcementForm.title" required /></label>
@@ -194,10 +195,10 @@
       <p v-else class="muted">暂无公告</p>
     </section>
 
-    <section class="card">
-      <div class="card__title">
-        <h2>数据备份</h2>
-        <button class="outline" @click="loadBackups">刷新</button>
+      <section class="card card--wide">
+        <div class="card__title">
+          <h2>数据备份</h2>
+          <button class="outline" @click="loadBackups">刷新</button>
       </div>
       <form class="form-grid" @submit.prevent="triggerBackup">
         <label>备份类型<input v-model="backupForm.backupType" placeholder="例如 daily/system" /></label>
@@ -224,6 +225,7 @@
       </table>
       <p v-else class="muted">暂无备份记录</p>
     </section>
+    </div>
 
     <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </div>
@@ -518,77 +520,133 @@ onMounted(async () => {
 
 <style scoped>
 .dashboard {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  gap: 32px;
 }
 
 .dashboard__header {
+  background: linear-gradient(135deg, #1d4ed8, #6366f1);
+  color: #fff;
+  padding: 28px 32px;
+  border-radius: 28px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+}
+
+.dashboard__header h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+}
+
+.dashboard__header p {
+  margin: 0;
+  font-size: 15px;
+  opacity: 0.9;
+}
+
+.dashboard__header .outline {
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.dashboard__header .outline:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.dashboard__content {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
 }
 
 .card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 24px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.7);
+  backdrop-filter: blur(6px);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 26px 48px rgba(15, 23, 42, 0.12);
+}
+
+.card--wide {
+  grid-column: 1 / -1;
 }
 
 .card__title {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 22px;
+  color: #0f172a;
 }
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
 }
 
 .summary-item {
-  background: #eff6ff;
-  padding: 16px;
-  border-radius: 12px;
+  background: linear-gradient(135deg, #eef2ff, #dbeafe);
+  padding: 18px;
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  color: #1e3a8a;
+  color: #312e81;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.12);
 }
 
 .summary-item strong {
-  font-size: 20px;
+  font-size: 22px;
+}
+
+.status-breakdown {
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 18px;
+  border: 1px solid rgba(226, 232, 240, 0.7);
+}
+
+.status-breakdown h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: #0f172a;
 }
 
 .status-breakdown ul {
   padding-left: 18px;
   margin: 0;
   color: #475569;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
-  text-align: left;
-  padding: 8px 12px;
-  border-bottom: 1px solid #e5e7eb;
+  display: grid;
+  gap: 6px;
 }
 
 .form-grid {
   display: grid;
-  gap: 12px;
+  gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
@@ -597,19 +655,32 @@ onMounted(async () => {
   flex-direction: column;
   gap: 6px;
   font-weight: 600;
+  color: #1e293b;
 }
 
 .form-grid input,
 .form-grid textarea,
-.form-grid select {
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 10px;
+.form-grid select,
+.card select {
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  padding: 10px 14px;
   font-size: 14px;
+  background: #f8fbff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-grid input:focus,
+.form-grid textarea:focus,
+.form-grid select:focus,
+.card select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
 }
 
 .form-grid textarea {
-  min-height: 100px;
+  min-height: 120px;
   resize: vertical;
 }
 
@@ -621,6 +692,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .list {
@@ -629,59 +701,110 @@ onMounted(async () => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .list__item {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 20px;
+  padding: 18px;
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: 18px;
+  background: #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.list__item > div {
+  flex: 1;
 }
 
 .list__actions {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 140px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(226, 232, 240, 0.8);
+}
+
+.table th {
+  background: #eef2ff;
+  color: #312e81;
+}
+
+.table th,
+.table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 14px;
+}
+
+.table tbody tr:hover {
+  background: #f8fafc;
 }
 
 .muted {
-  color: #6b7280;
+  color: #64748b;
+}
+
+.primary,
+.outline,
+.danger {
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
   border: none;
   color: #fff;
-  padding: 10px 18px;
-  border-radius: 10px;
-  cursor: pointer;
+  box-shadow: 0 12px 24px rgba(79, 70, 229, 0.25);
+}
+
+.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(79, 70, 229, 0.3);
 }
 
 .outline {
   background: transparent;
-  border: 1px solid #2563eb;
-  color: #2563eb;
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
+  border: 1px solid #4f46e5;
+  color: #4338ca;
+}
+
+.outline:hover {
+  background: rgba(79, 70, 229, 0.08);
+  transform: translateY(-1px);
 }
 
 .danger {
-  background: transparent;
+  background: rgba(220, 38, 38, 0.08);
   border: 1px solid #dc2626;
-  color: #dc2626;
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
+  color: #b91c1c;
+}
+
+.danger:hover {
+  background: rgba(248, 113, 113, 0.16);
+  transform: translateY(-1px);
 }
 
 .feedback {
   text-align: center;
-  padding: 12px;
-  border-radius: 12px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  max-width: 600px;
+  margin: 0 auto 32px;
+  font-weight: 600;
 }
 
 .feedback.success {
@@ -692,5 +815,46 @@ onMounted(async () => {
 .feedback.error {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.feedback.info {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+@media (max-width: 900px) {
+  .dashboard__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .dashboard__header .outline {
+    align-self: stretch;
+    text-align: center;
+  }
+
+  .list__item {
+    flex-direction: column;
+  }
+
+  .list__actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard {
+    padding: 24px 16px 48px;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
