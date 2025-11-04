@@ -9,6 +9,7 @@ public record ApplicationResponse(
         Long jobId,
         Long companyId,
         String status,
+        String decisionNote,
         LocalDateTime applyTime,
         LocalDateTime updateTime) {
 }

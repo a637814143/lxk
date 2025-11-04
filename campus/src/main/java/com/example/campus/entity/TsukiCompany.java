@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -62,4 +63,7 @@ public class TsukiCompany {
 
     @Column(name = "audit_reason", length = 255)
     private String auditReason;
+
+    @Column(name = "wallet_balance", precision = 12, scale = 2, nullable = false)
+    private BigDecimal walletBalance;
 }

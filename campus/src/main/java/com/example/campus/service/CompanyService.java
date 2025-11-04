@@ -9,6 +9,7 @@ import com.example.campus.entity.UserRole;
 import com.example.campus.exception.ResourceNotFoundException;
 import com.example.campus.repository.TsukiCompanyRepository;
 import com.example.campus.repository.TsukiUserRepository;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 import java.util.Optional;
@@ -59,6 +60,7 @@ public class CompanyService {
                 .licenseDocument(request.licenseDocument())
                 .auditStatus(normalizeStatus(request.auditStatus()))
                 .auditReason(request.auditReason())
+                .walletBalance(BigDecimal.ZERO)
                 .build();
         TsukiCompany saved = companyRepository.save(company);
         return toResponse(saved);
@@ -133,7 +135,8 @@ public class CompanyService {
                 company.getLogo(),
                 company.getLicenseDocument(),
                 company.getAuditStatus(),
-                company.getAuditReason());
+                company.getAuditReason(),
+                company.getWalletBalance() != null ? company.getWalletBalance() : BigDecimal.ZERO);
     }
 
     private String normalizeStatus(String status) {

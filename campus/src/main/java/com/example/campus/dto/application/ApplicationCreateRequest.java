@@ -17,5 +17,8 @@ public record ApplicationCreateRequest(
         Long companyId,
 
         @Size(max = 20, message = "状态不能超过20个字符")
-        String status) {
+        String status,
+
+        @Size(max = 500, message = "备注不能超过500个字符")
+        String decisionNote) {
 }

@@ -104,13 +104,14 @@
       <h2>我的投递</h2>
       <table v-if="applications.length" class="table">
         <thead>
-          <tr><th>职位</th><th>企业</th><th>状态</th><th>投递时间</th></tr>
+          <tr><th>职位</th><th>企业</th><th>状态</th><th>企业备注</th><th>投递时间</th></tr>
         </thead>
         <tbody>
           <tr v-for="app in applications" :key="app.id">
             <td>{{ resolveJobTitle(app.jobId) }}</td>
             <td>{{ resolveCompanyName(app.companyId) }}</td>
             <td>{{ app.status }}</td>
+            <td>{{ app.decisionNote || '—' }}</td>
             <td>{{ formatDate(app.applyTime) }}</td>
           </tr>
         </tbody>
@@ -420,7 +421,11 @@ async function applyJob(jobId) {
 
 async function loadApplications() {
   try {
-    applications.value = await get('/portal/student/applications');
+    const items = await get('/portal/student/applications');
+    applications.value = items.map(item => ({
+      ...item,
+      decisionNote: item.decisionNote ?? ''
+    }));
   } catch (error) {
     showFeedback(error.message, 'error');
   }

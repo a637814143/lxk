@@ -10,6 +10,7 @@
 
     <section class="card">
       <h2>企业资料</h2>
+      <p class="muted">当前账户余额：￥{{ formatMoney(walletBalance) }}</p>
       <form class="form-grid" @submit.prevent="saveProfile">
         <label>企业名称<input v-model="profileForm.companyName" required /></label>
         <label>营业执照号<input v-model="profileForm.licenseNumber" /></label>
@@ -118,13 +119,16 @@
       </div>
       <table v-if="applications.length" class="table">
         <thead>
-          <tr><th>职位</th><th>学生ID</th><th>状态</th><th>更新时间</th><th>操作</th></tr>
+          <tr><th>职位</th><th>学生ID</th><th>状态</th><th>备注</th><th>更新时间</th><th>操作</th></tr>
         </thead>
         <tbody>
           <tr v-for="app in applications" :key="app.id">
             <td>{{ resolveJobTitle(app.jobId) }}</td>
             <td>{{ app.studentId }}</td>
             <td>{{ app.status }}</td>
+            <td>
+              <input v-model="app.decisionNote" maxlength="500" placeholder="备注（可选）" @change="updateApplicationStatus(app)" />
+            </td>
             <td>{{ formatDate(app.updateTime) }}</td>
             <td class="actions">
               <select v-model="app.status" @change="updateApplicationStatus(app)">
@@ -233,6 +237,8 @@ const announcements = ref([]);
 const transactions = ref([]);
 const discussions = ref([]);
 
+const walletBalance = ref(0);
+
 const messageDialog = reactive({
   visible: false,
   applicationId: null,
@@ -280,6 +286,7 @@ async function loadProfile() {
   try {
     const data = await get('/portal/company/profile');
     Object.assign(profileForm, data);
+    walletBalance.value = Number(data.walletBalance ?? 0);
   } catch (error) {
     if (error.status !== 404) {
       showFeedback(error.message, 'error');
@@ -289,8 +296,11 @@ async function loadProfile() {
 
 async function saveProfile() {
   try {
-    const data = await put('/portal/company/profile', profileForm);
+    const payload = { ...profileForm };
+    delete payload.walletBalance;
+    const data = await put('/portal/company/profile', payload);
     Object.assign(profileForm, data);
+    walletBalance.value = Number(data.walletBalance ?? 0);
     showFeedback('企业资料已保存', 'success');
   } catch (error) {
     showFeedback(error.message, 'error');
@@ -312,6 +322,7 @@ async function uploadLicense() {
     formData.append('file', licenseFile.value);
     const data = await upload('/portal/company/profile/license', formData);
     Object.assign(profileForm, data);
+    walletBalance.value = Number(data.walletBalance ?? 0);
     showFeedback('营业执照上传成功，等待管理员审核', 'success');
   } catch (error) {
     showFeedback(error.message, 'error');
@@ -381,7 +392,8 @@ async function changeJobStatus(job) {
 
 async function loadApplications() {
   try {
-    applications.value = await get('/portal/company/applications');
+    const items = await get('/portal/company/applications');
+    applications.value = items.map(normalizeApplication);
   } catch (error) {
     showFeedback(error.message, 'error');
   }
@@ -389,8 +401,11 @@ async function loadApplications() {
 
 async function updateApplicationStatus(app) {
   try {
-    const updated = await patch(`/portal/company/applications/${app.id}`, { status: app.status });
-    Object.assign(app, updated);
+    const updated = await patch(`/portal/company/applications/${app.id}`, {
+      status: app.status,
+      decisionNote: app.decisionNote
+    });
+    applyApplicationUpdate(app, updated);
     showFeedback('投递状态已更新', 'success');
   } catch (error) {
     showFeedback(error.message, 'error');
@@ -421,10 +436,11 @@ async function sendMessage() {
     }
     const updated = await patch(`/portal/company/applications/${messageDialog.applicationId}`, {
       status: messageDialog.status || app.status,
+      decisionNote: app.decisionNote,
       messageTitle: messageDialog.form.title,
       messageContent: messageDialog.form.content
     });
-    Object.assign(app, updated);
+    applyApplicationUpdate(app, updated);
     showFeedback('消息发送成功', 'success');
     closeMessageDialog();
   } catch (error) {
@@ -522,9 +538,24 @@ function resolveJobTitle(jobId) {
   return job ? job.jobTitle : `职位 #${jobId}`;
 }
 
+function normalizeApplication(item) {
+  return {
+    ...item,
+    decisionNote: item.decisionNote ?? ''
+  };
+}
+
+function applyApplicationUpdate(target, payload) {
+  Object.assign(target, normalizeApplication(payload));
+}
+
 function formatDate(value) {
   if (!value) return '';
   return new Date(value).toLocaleString();
+}
+
+function formatMoney(value) {
+  return Number(value ?? 0).toFixed(2);
 }
 
 onMounted(async () => {
@@ -584,11 +615,17 @@ onMounted(async () => {
 
 .form-grid input,
 .form-grid textarea,
-.table select {
+.table select,
+.table input {
   border: 1px solid #d1d5db;
   border-radius: 10px;
   padding: 10px;
   font-size: 14px;
+}
+
+.table input {
+  width: 100%;
+  min-width: 160px;
 }
 
 .form-grid textarea {

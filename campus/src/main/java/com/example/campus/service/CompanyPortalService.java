@@ -151,7 +151,8 @@ public class CompanyPortalService {
         if (!application.getCompany().getId().equals(company.getId())) {
             throw new IllegalArgumentException("无法操作其他企业的投递记录");
         }
-        ApplicationResponse response = applicationService.update(applicationId, new ApplicationUpdateRequest(request.status()));
+        ApplicationResponse response = applicationService.update(applicationId,
+                new ApplicationUpdateRequest(request.status(), request.decisionNote()));
         if (request.messageTitle() != null && !request.messageTitle().isBlank()
                 && request.messageContent() != null && !request.messageContent().isBlank()) {
             messageService.create(new MessageCreateRequest(company.getUser().getId(),
