@@ -20,6 +20,8 @@ public class ResumeService {
 
     private final TsukiResumeRepository resumeRepository;
     private final TsukiStudentRepository studentRepository;
+    private final ResumeAttachmentService resumeAttachmentService;
+    private final FileStorageService fileStorageService;
 
     @Transactional(readOnly = true)
     public List<ResumeResponse> findAll() {
@@ -53,6 +55,7 @@ public class ResumeService {
                 .attachment(request.attachment())
                 .build();
         TsukiResume saved = resumeRepository.save(resume);
+        resumeAttachmentService.syncAttachment(student, saved, saved.getAttachment(), null);
         return toResponse(saved);
     }
 
@@ -77,12 +80,15 @@ public class ResumeService {
         if (request.attachment() != null) {
             resume.setAttachment(request.attachment());
         }
+        resumeAttachmentService.syncAttachment(resume.getStudent(), resume, resume.getAttachment(), null);
         return toResponse(resume);
     }
 
     @Transactional
     public void delete(Long id) {
         TsukiResume resume = getResume(id);
+        resumeAttachmentService.deleteByResume(resume);
+        fileStorageService.deleteIfExists(resume.getAttachment());
         resumeRepository.delete(resume);
     }
 

@@ -45,6 +45,7 @@ public class StudentPortalService {
     private final TsukiJobRepository jobRepository;
     private final TsukiMessageRepository messageRepository;
     private final FileStorageService fileStorageService;
+    private final ResumeAttachmentService resumeAttachmentService;
 
     @Transactional(readOnly = true)
     public StudentResponse loadProfile(Long userId) {
@@ -143,8 +144,10 @@ public class StudentPortalService {
     public String uploadAttachment(Long userId, MultipartFile file) {
         TsukiStudent student = requireStudent(userId);
         try {
-            return fileStorageService.store(file, FileStorageService.StorageArea.RESUME,
+            String publicPath = fileStorageService.store(file, FileStorageService.StorageArea.RESUME,
                     "resume-" + student.getId());
+            resumeAttachmentService.recordUpload(student, file, publicPath);
+            return publicPath;
         } catch (Exception ex) {
             throw new IllegalStateException("上传附件失败: " + ex.getMessage(), ex);
         }
@@ -160,8 +163,10 @@ public class StudentPortalService {
             }
             String path = fileStorageService.store(file, FileStorageService.StorageArea.RESUME,
                     "resume-" + resume.getId());
+            resumeAttachmentService.recordUpload(student, file, path);
             resume.setAttachment(path);
             resumeRepository.save(resume);
+            resumeAttachmentService.syncAttachment(student, resume, path, file);
             return resumeService.findById(resume.getId());
         } catch (Exception ex) {
             throw new IllegalStateException("更新附件失败: " + ex.getMessage(), ex);
