@@ -1,100 +1,152 @@
 <template>
-  <scroll-view class="page" scroll-y>
-    <view class="header">
-      <view class="header__content">
-        <text class="header__badge">ADMIN</text>
-        <text class="header__title">管理员运行驾驶舱</text>
-        <text class="header__subtitle">
-          实时掌握校园系统运行情况，快速处理审批、告警与服务请求。
-        </text>
-        <view class="header__actions">
-          <button class="ghost-button" @click="goHome">返回门户</button>
-          <button class="primary-button">发布公告</button>
+  <view class="dashboard-page">
+    <view class="dashboard-layout">
+      <view class="dashboard-sidebar">
+        <view class="sidebar__header">
+          <text class="sidebar__title">管理员驾驶舱</text>
+          <text class="sidebar__subtitle">Campus Operations</text>
         </view>
+        <view class="sidebar__nav">
+          <view
+            v-for="item in navItems"
+            :key="item.target"
+            class="sidebar__item"
+            :class="{ 'is-active': activeNav === item.target }"
+            @click="goSection(item.target)"
+          >
+            <view class="sidebar__dot"></view>
+            <text class="sidebar__label">{{ item.label }}</text>
+          </view>
+        </view>
+        <button class="sidebar__home" @click="goHome">返回门户</button>
       </view>
-      <view class="header__stat">
-        <text class="header__stat-value">98%</text>
-        <text class="header__stat-label">服务准时率</text>
-      </view>
-    </view>
 
-    <view class="section">
-      <view class="section__title">关键指标</view>
-      <view class="stat-grid">
-        <view class="stat-card" v-for="stat in stats" :key="stat.label">
-          <view class="stat-card__header">
-            <text class="stat-card__label">{{ stat.label }}</text>
-            <text class="stat-card__trend" :class="{ 'is-up': stat.trend > 0, 'is-down': stat.trend < 0 }">
-              {{ stat.trend > 0 ? '+' : '' }}{{ stat.trend }}%
-            </text>
-          </view>
-          <text class="stat-card__value">{{ stat.value }}</text>
-          <view class="progress">
-            <view class="progress__inner" :style="{ width: stat.progress + '%' }"></view>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <view class="section">
-      <view class="section__title">工单与告警</view>
-      <view class="split">
-        <view class="panel">
-          <view class="panel__header">
-            <text class="panel__title">处理进度</text>
-            <text class="panel__caption">近7日处理完成率</text>
-          </view>
-          <view class="panel__chart">
-            <view class="line-chart">
-              <view
-                class="line-chart__point"
-                v-for="point in ticketTrend"
-                :key="point.day"
-                :style="getLinePointStyle(point)"
-              ></view>
-              <view class="line-chart__baseline"></view>
-            </view>
-            <view class="chart__axis">
-              <text class="axis-label" v-for="point in ticketTrend" :key="point.day">{{ point.day }}</text>
-            </view>
-          </view>
-        </view>
-        <view class="panel">
-          <view class="panel__header">
-            <text class="panel__title">告警概览</text>
-            <text class="panel__caption">系统按严重程度排序</text>
-          </view>
-          <view class="alert-list">
-            <view class="alert-item" v-for="alert in alerts" :key="alert.name">
-              <view class="alert-item__level" :class="'is-' + alert.level"></view>
-              <view class="alert-item__content">
-                <text class="alert-item__name">{{ alert.name }}</text>
-                <text class="alert-item__desc">{{ alert.desc }}</text>
+      <scroll-view
+        class="dashboard-content"
+        scroll-y
+        :scroll-into-view="scrollTarget"
+        @scroll="onScroll"
+      >
+        <view class="section-block section-block--hero" id="section-overview">
+          <view class="hero">
+            <view class="hero__content">
+              <text class="hero__badge">ADMIN</text>
+              <text class="hero__title">管理员运行驾驶舱</text>
+              <text class="hero__subtitle">
+                实时掌握校园系统运行情况，快速处理审批、告警与服务请求。
+              </text>
+              <view class="hero__actions">
+                <button class="hero__button hero__button--primary" @click="publishNotice">
+                  发布公告
+                </button>
+                <button class="hero__button" @click="openProcessCenter">流程中心
+                </button>
               </view>
-              <text class="alert-item__count">{{ alert.count }}</text>
+            </view>
+            <view class="hero__stat">
+              <text class="hero__stat-value">98%</text>
+              <text class="hero__stat-label">服务准时率</text>
             </view>
           </view>
         </view>
-      </view>
-    </view>
 
-    <view class="section">
-      <view class="section__title">快速操作</view>
-      <view class="action-grid">
-        <view class="action-card" v-for="action in actions" :key="action.title">
-          <view class="action-card__icon">{{ action.icon }}</view>
-          <text class="action-card__title">{{ action.title }}</text>
-          <text class="action-card__desc">{{ action.desc }}</text>
+        <view class="section-block" id="section-metrics">
+          <view class="section__header">
+            <text class="section__title">关键指标</text>
+            <text class="section__subtitle">审批、工单与巡检的实时进展</text>
+          </view>
+          <view class="stat-grid">
+            <view class="stat-card" v-for="stat in stats" :key="stat.label">
+              <view class="stat-card__header">
+                <text class="stat-card__label">{{ stat.label }}</text>
+                <text
+                  class="stat-card__trend"
+                  :class="{ 'is-up': stat.trend > 0, 'is-down': stat.trend < 0 }"
+                >
+                  {{ stat.trend > 0 ? '+' : '' }}{{ stat.trend }}%
+                </text>
+              </view>
+              <text class="stat-card__value">{{ stat.value }}</text>
+              <view class="progress">
+                <view class="progress__inner" :style="{ width: stat.progress + '%' }"></view>
+              </view>
+            </view>
+          </view>
         </view>
-      </view>
+
+        <view class="section-block" id="section-tickets">
+          <view class="section__header">
+            <text class="section__title">工单与告警</text>
+            <text class="section__subtitle">查看处理趋势与系统告警详情</text>
+          </view>
+          <view class="split">
+            <view class="panel">
+              <view class="panel__header">
+                <text class="panel__title">处理进度</text>
+                <text class="panel__caption">近7日处理完成率</text>
+              </view>
+              <view class="panel__chart">
+                <view class="line-chart">
+                  <view
+                    class="line-chart__point"
+                    v-for="point in ticketTrend"
+                    :key="point.day"
+                    :style="getLinePointStyle(point)"
+                  ></view>
+                  <view class="line-chart__baseline"></view>
+                </view>
+                <view class="chart__axis">
+                  <text class="axis-label" v-for="point in ticketTrend" :key="point.day">{{ point.day }}</text>
+                </view>
+              </view>
+            </view>
+            <view class="panel">
+              <view class="panel__header">
+                <text class="panel__title">告警概览</text>
+                <text class="panel__caption">系统按严重程度排序</text>
+              </view>
+              <view class="alert-list">
+                <view class="alert-item" v-for="alert in alerts" :key="alert.name">
+                  <view class="alert-item__level" :class="'is-' + alert.level"></view>
+                  <view class="alert-item__content">
+                    <text class="alert-item__name">{{ alert.name }}</text>
+                    <text class="alert-item__desc">{{ alert.desc }}</text>
+                  </view>
+                  <text class="alert-item__count">{{ alert.count }}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="section-block" id="section-actions">
+          <view class="section__header">
+            <text class="section__title">快速操作</text>
+            <text class="section__subtitle">一键触达常用任务</text>
+          </view>
+          <view class="action-grid">
+            <view class="action-card" v-for="action in actions" :key="action.title">
+              <view class="action-card__icon">{{ action.icon }}</view>
+              <text class="action-card__title">{{ action.title }}</text>
+              <text class="action-card__desc">{{ action.desc }}</text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
     </view>
-  </scroll-view>
+  </view>
 </template>
 
 <script>
 export default {
   data() {
     return {
+      navItems: [
+        { label: '运行概览', target: 'section-overview' },
+        { label: '关键指标', target: 'section-metrics' },
+        { label: '工单与告警', target: 'section-tickets' },
+        { label: '快速操作', target: 'section-actions' }
+      ],
       stats: [
         { label: '审批待处理', value: 12, progress: 45, trend: -6 },
         { label: '今日工单', value: 48, progress: 78, trend: 12 },
@@ -118,140 +170,306 @@ export default {
         { icon: '📢', title: '公告中心', desc: '发布最新通知与资讯' },
         { icon: '✅', title: '审批审核', desc: '查看并批量处理流程' },
         { icon: '🛡️', title: '安全巡检', desc: '巡检安全策略与日志' },
-        { icon: '📊', title: '报表导出', desc: '导出运行报表与统计' }
-      ]
+        { icon: '📊', title: '运行分析', desc: '查看实时监控与统计' }
+      ],
+      scrollTarget: '',
+      activeNav: 'section-overview',
+      sectionOffsets: [],
+      contentTop: 0,
+      scrollTimer: null
+    }
+  },
+  onReady() {
+    this.$nextTick(() => {
+      setTimeout(() => {
+        this.calculateSectionOffsets()
+      }, 120)
+    })
+  },
+  onUnload() {
+    if (this.scrollTimer) {
+      clearTimeout(this.scrollTimer)
+      this.scrollTimer = null
     }
   },
   methods: {
+    publishNotice() {
+      uni.showToast({ title: '公告已发布', icon: 'success' })
+    },
+    openProcessCenter() {
+      uni.showToast({ title: '跳转至审批流程', icon: 'none' })
+    },
     goHome() {
       uni.navigateBack()
     },
+    goSection(target) {
+      this.scrollTarget = target
+      this.activeNav = target
+      this.resetScrollTarget()
+    },
+    onScroll(event) {
+      const scrollTop = event.detail.scrollTop
+      let active = this.navItems[0].target
+      for (const anchor of this.sectionOffsets) {
+        if (scrollTop >= anchor.top - 80) {
+          active = anchor.id
+        }
+      }
+      this.activeNav = active
+    },
+    calculateSectionOffsets() {
+      const query = uni.createSelectorQuery().in(this)
+      query
+        .select('.dashboard-content')
+        .boundingClientRect(rect => {
+          this.contentTop = rect ? rect.top : 0
+        })
+      query
+        .selectAll('.section-block')
+        .boundingClientRect(rects => {
+          if (!rects) {
+            this.sectionOffsets = []
+            return
+          }
+          this.sectionOffsets = rects.map(rect => ({
+            id: rect.id,
+            top: rect.top - this.contentTop
+          }))
+        })
+      query.exec()
+    },
+    resetScrollTarget() {
+      if (this.scrollTimer) {
+        clearTimeout(this.scrollTimer)
+      }
+      this.scrollTimer = setTimeout(() => {
+        this.scrollTarget = ''
+        this.scrollTimer = null
+      }, 240)
+    },
     getLinePointStyle(point) {
       return {
-        left: `calc(${point.position}% - 12rpx)`,
+        left: `${this.ticketTrend.indexOf(point) * 100 / (this.ticketTrend.length - 1)}%`,
         bottom: `${point.value}%`
       }
     }
-  },
-  created() {
-    const step = 100 / (this.ticketTrend.length - 1)
-    this.ticketTrend = this.ticketTrend.map((item, index) => ({
-      ...item,
-      position: index * step
-    }))
   }
 }
 </script>
 
 <style>
-.page {
+.dashboard-page {
   min-height: 100vh;
-  background: #f5f7fb;
+  background: linear-gradient(180deg, #f5f6ff 0%, #eef1ff 100%);
 }
 
-.header {
-  background: linear-gradient(135deg, #4b6bfb 0%, #6d83ff 100%);
-  padding: 80rpx 48rpx 72rpx;
+.dashboard-layout {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  border-radius: 0 0 48rpx 48rpx;
-  color: #ffffff;
-  box-shadow: 0 32rpx 60rpx rgba(75, 107, 251, 0.35);
+  min-height: 100vh;
 }
 
-.header__content {
+.dashboard-sidebar {
+  width: 240rpx;
+  padding: 48rpx 32rpx 64rpx;
+  background: #ffffff;
+  box-shadow: 0 20rpx 60rpx rgba(99, 110, 255, 0.08);
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
-  max-width: 540rpx;
+  gap: 40rpx;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  box-sizing: border-box;
 }
 
-.header__badge {
-  font-size: 24rpx;
-  letter-spacing: 6rpx;
-  opacity: 0.8;
-}
-
-.header__title {
-  font-size: 46rpx;
-  font-weight: 700;
-  line-height: 60rpx;
-}
-
-.header__subtitle {
-  font-size: 26rpx;
-  opacity: 0.85;
-  line-height: 40rpx;
-}
-
-.header__actions {
+.sidebar__header {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.sidebar__title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1f2b66;
+}
+
+.sidebar__subtitle {
+  font-size: 22rpx;
+  color: #7f8aa3;
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
   gap: 20rpx;
 }
 
-.header__stat {
-  text-align: right;
+.sidebar__item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 16rpx 12rpx;
+  border-radius: 20rpx;
+  color: #5b6690;
+  transition: background 0.2s ease;
 }
 
-.header__stat-value {
-  font-size: 80rpx;
+.sidebar__item.is-active {
+  background: rgba(99, 110, 255, 0.1);
+  color: #3a4af5;
+}
+
+.sidebar__item:active {
+  background: rgba(99, 110, 255, 0.08);
+}
+
+.sidebar__dot {
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.sidebar__label {
+  font-size: 26rpx;
+}
+
+.sidebar__home {
+  margin-top: auto;
+  padding: 20rpx;
+  border-radius: 20rpx;
+  background: linear-gradient(135deg, #3a4af5 0%, #7a5cfa 100%);
+  color: #ffffff;
+  font-size: 26rpx;
+}
+
+.dashboard-content {
+  flex: 1;
+  height: 100vh;
+  padding: 0 48rpx 80rpx;
+  box-sizing: border-box;
+}
+
+.section-block {
+  margin-bottom: 56rpx;
+  padding: 48rpx;
+  background: #ffffff;
+  border-radius: 32rpx;
+  box-shadow: 0 24rpx 60rpx rgba(31, 43, 102, 0.06);
+}
+
+.section-block--hero {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.hero {
+  display: flex;
+  align-items: stretch;
+  gap: 32rpx;
+  padding: 56rpx 48rpx;
+  background: linear-gradient(135deg, #3a4af5 0%, #5c6cff 100%);
+  border-radius: 36rpx;
+  color: #ffffff;
+}
+
+.hero__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.hero__badge {
+  font-size: 24rpx;
+  letter-spacing: 4rpx;
+  opacity: 0.75;
+}
+
+.hero__title {
+  font-size: 44rpx;
   font-weight: 700;
 }
 
-.header__stat-label {
+.hero__subtitle {
   font-size: 26rpx;
+  line-height: 1.6;
   opacity: 0.85;
 }
 
-.primary-button {
-  background: #ffffff;
-  color: #4b6bfb;
-  padding: 18rpx 36rpx;
-  border-radius: 999rpx;
-  font-size: 26rpx;
-  font-weight: 600;
-  border: none;
+.hero__actions {
+  display: flex;
+  gap: 24rpx;
 }
 
-.ghost-button {
-  background: transparent;
-  color: #ffffff;
-  padding: 18rpx 36rpx;
-  border-radius: 999rpx;
-  font-size: 26rpx;
-  border: 2rpx solid rgba(255, 255, 255, 0.45);
-}
-
-.section {
-  margin: 36rpx;
-  background: #ffffff;
+.hero__button {
+  padding: 20rpx 32rpx;
   border-radius: 32rpx;
-  padding: 36rpx;
-  box-shadow: 0 16rpx 34rpx rgba(31, 45, 61, 0.08);
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 26rpx;
+}
+
+.hero__button--primary {
+  background: #ffffff;
+  color: #3a4af5;
+}
+
+.hero__stat {
+  width: 220rpx;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 32rpx;
+  padding: 32rpx 16rpx;
+  text-align: center;
+}
+
+.hero__stat-value {
+  font-size: 64rpx;
+  font-weight: 700;
+}
+
+.hero__stat-label {
+  font-size: 24rpx;
+  opacity: 0.8;
+}
+
+.section__header {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  margin-bottom: 32rpx;
 }
 
 .section__title {
-  font-size: 32rpx;
+  font-size: 36rpx;
   font-weight: 600;
-  color: #1f2d3d;
-  margin-bottom: 28rpx;
+  color: #1f2b66;
+}
+
+.section__subtitle {
+  font-size: 26rpx;
+  color: #7f8aa3;
 }
 
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24rpx;
+  grid-template-columns: repeat(auto-fit, minmax(200rpx, 1fr));
+  gap: 28rpx;
 }
 
 .stat-card {
-  background: #f6f8ff;
-  border-radius: 28rpx;
   padding: 32rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(180deg, rgba(86, 102, 255, 0.1) 0%, rgba(86, 102, 255, 0.04) 100%);
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 20rpx;
 }
 
 .stat-card__header {
@@ -259,13 +477,13 @@ export default {
   justify-content: space-between;
   align-items: center;
   font-size: 26rpx;
-  color: #5c6c7a;
+  color: #5b6690;
 }
 
 .stat-card__value {
-  font-size: 42rpx;
+  font-size: 44rpx;
   font-weight: 700;
-  color: #1f2d3d;
+  color: #1f2b66;
 }
 
 .stat-card__trend {
@@ -273,80 +491,77 @@ export default {
 }
 
 .stat-card__trend.is-up {
-  color: #27ae60;
+  color: #21bf73;
 }
 
 .stat-card__trend.is-down {
-  color: #e17055;
+  color: #ff7675;
 }
 
 .progress {
-  height: 16rpx;
-  background: rgba(75, 107, 251, 0.15);
-  border-radius: 999rpx;
-  overflow: hidden;
+  height: 12rpx;
+  border-radius: 12rpx;
+  background: rgba(26, 42, 108, 0.1);
 }
 
 .progress__inner {
   height: 100%;
-  border-radius: 999rpx;
-  background: linear-gradient(90deg, #4b6bfb 0%, #9face6 100%);
+  border-radius: 12rpx;
+  background: linear-gradient(135deg, #3a4af5 0%, #7a5cfa 100%);
 }
 
 .split {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24rpx;
+  grid-template-columns: repeat(auto-fit, minmax(320rpx, 1fr));
+  gap: 28rpx;
 }
 
 .panel {
-  background: #f8f9ff;
-  border-radius: 28rpx;
   padding: 32rpx;
+  background: #f7f8ff;
+  border-radius: 28rpx;
   display: flex;
   flex-direction: column;
-  gap: 28rpx;
+  gap: 24rpx;
 }
 
 .panel__header {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
+  gap: 8rpx;
+  color: #1f2b66;
 }
 
 .panel__title {
   font-size: 30rpx;
   font-weight: 600;
-  color: #1f2d3d;
 }
 
 .panel__caption {
   font-size: 24rpx;
-  color: #7a8999;
+  color: #7f8aa3;
 }
 
 .panel__chart {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 16rpx;
 }
 
 .line-chart {
   position: relative;
-  height: 240rpx;
-  background: linear-gradient(180deg, rgba(75, 107, 251, 0.12) 0%, rgba(255, 255, 255, 0) 100%);
+  height: 200rpx;
+  background: rgba(61, 75, 245, 0.12);
   border-radius: 24rpx;
-  overflow: hidden;
 }
 
 .line-chart__point {
   position: absolute;
-  width: 24rpx;
-  height: 24rpx;
+  width: 16rpx;
+  height: 16rpx;
   border-radius: 50%;
-  background: #ffffff;
-  border: 6rpx solid rgba(75, 107, 251, 0.95);
-  box-shadow: 0 8rpx 18rpx rgba(75, 107, 251, 0.25);
+  background: #3a4af5;
+  transform: translate(-50%, 50%);
 }
 
 .line-chart__baseline {
@@ -354,15 +569,15 @@ export default {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 6rpx;
-  background: rgba(75, 107, 251, 0.16);
+  height: 4rpx;
+  background: rgba(61, 75, 245, 0.3);
 }
 
 .chart__axis {
   display: flex;
   justify-content: space-between;
   font-size: 22rpx;
-  color: #7a8999;
+  color: #7f8aa3;
 }
 
 .alert-list {
@@ -375,93 +590,126 @@ export default {
   display: flex;
   align-items: center;
   gap: 20rpx;
+  padding: 20rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .alert-item__level {
-  width: 16rpx;
-  height: 80rpx;
-  border-radius: 999rpx;
-  background: #f1f3ff;
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 50%;
 }
 
 .alert-item__level.is-high {
-  background: linear-gradient(180deg, #ff7675 0%, #d63031 100%);
+  background: #ff7675;
 }
 
 .alert-item__level.is-medium {
-  background: linear-gradient(180deg, #fdcb6e 0%, #e17055 100%);
+  background: #fdcb6e;
 }
 
 .alert-item__level.is-low {
-  background: linear-gradient(180deg, #55efc4 0%, #00b894 100%);
+  background: #55efc4;
 }
 
 .alert-item__content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8rpx;
+  gap: 6rpx;
 }
 
 .alert-item__name {
   font-size: 28rpx;
   font-weight: 600;
-  color: #1f2d3d;
+  color: #1f2b66;
 }
 
 .alert-item__desc {
   font-size: 24rpx;
-  color: #7a8999;
+  color: #7f8aa3;
 }
 
 .alert-item__count {
   font-size: 28rpx;
   font-weight: 600;
-  color: #4b6bfb;
+  color: #3a4af5;
 }
 
 .action-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(240rpx, 1fr));
   gap: 24rpx;
 }
 
 .action-card {
-  background: #f6f8ff;
-  border-radius: 28rpx;
-  padding: 32rpx 24rpx;
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
-  align-items: flex-start;
+  gap: 16rpx;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(180deg, rgba(122, 92, 250, 0.12) 0%, rgba(122, 92, 250, 0.05) 100%);
+  color: #1f2b66;
 }
 
 .action-card__icon {
-  font-size: 36rpx;
+  font-size: 40rpx;
 }
 
 .action-card__title {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 600;
-  color: #1f2d3d;
 }
 
 .action-card__desc {
   font-size: 24rpx;
-  color: #7a8999;
+  color: #7f8aa3;
 }
 
-@media screen and (max-width: 960rpx) {
-  .stat-grid {
-    grid-template-columns: 1fr;
+@media screen and (max-width: 750px) {
+  .dashboard-layout {
+    flex-direction: column;
   }
 
-  .split {
-    grid-template-columns: 1fr;
+  .dashboard-sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    box-shadow: none;
+    flex-direction: row;
+    align-items: center;
+    gap: 24rpx;
+    overflow-x: auto;
   }
 
-  .action-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .sidebar__nav {
+    flex-direction: row;
+    gap: 16rpx;
+  }
+
+  .sidebar__item {
+    padding: 16rpx 24rpx;
+  }
+
+  .sidebar__home {
+    margin-top: 0;
+  }
+
+  .dashboard-content {
+    height: auto;
+    padding: 32rpx;
+  }
+
+  .hero {
+    flex-direction: column;
+    text-align: left;
+  }
+
+  .hero__stat {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
   }
 }
 </style>
