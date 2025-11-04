@@ -5,10 +5,13 @@ import com.example.campus.dto.admin.AdminResponse;
 import com.example.campus.dto.admin.AdminUpdateRequest;
 import com.example.campus.entity.TsukiAdmin;
 import com.example.campus.entity.TsukiUser;
+import com.example.campus.entity.TsukiWallet;
 import com.example.campus.entity.UserRole;
 import com.example.campus.exception.ResourceNotFoundException;
 import com.example.campus.repository.TsukiAdminRepository;
 import com.example.campus.repository.TsukiUserRepository;
+import com.example.campus.repository.TsukiWalletRepository;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -22,6 +25,7 @@ public class AdminService {
 
     private final TsukiAdminRepository adminRepository;
     private final TsukiUserRepository userRepository;
+    private final TsukiWalletRepository walletRepository;
 
     @Transactional(readOnly = true)
     public List<AdminResponse> findAll() {
@@ -50,6 +54,7 @@ public class AdminService {
                 .level(request.level())
                 .build();
         TsukiAdmin saved = adminRepository.save(admin);
+        ensureAdminWallet(saved.getId());
         return toResponse(saved);
     }
 
@@ -83,6 +88,15 @@ public class AdminService {
             throw new IllegalArgumentException("用户角色必须为" + UserRole.ADMIN.getDisplayName());
         }
         return user;
+    }
+
+    private TsukiWallet ensureAdminWallet(Long adminId) {
+        return walletRepository.findByOwnerIdAndOwnerType(adminId, "admin")
+                .orElseGet(() -> walletRepository.save(TsukiWallet.builder()
+                        .ownerId(adminId)
+                        .ownerType("admin")
+                        .balance(BigDecimal.ZERO)
+                        .build()));
     }
 
     private AdminResponse toResponse(TsukiAdmin admin) {

@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import lombok.AllArgsConstructor;
@@ -66,4 +67,11 @@ public class TsukiCompany {
 
     @Column(name = "wallet_balance", precision = 12, scale = 2, nullable = false)
     private BigDecimal walletBalance;
+
+    @PrePersist
+    public void prePersist() {
+        if (walletBalance == null) {
+            walletBalance = BigDecimal.ZERO;
+        }
+    }
 }

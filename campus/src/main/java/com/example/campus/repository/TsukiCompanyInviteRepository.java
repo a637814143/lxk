@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface TsukiCompanyInviteRepository extends JpaRepository<TsukiCompanyInvite, Long> {
 
     Optional<TsukiCompanyInvite> findByCode(String code);
+
+    Optional<TsukiCompanyInvite> findByCodeIgnoreCase(String code);
 }

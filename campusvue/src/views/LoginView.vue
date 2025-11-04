@@ -41,9 +41,9 @@ const loading = ref(false);
 const feedback = reactive({ message: '', type: 'info' });
 
 const roleRoutes = {
-  ADMIN: { name: 'admin-dashboard' },
+  ADMIN: { name: 'admin-overview' },
   STUDENT: { name: 'student-dashboard' },
-  COMPANY: { name: 'company-dashboard' }
+  COMPANY: { name: 'company-profile' }
 };
 
 const presetUsername = typeof route.query.username === 'string' ? route.query.username : '';
