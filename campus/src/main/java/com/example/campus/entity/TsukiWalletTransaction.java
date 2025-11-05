@@ -48,7 +48,7 @@ public class TsukiWalletTransaction {
     @Column(name = "reference_id")
     private Long referenceId;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist

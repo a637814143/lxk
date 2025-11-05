@@ -47,7 +47,7 @@ public class TsukiResumeUpload {
     @Column(name = "visibility", length = 20, nullable = false)
     private String visibility;
 
-    @Column(name = "upload_time")
+    @Column(name = "upload_time", nullable = false, updatable = false)
     private LocalDateTime uploadTime;
 
     @PrePersist

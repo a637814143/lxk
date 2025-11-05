@@ -51,7 +51,7 @@ public class TsukiResumeAttachment {
     @Column(name = "file_size")
     private Long fileSize;
 
-    @Column(name = "uploaded_at")
+    @Column(name = "uploaded_at", nullable = false)
     private LocalDateTime uploadedAt;
 
     @PrePersist
