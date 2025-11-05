@@ -39,7 +39,7 @@ public class TsukiWallet {
     @Column(name = "balance", precision = 12, scale = 2, nullable = false)
     private BigDecimal balance;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @PrePersist

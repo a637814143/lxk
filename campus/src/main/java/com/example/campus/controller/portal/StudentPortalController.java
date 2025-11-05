@@ -3,6 +3,8 @@ package com.example.campus.controller.portal;
 import com.example.campus.dto.announcement.AnnouncementResponse;
 import com.example.campus.dto.application.ApplicationResponse;
 import com.example.campus.dto.job.JobResponse;
+import com.example.campus.dto.discussion.DiscussionCreateRequest;
+import com.example.campus.dto.discussion.DiscussionResponse;
 import com.example.campus.dto.message.MessageResponse;
 import com.example.campus.dto.portal.student.StudentApplicationRequest;
 import com.example.campus.dto.portal.student.StudentProfileRequest;
@@ -121,5 +123,11 @@ public class StudentPortalController {
     @GetMapping("/announcements")
     public List<AnnouncementResponse> listAnnouncements() {
         return studentPortalService.listAnnouncements();
+    }
+
+    @PostMapping("/discussions")
+    public DiscussionResponse createDiscussion(@AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody DiscussionCreateRequest request) {
+        return studentPortalService.createDiscussion(principal.getUserId(), request);
     }
 }

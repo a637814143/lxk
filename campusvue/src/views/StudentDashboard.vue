@@ -152,30 +152,62 @@
       <div class="card__title">
         <h2>企业讨论区</h2>
         <button v-if="currentDiscussionCompany.id" class="outline" type="button" @click="resetDiscussion">
-          返回说明
+          返回职位列表
         </button>
       </div>
       <p class="muted" v-if="discussionLoading">正在加载企业讨论，请稍候…</p>
       <template v-else>
         <p class="muted" v-if="!currentDiscussionCompany.id">
-          点击职位卡片中的“查看企业讨论”即可查看企业与管理员审核通过的交流内容。
+          点击职位卡片中的“查看企业讨论”即可浏览企业与同学的公开交流，并参与回复。
         </p>
         <div v-else>
           <h3>{{ currentDiscussionCompany.name }} 的公开讨论</h3>
+          <form class="discussion-form" @submit.prevent="submitDiscussion">
+            <label v-if="!replyTarget" class="full">
+              讨论主题（可选）
+              <input v-model="discussionForm.title" maxlength="100" placeholder="为你的评论添加一个主题" />
+            </label>
+            <label class="full">
+              评论内容<textarea v-model="discussionForm.content" required maxlength="1000"
+                placeholder="分享你的想法或向企业提问"></textarea>
+            </label>
+            <div class="discussion-actions">
+              <span v-if="replyTarget" class="reply-hint">
+                正在回复：{{ replyTarget.title || replyTarget.sanitizedContent || replyTarget.content }}
+              </span>
+              <span class="spacer"></span>
+              <button v-if="replyTarget" class="outline" type="button" @click="cancelReply">取消回复</button>
+              <button class="primary" type="submit">发布评论</button>
+            </div>
+          </form>
           <p v-if="discussionFeedback.message" :class="['feedback', discussionFeedback.type]">
             {{ discussionFeedback.message }}
           </p>
-          <ul class="list" v-if="discussions.length">
-            <li v-for="post in discussions" :key="post.id" class="list__item">
-              <div>
-                <h3>{{ post.title }}</h3>
-                <p class="muted">发布时间：{{ formatDate(post.createdAt) }}</p>
-                <p>{{ post.sanitizedContent }}</p>
-                <p v-if="post.reviewComment" class="muted">审核备注：{{ post.reviewComment }}</p>
-              </div>
+          <ul v-if="discussionThreads.length" class="discussion-list">
+            <li v-for="thread in discussionThreads" :key="thread.id" class="discussion-thread">
+              <article class="discussion-post">
+                <header>
+                  <h4>{{ thread.title }}</h4>
+                  <p class="muted">{{ resolveAuthorLabel(thread) }} · {{ formatDate(thread.createdAt) }}</p>
+                </header>
+                <p>{{ thread.sanitizedContent || thread.content }}</p>
+                <footer>
+                  <button class="text" type="button" @click="setReplyTarget(thread)">回复</button>
+                </footer>
+              </article>
+              <ul v-if="thread.replies.length" class="reply-list">
+                <li v-for="reply in thread.replies" :key="reply.id" class="discussion-reply">
+                  <div class="reply-header">
+                    <strong>{{ resolveAuthorLabel(reply) }}</strong>
+                    <span class="muted">{{ formatDate(reply.createdAt) }}</span>
+                  </div>
+                  <p>{{ reply.sanitizedContent || reply.content }}</p>
+                  <button class="text" type="button" @click="setReplyTarget(reply)">回复</button>
+                </li>
+              </ul>
             </li>
           </ul>
-          <p v-else class="muted">暂无公开讨论，欢迎稍后再来查看。</p>
+          <p v-else class="muted">还没有评论，欢迎发表第一条。</p>
         </div>
       </template>
     </section>
@@ -185,7 +217,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { clearAuthInfo, del, get, getAuthInfo, post, put, upload } from '../api/http';
 
@@ -229,9 +261,12 @@ const applications = ref([]);
 const messages = ref([]);
 const announcements = ref([]);
 const discussions = ref([]);
+const discussionThreads = computed(() => buildDiscussionThreads(discussions.value));
 const currentDiscussionCompany = reactive({ id: null, name: '' });
 const discussionLoading = ref(false);
 const discussionFeedback = reactive({ message: '', type: 'info' });
+const discussionForm = reactive({ title: '', content: '' });
+const replyTarget = ref(null);
 
 const feedback = reactive({ message: '', type: 'info' });
 
@@ -243,6 +278,33 @@ function showFeedback(message, type = 'info') {
       feedback.message = '';
     }, 4000);
   }
+}
+
+function showDiscussionFeedback(message, type = 'info') {
+  discussionFeedback.message = message;
+  discussionFeedback.type = type;
+  if (message) {
+    setTimeout(() => {
+      discussionFeedback.message = '';
+    }, 4000);
+  }
+}
+
+function buildDiscussionThreads(items) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+  const nodes = items.map(item => ({ ...item, replies: [] }));
+  const map = new Map(nodes.map(node => [node.id, node]));
+  const roots = [];
+  nodes.forEach(node => {
+    if (node.parentId && map.has(node.parentId)) {
+      map.get(node.parentId).replies.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+  return roots;
 }
 
 function handleLogout() {
@@ -463,17 +525,21 @@ async function loadCompanyDiscussions(companyId, companyName) {
   currentDiscussionCompany.id = companyId;
   currentDiscussionCompany.name = companyName ?? `企业 #${companyId}`;
   discussionLoading.value = true;
-  discussionFeedback.message = '';
+  showDiscussionFeedback('正在加载讨论，请稍候…', 'info');
+  discussionForm.title = '';
+  discussionForm.content = '';
+  replyTarget.value = null;
   try {
-    discussions.value = await get(`/public/discussions/company/${companyId}`);
-    if (!discussions.value.length) {
-      discussionFeedback.message = '暂无公开讨论记录';
-      discussionFeedback.type = 'info';
+    const items = await get(`/public/discussions/company/${companyId}`);
+    discussions.value = items;
+    if (!items.length) {
+      showDiscussionFeedback('暂无评论，欢迎发表第一条', 'info');
+    } else {
+      showDiscussionFeedback('', 'info');
     }
   } catch (error) {
     discussions.value = [];
-    discussionFeedback.message = error.message ?? '加载讨论失败';
-    discussionFeedback.type = 'error';
+    showDiscussionFeedback(error.message ?? '加载讨论失败', 'error');
   } finally {
     discussionLoading.value = false;
   }
@@ -483,8 +549,10 @@ function resetDiscussion() {
   currentDiscussionCompany.id = null;
   currentDiscussionCompany.name = '';
   discussions.value = [];
-  discussionFeedback.message = '';
-  discussionFeedback.type = 'info';
+  discussionForm.title = '';
+  discussionForm.content = '';
+  replyTarget.value = null;
+  showDiscussionFeedback('', 'info');
 }
 
 function resolveJobTitle(jobId) {
@@ -496,6 +564,47 @@ function resolveCompanyName(companyId) {
   if (!companyId) return '企业';
   const job = jobs.value.find(item => item.companyId === companyId);
   return job?.companyName ?? `企业 #${companyId}`;
+}
+
+async function submitDiscussion() {
+  if (!currentDiscussionCompany.id) {
+    showDiscussionFeedback('请先选择要查看的企业讨论', 'error');
+    return;
+  }
+  if (!discussionForm.content.trim()) {
+    showDiscussionFeedback('请填写评论内容', 'error');
+    return;
+  }
+  const payload = {
+    companyId: currentDiscussionCompany.id,
+    title: discussionForm.title?.trim() || undefined,
+    content: discussionForm.content.trim(),
+    parentId: replyTarget.value?.id ?? null
+  };
+  try {
+    const created = await post('/portal/student/discussions', payload);
+    discussions.value = [...discussions.value, created];
+    discussionForm.title = '';
+    discussionForm.content = '';
+    replyTarget.value = null;
+    showDiscussionFeedback('评论已发布', 'success');
+  } catch (error) {
+    showDiscussionFeedback(error.message ?? '发布评论失败', 'error');
+  }
+}
+
+function setReplyTarget(post) {
+  replyTarget.value = post;
+  showDiscussionFeedback(`正在回复 ${post.authorName ?? '该评论'}`, 'info');
+}
+
+function cancelReply() {
+  replyTarget.value = null;
+  showDiscussionFeedback('', 'info');
+}
+
+function resolveAuthorLabel(post) {
+  return post.authorRole ?? '用户';
 }
 
 function formatDate(value) {
@@ -608,6 +717,93 @@ onMounted(async () => {
   padding: 16px;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
+}
+
+.discussion-form {
+  display: grid;
+  gap: 12px;
+}
+
+.discussion-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.discussion-actions .spacer {
+  flex: 1;
+}
+
+.reply-hint {
+  color: #475569;
+  font-size: 14px;
+}
+
+.discussion-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.discussion-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.discussion-post header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.discussion-post footer {
+  margin-top: 8px;
+}
+
+.reply-list {
+  list-style: none;
+  margin: 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.discussion-reply {
+  border-left: 3px solid #bfdbfe;
+  padding-left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reply-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #475569;
+}
+
+button.text {
+  background: none;
+  border: none;
+  color: #2563eb;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+}
+
+button.text:hover {
+  text-decoration: underline;
 }
 
 .list__actions {

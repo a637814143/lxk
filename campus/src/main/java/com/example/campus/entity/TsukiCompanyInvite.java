@@ -47,7 +47,7 @@ public class TsukiCompanyInvite {
     @Column(name = "status", length = 20, nullable = false)
     private String status;
 
-    @Column(name = "created_time")
+    @Column(name = "created_time", nullable = false, updatable = false)
     private LocalDateTime createdTime;
 
     @Column(name = "used_time")

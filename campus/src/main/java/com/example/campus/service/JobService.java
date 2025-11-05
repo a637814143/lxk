@@ -32,9 +32,14 @@ public class JobService {
     }
 
     @Transactional(readOnly = true)
-    public List<JobResponse> searchApprovedJobs(String keyword, String companyName, String jobType,
+    public List<JobResponse> searchVisibleJobs(String keyword, String companyName, String jobType,
             String location, String salaryRange) {
-        return jobRepository.findByStatus("approved").stream()
+        return jobRepository.findAll().stream()
+                .filter(job -> job.getStatus() == null
+                        || "approved".equalsIgnoreCase(job.getStatus())
+                        || "pending".equalsIgnoreCase(job.getStatus()))
+                .filter(job -> !"closed".equalsIgnoreCase(job.getStatus()))
+                .filter(job -> !"rejected".equalsIgnoreCase(job.getStatus()))
                 .filter(job -> matchesKeyword(job, keyword))
                 .filter(job -> matchesCompany(job, companyName))
                 .filter(job -> matchesField(job.getJobType(), jobType))
@@ -134,7 +139,7 @@ public class JobService {
 
     private String normalizeStatus(String status) {
         if (status == null || status.isBlank()) {
-            return "pending";
+            return "approved";
         }
         String normalized = status.toLowerCase();
         if (!ALLOWED_STATUSES.contains(normalized)) {
