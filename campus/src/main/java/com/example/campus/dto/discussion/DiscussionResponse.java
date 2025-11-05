@@ -8,7 +8,6 @@ public record DiscussionResponse(
         String companyName,
         Long authorId,
         String authorName,
-        String authorRole,
         String title,
         String content,
         String sanitizedContent,
@@ -18,6 +17,5 @@ public record DiscussionResponse(
         String reviewerName,
         LocalDateTime reviewTime,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt,
-        Long parentId) {
+        LocalDateTime updatedAt) {
 }

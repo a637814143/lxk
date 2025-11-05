@@ -7,7 +7,6 @@ import com.example.campus.entity.TsukiAdmin;
 import com.example.campus.entity.TsukiCompany;
 import com.example.campus.entity.TsukiDiscussionPost;
 import com.example.campus.entity.TsukiUser;
-import com.example.campus.entity.UserRole;
 import com.example.campus.exception.ResourceNotFoundException;
 import com.example.campus.repository.TsukiAdminRepository;
 import com.example.campus.repository.TsukiCompanyRepository;
@@ -37,19 +36,17 @@ public class DiscussionService {
     public DiscussionResponse create(Long authorUserId, DiscussionCreateRequest request) {
         TsukiUser author = userRepository.findById(authorUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到用户信息"));
-        TsukiCompany company = resolveCompany(author, request.companyId());
-        TsukiDiscussionPost parent = resolveParent(request.parentId(), company);
+        TsukiCompany company = companyRepository.findByUser_Id(authorUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("请先完善企业资料"));
         SensitiveWordFilter.Result result = sensitiveWordFilter.sanitize(request.content());
-        String title = determineTitle(request.title(), result.content(), parent, author.getUsername());
         TsukiDiscussionPost post = TsukiDiscussionPost.builder()
                 .author(author)
                 .company(company)
-                .parent(parent)
-                .title(title)
+                .title(request.title())
                 .content(request.content())
                 .sanitizedContent(result.content())
-                .status("approved")
-                .reviewComment(null)
+                .status("pending")
+                .reviewComment(result.flagged() ? "检测到敏感词，待审核" : null)
                 .build();
         return toResponse(discussionRepository.save(post));
     }
@@ -58,7 +55,7 @@ public class DiscussionService {
     public List<DiscussionResponse> findByCompany(Long companyUserId) {
         TsukiCompany company = companyRepository.findByUser_Id(companyUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("请先完善企业资料"));
-        return discussionRepository.findByCompany_IdOrderByCreatedAtAsc(company.getId()).stream()
+        return discussionRepository.findByCompany_Id(company.getId()).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -86,7 +83,7 @@ public class DiscussionService {
 
     @Transactional(readOnly = true)
     public List<DiscussionResponse> findApprovedByCompany(Long companyId) {
-        return discussionRepository.findByCompany_IdAndStatusOrderByCreatedAtAsc(companyId, "approved").stream()
+        return discussionRepository.findByCompany_IdAndStatus(companyId, "approved").stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -102,48 +99,6 @@ public class DiscussionService {
         return normalized;
     }
 
-    private TsukiCompany resolveCompany(TsukiUser author, Long requestedCompanyId) {
-        if (author.getRole() == UserRole.COMPANY) {
-            TsukiCompany company = companyRepository.findByUser_Id(author.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("请先完善企业资料"));
-            if (requestedCompanyId != null && !company.getId().equals(requestedCompanyId)) {
-                throw new IllegalArgumentException("不能为其他企业创建讨论");
-            }
-            return company;
-        }
-        if (requestedCompanyId == null) {
-            throw new IllegalArgumentException("请选择要讨论的企业");
-        }
-        return companyRepository.findById(requestedCompanyId)
-                .orElseThrow(() -> new ResourceNotFoundException("未找到企业信息"));
-    }
-
-    private TsukiDiscussionPost resolveParent(Long parentId, TsukiCompany company) {
-        if (parentId == null) {
-            return null;
-        }
-        TsukiDiscussionPost parent = discussionRepository.findById(parentId)
-                .orElseThrow(() -> new ResourceNotFoundException("未找到评论内容"));
-        if (!parent.getCompany().getId().equals(company.getId())) {
-            throw new IllegalArgumentException("回复的评论不属于当前企业");
-        }
-        return parent;
-    }
-
-    private String determineTitle(String rawTitle, String sanitizedContent, TsukiDiscussionPost parent, String authorName) {
-        String title = StringUtils.hasText(rawTitle) ? rawTitle.trim() : null;
-        if (!StringUtils.hasText(title)) {
-            if (parent != null) {
-                String parentAuthor = parent.getAuthor() != null ? parent.getAuthor().getUsername() : "评论";
-                title = "回复 " + parentAuthor;
-            } else {
-                String base = StringUtils.hasText(sanitizedContent) ? sanitizedContent : "来自" + authorName + "的评论";
-                title = base.length() > 20 ? base.substring(0, 20) : base;
-            }
-        }
-        return title.length() > 100 ? title.substring(0, 100) : title;
-    }
-
     private DiscussionResponse toResponse(TsukiDiscussionPost post) {
         return new DiscussionResponse(
                 post.getId(),
@@ -151,9 +106,6 @@ public class DiscussionService {
                 post.getCompany() != null ? post.getCompany().getCompanyName() : null,
                 post.getAuthor() != null ? post.getAuthor().getId() : null,
                 post.getAuthor() != null ? post.getAuthor().getUsername() : null,
-                post.getAuthor() != null && post.getAuthor().getRole() != null
-                        ? post.getAuthor().getRole().getDisplayName()
-                        : null,
                 post.getTitle(),
                 post.getContent(),
                 post.getSanitizedContent(),
@@ -164,7 +116,6 @@ public class DiscussionService {
                         ? post.getReviewer().getUser().getUsername() : null,
                 post.getReviewTime(),
                 post.getCreatedAt(),
-                post.getUpdatedAt(),
-                post.getParent() != null ? post.getParent().getId() : null);
+                post.getUpdatedAt());
     }
 }

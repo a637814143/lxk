@@ -27,11 +27,13 @@
           <td>{{ job.jobTitle }}</td>
           <td>{{ job.jobType || '不限' }}</td>
           <td>{{ job.location || '不限' }}</td>
-          <td><span class="status">{{ renderStatus(job.status) }}</span></td>
+          <td><span class="status">{{ job.status }}</span></td>
           <td class="actions">
             <button class="outline" type="button" @click="prefillJob(job)">编辑</button>
             <select v-model="job.status" @change="updateJobStatus(job)">
+              <option value="pending">待审核</option>
               <option value="approved">已发布</option>
+              <option value="rejected">已拒绝</option>
               <option value="closed">已关闭</option>
             </select>
           </td>
@@ -92,7 +94,7 @@ async function submitJob() {
       showFeedback('职位已更新', 'success');
     } else {
       await post('/portal/company/jobs', payload);
-      showFeedback('职位已发布，学生可立即投递', 'success');
+      showFeedback('职位已提交审核', 'success');
     }
     resetJobForm();
     await loadJobs();
@@ -112,17 +114,6 @@ async function updateJobStatus(job) {
     showFeedback('职位状态已更新', 'success');
   } catch (error) {
     showFeedback(error.message ?? '更新职位状态失败', 'error');
-  }
-}
-
-function renderStatus(status) {
-  switch ((status || '').toLowerCase()) {
-    case 'approved':
-      return '已发布';
-    case 'closed':
-      return '已关闭';
-    default:
-      return status || '—';
   }
 }
 

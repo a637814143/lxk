@@ -81,16 +81,7 @@ public class AdminPortalService {
         long pendingCompanies = companyRepository.countByAuditStatus("pending");
         long totalJobs = jobRepository.count();
         long approvedJobs = jobRepository.countByStatus("approved");
-        long openJobs = jobRepository.findAll().stream()
-                .filter(job -> {
-                    String status = job.getStatus();
-                    if (status == null) {
-                        return true;
-                    }
-                    String normalized = status.toLowerCase(Locale.ROOT);
-                    return !"closed".equals(normalized) && !"rejected".equals(normalized);
-                })
-                .count();
+        long pendingJobs = jobRepository.countByStatus("pending");
         long totalApplications = applicationRepository.count();
         Map<String, Long> breakdown = new LinkedHashMap<>();
         breakdown.put("待查看", applicationRepository.countByStatus("待查看"));
@@ -100,7 +91,7 @@ public class AdminPortalService {
         breakdown.put("拒绝", applicationRepository.countByStatus("拒绝"));
         long unreadMessages = messageRepository.countByReceiver_IdAndIsRead(admin.getUser().getId(), Boolean.FALSE);
         return new AdminDashboardSummary(totalStudents, totalCompanies, pendingCompanies, totalJobs, approvedJobs,
-                openJobs, totalApplications, breakdown, unreadMessages);
+                pendingJobs, totalApplications, breakdown, unreadMessages);
     }
 
     @Transactional(readOnly = true)

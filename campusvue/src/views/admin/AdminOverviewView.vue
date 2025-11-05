@@ -11,7 +11,7 @@
       <div class="summary-item"><span>待审企业</span><strong>{{ summary.pendingCompanies }}</strong></div>
       <div class="summary-item"><span>职位总数</span><strong>{{ summary.totalJobs }}</strong></div>
       <div class="summary-item"><span>已发布职位</span><strong>{{ summary.approvedJobs }}</strong></div>
-      <div class="summary-item"><span>开放职位</span><strong>{{ summary.openJobs }}</strong></div>
+      <div class="summary-item"><span>待审核职位</span><strong>{{ summary.pendingJobs }}</strong></div>
       <div class="summary-item"><span>投递总量</span><strong>{{ summary.totalApplications }}</strong></div>
       <div class="summary-item"><span>管理员未读消息</span><strong>{{ summary.unreadMessages }}</strong></div>
     </div>

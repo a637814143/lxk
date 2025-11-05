@@ -4,8 +4,6 @@ import com.example.campus.dto.announcement.AnnouncementResponse;
 import com.example.campus.dto.application.ApplicationResponse;
 import com.example.campus.dto.message.MessageResponse;
 import com.example.campus.dto.message.MessageUpdateRequest;
-import com.example.campus.dto.discussion.DiscussionCreateRequest;
-import com.example.campus.dto.discussion.DiscussionResponse;
 import com.example.campus.dto.portal.student.StudentApplicationRequest;
 import com.example.campus.dto.portal.student.StudentProfileRequest;
 import com.example.campus.dto.portal.student.StudentResumeRequest;
@@ -40,7 +38,6 @@ public class StudentPortalService {
     private final MessageService messageService;
     private final JobService jobService;
     private final AnnouncementService announcementService;
-    private final DiscussionService discussionService;
 
     private final TsukiStudentRepository studentRepository;
     private final TsukiResumeRepository resumeRepository;
@@ -97,7 +94,7 @@ public class StudentPortalService {
     @Transactional(readOnly = true)
     public List<com.example.campus.dto.job.JobResponse> searchJobs(String keyword, String companyName, String jobType,
             String location, String salaryRange) {
-        return jobService.searchVisibleJobs(keyword, companyName, jobType, location, salaryRange);
+        return jobService.searchApprovedJobs(keyword, companyName, jobType, location, salaryRange);
     }
 
     @Transactional
@@ -106,6 +103,9 @@ public class StudentPortalService {
         TsukiResume resume = requireResume(student.getId(), request.resumeId());
         TsukiJob job = jobRepository.findById(request.jobId())
                 .orElseThrow(() -> new ResourceNotFoundException("未找到对应的职位"));
+        if (!"approved".equalsIgnoreCase(job.getStatus())) {
+            throw new IllegalArgumentException("该职位尚未通过审核，暂时无法投递");
+        }
         applicationRepository.findByStudent_IdAndJob_Id(student.getId(), job.getId())
                 .ifPresent(existing -> {
                     throw new IllegalStateException("您已投递该职位，请勿重复投递");
@@ -181,11 +181,6 @@ public class StudentPortalService {
     @Transactional(readOnly = true)
     public List<AnnouncementResponse> listAnnouncements() {
         return announcementService.findByTargets(List.of("all", "student"));
-    }
-
-    @Transactional
-    public DiscussionResponse createDiscussion(Long userId, DiscussionCreateRequest request) {
-        return discussionService.create(userId, request);
     }
 
     private TsukiStudent requireStudent(Long userId) {

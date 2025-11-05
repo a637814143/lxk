@@ -8,11 +8,7 @@ public interface TsukiDiscussionPostRepository extends JpaRepository<TsukiDiscus
 
     List<TsukiDiscussionPost> findByCompany_Id(Long companyId);
 
-    List<TsukiDiscussionPost> findByCompany_IdOrderByCreatedAtAsc(Long companyId);
-
     List<TsukiDiscussionPost> findByStatus(String status);
 
     List<TsukiDiscussionPost> findByCompany_IdAndStatus(Long companyId, String status);
-
-    List<TsukiDiscussionPost> findByCompany_IdAndStatusOrderByCreatedAtAsc(Long companyId, String status);
 }
