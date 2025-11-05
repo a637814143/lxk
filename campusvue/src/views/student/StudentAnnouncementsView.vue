@@ -6,7 +6,7 @@
         <p class="muted">了解校园招聘平台的最新通知</p>
       </div>
       <button class="outline" type="button" @click="loadAnnouncements" :disabled="loading">
-        {{ loading ? '加载中…' : '刷新' }}
+        {{ loading ? '加载中' : '刷新' }}
       </button>
     </header>
 

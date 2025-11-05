@@ -18,7 +18,7 @@
       <label class="full">头像地址<input v-model="profileForm.avatar" /></label>
       <div class="full actions">
         <button class="primary" type="submit" :disabled="saving">
-          {{ saving ? '保存中…' : '保存资料' }}
+          {{ saving ? '保存中...' : '保存资料' }}
         </button>
       </div>
     </form>

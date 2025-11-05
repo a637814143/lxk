@@ -12,11 +12,9 @@ import com.example.campus.dto.discussion.DiscussionReviewRequest;
 import com.example.campus.dto.finance.FinancialTransactionRequest;
 import com.example.campus.dto.finance.FinancialTransactionResponse;
 import com.example.campus.dto.finance.FinancialTransactionStatusRequest;
-import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.portal.admin.AdminDashboardSummary;
 import com.example.campus.dto.portal.admin.AnnouncementPublishRequest;
 import com.example.campus.dto.portal.admin.CompanyAuditRequest;
-import com.example.campus.dto.portal.admin.JobAuditRequest;
 import com.example.campus.dto.portal.admin.UserStatusRequest;
 import com.example.campus.dto.user.UserResponse;
 import com.example.campus.dto.wallet.WalletSummaryResponse;
@@ -60,10 +58,6 @@ public class AdminPortalController {
         return adminPortalService.reviewCompany(principal.getUserId(), companyId, request);
     }
 
-    @GetMapping("/jobs/pending")
-    public List<JobResponse> listPendingJobs() {
-        return adminPortalService.listPendingJobs();
-    }
 
     @GetMapping("/discussions/pending")
     public List<DiscussionResponse> listPendingDiscussions() {
@@ -76,11 +70,6 @@ public class AdminPortalController {
         return adminPortalService.reviewDiscussion(principal.getUserId(), discussionId, request);
     }
 
-    @PatchMapping("/jobs/{jobId}/review")
-    public JobResponse reviewJob(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long jobId,
-            @Valid @RequestBody JobAuditRequest request) {
-        return adminPortalService.reviewJob(principal.getUserId(), jobId, request);
-    }
 
     @GetMapping("/transactions")
     public List<FinancialTransactionResponse> listTransactions() {

@@ -36,53 +36,47 @@
       </tbody>
     </table>
     <p v-else class="muted">尚未生成邀请码</p>
-
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </section>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { get, patch, post } from '../../api/http';
+import { useToast } from '../../ui/toast';
 
 const invites = ref([]);
-const feedback = reactive({ message: '', type: 'info' });
+const toast = useToast();
 
-const inviteForm = reactive({
-  note: '',
-  companyNameHint: ''
-});
+const inviteForm = reactive({ note: '', companyNameHint: '' });
 
-onMounted(() => {
-  loadInvites();
-});
+onMounted(loadInvites);
 
 async function loadInvites() {
   try {
     invites.value = await get('/portal/admin/invites');
   } catch (error) {
-    showFeedback(error.message ?? '加载邀请码失败', 'error');
+    toast.error(error.message ?? '加载邀请码失败');
   }
 }
 
 async function createInvite() {
   try {
     await post('/portal/admin/invites', inviteForm);
-    showFeedback('邀请码已生成', 'success');
+    toast.success('邀请码已生成');
     resetForm();
     await loadInvites();
   } catch (error) {
-    showFeedback(error.message ?? '生成邀请码失败', 'error');
+    toast.error(error.message ?? '生成邀请码失败');
   }
 }
 
 async function updateStatus(id, status) {
   try {
     await patch(`/portal/admin/invites/${id}`, { status });
-    showFeedback('邀请码状态已更新', 'success');
+    toast.success('邀请码状态已更新');
     await loadInvites();
   } catch (error) {
-    showFeedback(error.message ?? '更新邀请码状态失败', 'error');
+    toast.error(error.message ?? '更新邀请码状态失败');
   }
 }
 
@@ -92,42 +86,12 @@ function resetForm() {
 }
 
 function formatDate(value) {
-  if (!value) {
-    return '-';
-  }
+  if (!value) return '-';
   return new Date(value).toLocaleString();
-}
-
-function showFeedback(message, type = 'info') {
-  feedback.message = message;
-  feedback.type = type;
-  if (message) {
-    setTimeout(() => {
-      feedback.message = '';
-    }, 4000);
-  }
 }
 </script>
 
 <style scoped>
-.actions {
-  display: flex;
-  gap: 12px;
-}
-
-.feedback {
-  padding: 10px 14px;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
+.actions { display: flex; gap: 12px; }
 </style>
+

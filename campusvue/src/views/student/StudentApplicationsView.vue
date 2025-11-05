@@ -6,7 +6,7 @@
         <p class="muted">跟踪各岗位的投递状态与企业反馈</p>
       </div>
       <button class="outline" type="button" @click="refresh" :disabled="loading">
-        {{ loading ? '刷新中…' : '刷新' }}
+        {{ loading ? '刷新中' : '刷新' }}
       </button>
     </header>
 
@@ -25,7 +25,7 @@
           <td>{{ resolveJobTitle(app.jobId) }}</td>
           <td>{{ resolveCompanyName(app.companyId) }}</td>
           <td>{{ app.status }}</td>
-          <td>{{ app.decisionNote || '—' }}</td>
+          <td>{{ app.decisionNote || '-' }}</td>
           <td>{{ formatDate(app.applyTime) }}</td>
         </tr>
       </tbody>
@@ -74,7 +74,7 @@ async function loadJobs() {
   try {
     jobs.value = await get('/portal/student/jobs');
   } catch (error) {
-    console.warn('加载职位信息失败，用于显示投递表格', error);
+    console.warn('加载职位信息失败（用于显示投递表格）', error);
   }
 }
 

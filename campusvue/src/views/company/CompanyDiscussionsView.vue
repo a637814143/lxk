@@ -25,99 +25,60 @@
       </li>
     </ul>
     <p v-else class="muted">暂无讨论内容，欢迎提交与学生交流的话题。</p>
-
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </section>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { get, post } from '../../api/http';
+import { useToast } from '../../ui/toast';
 
 const discussions = ref([]);
-const discussionForm = reactive({
-  title: '',
-  content: ''
-});
-const feedback = reactive({ message: '', type: 'info' });
+const discussionForm = reactive({ title: '', content: '' });
+const toast = useToast();
 
-onMounted(() => {
-  loadDiscussions();
-});
+onMounted(loadDiscussions);
 
 async function loadDiscussions() {
   try {
     discussions.value = await get('/portal/company/discussions');
   } catch (error) {
-    showFeedback(error.message ?? '加载讨论内容失败', 'error');
+    toast.error(error.message ?? '加载讨论内容失败');
   }
 }
 
 async function createDiscussion() {
   if (!discussionForm.title || !discussionForm.content) {
-    showFeedback('请填写讨论主题和内容', 'error');
+    toast.error('请填写讨论主题和内容');
     return;
   }
   try {
     const created = await post('/portal/company/discussions', discussionForm);
     discussions.value.unshift(created);
-    showFeedback('讨论已提交审核', 'success');
+    toast.success('讨论已提交审核');
     resetDiscussionForm();
   } catch (error) {
-    showFeedback(error.message ?? '提交讨论失败', 'error');
+    toast.error(error.message ?? '提交讨论失败');
   }
 }
 
-function resetDiscussionForm() {
-  discussionForm.title = '';
-  discussionForm.content = '';
-}
+function resetDiscussionForm() { discussionForm.title = ''; discussionForm.content = ''; }
 
 function translateStatus(status) {
   switch ((status || '').toLowerCase()) {
-    case 'approved':
-      return '已发布';
-    case 'rejected':
-      return '已驳回';
-    case 'pending':
-      return '待审核';
-    default:
-      return status || '-';
+    case 'approved': return '已发布';
+    case 'rejected': return '已驳回';
+    case 'pending': return '待审核';
+    default: return status || '-';
   }
 }
 
-function formatDate(value) {
-  if (!value) {
-    return '-';
-  }
-  return new Date(value).toLocaleString();
-}
-
-function showFeedback(message, type = 'info') {
-  feedback.message = message;
-  feedback.type = type;
-  if (message) {
-    setTimeout(() => {
-      feedback.message = '';
-    }, 4000);
-  }
-}
+function formatDate(value) { if (!value) return '-'; return new Date(value).toLocaleString(); }
 </script>
 
 <style scoped>
-.feedback {
-  padding: 10px 14px;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
+.actions { display: flex; gap: 12px; }
+.list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.list__item { padding: 16px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; }
 </style>
+

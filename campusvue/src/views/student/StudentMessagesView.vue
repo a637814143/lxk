@@ -6,7 +6,7 @@
         <p class="muted">查看并及时处理来自企业或系统的通知</p>
       </div>
       <button class="outline" type="button" @click="loadMessages" :disabled="loading">
-        {{ loading ? '刷新中…' : '刷新' }}
+        {{ loading ? '刷新中' : '刷新' }}
       </button>
     </header>
 
@@ -28,36 +28,26 @@
       </li>
     </ul>
     <p v-else class="muted">暂无消息</p>
-
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </section>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { inject, onMounted, ref } from 'vue';
 import { get, post } from '../../api/http';
+import { useToast } from '../../ui/toast';
 
 const messages = ref([]);
 const loading = ref(false);
 const marking = ref(false);
-const feedback = reactive({ message: '', type: 'info' });
-
-function showFeedback(message, type = 'info') {
-  feedback.message = message;
-  feedback.type = type;
-  if (message) {
-    setTimeout(() => {
-      feedback.message = '';
-    }, 4000);
-  }
-}
+const toast = useToast();
+const refreshUnreadCount = inject('refreshUnreadCount', () => {});
 
 async function loadMessages() {
   try {
     loading.value = true;
     messages.value = await get('/portal/student/messages');
   } catch (error) {
-    showFeedback(error.message, 'error');
+    toast.error(error.message);
   } finally {
     loading.value = false;
   }
@@ -68,8 +58,9 @@ async function markMessageRead(messageId) {
     marking.value = true;
     const updated = await post(`/portal/student/messages/${messageId}/read`);
     messages.value = messages.value.map(msg => (msg.id === updated.id ? updated : msg));
+    try { refreshUnreadCount(); } catch {}
   } catch (error) {
-    showFeedback(error.message, 'error');
+    toast.error(error.message);
   } finally {
     marking.value = false;
   }
@@ -131,20 +122,5 @@ onMounted(loadMessages);
   color: #6b7280;
   margin: 0;
 }
-
-.feedback {
-  text-align: center;
-  padding: 12px;
-  border-radius: 12px;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
 </style>
+

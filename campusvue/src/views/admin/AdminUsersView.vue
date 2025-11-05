@@ -22,17 +22,16 @@
       </tbody>
     </table>
     <p v-else class="muted">暂无用户数据</p>
-
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </section>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { get, patch } from '../../api/http';
+import { useToast } from '../../ui/toast';
 
 const users = ref([]);
-const feedback = reactive({ message: '', type: 'info' });
+const toast = useToast();
 
 onMounted(() => {
   loadUsers();
@@ -42,7 +41,7 @@ async function loadUsers() {
   try {
     users.value = await get('/portal/admin/users');
   } catch (error) {
-    showFeedback(error.message ?? '加载用户失败', 'error');
+    toast.error(error.message ?? '加载用户失败');
   }
 }
 
@@ -51,19 +50,9 @@ async function toggleUserStatus(user) {
     const nextStatus = user.status === 1 ? 0 : 1;
     const updated = await patch(`/portal/admin/users/${user.id}/status`, { status: nextStatus });
     Object.assign(user, updated);
-    showFeedback('用户状态已更新', 'success');
+    toast.success('用户状态已更新');
   } catch (error) {
-    showFeedback(error.message ?? '更新用户状态失败', 'error');
-  }
-}
-
-function showFeedback(message, type = 'info') {
-  feedback.message = message;
-  feedback.type = type;
-  if (message) {
-    setTimeout(() => {
-      feedback.message = '';
-    }, 4000);
+    toast.error(error.message ?? '更新用户状态失败');
   }
 }
 </script>
@@ -73,20 +62,5 @@ function showFeedback(message, type = 'info') {
   display: flex;
   gap: 12px;
 }
-
-.feedback {
-  padding: 10px 14px;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
 </style>
+

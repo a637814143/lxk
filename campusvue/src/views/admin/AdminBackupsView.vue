@@ -15,7 +15,7 @@
     </form>
 
     <table v-if="backups.length" class="table">
-      <thead><tr><th>ID</th><th>名称</th><th>创建时间</th><th>创建人</th><th>备注</th></tr></thead>
+      <thead><tr><th>ID</th><th>名称</th><th>创建时间</th><th>创建者</th><th>备注</th></tr></thead>
       <tbody>
         <tr v-for="item in backups" :key="item.id">
           <td>{{ item.id }}</td>
@@ -27,47 +27,40 @@
       </tbody>
     </table>
     <p v-else class="muted">尚未生成数据备份</p>
-
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </section>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { get, post } from '../../api/http';
+import { useToast } from '../../ui/toast';
 
 const backups = ref([]);
-const feedback = reactive({ message: '', type: 'info' });
+const backupForm = reactive({ name: '', description: '' });
+const toast = useToast();
 
-const backupForm = reactive({
-  name: '',
-  description: ''
-});
-
-onMounted(() => {
-  loadBackups();
-});
+onMounted(loadBackups);
 
 async function loadBackups() {
   try {
     backups.value = await get('/portal/admin/backups');
   } catch (error) {
-    showFeedback(error.message ?? '加载备份信息失败', 'error');
+    toast.error(error.message ?? '加载备份信息失败');
   }
 }
 
 async function createBackup() {
   if (!backupForm.name) {
-    showFeedback('请输入备份名称', 'error');
+    toast.error('请输入备份名称');
     return;
   }
   try {
     await post('/portal/admin/backups', backupForm);
-    showFeedback('备份任务已创建', 'success');
+    toast.success('备份任务已创建');
     resetForm();
     await loadBackups();
   } catch (error) {
-    showFeedback(error.message ?? '创建备份失败', 'error');
+    toast.error(error.message ?? '创建备份失败');
   }
 }
 
@@ -77,37 +70,11 @@ function resetForm() {
 }
 
 function formatDate(value) {
-  if (!value) {
-    return '-';
-  }
+  if (!value) return '-';
   return new Date(value).toLocaleString();
-}
-
-function showFeedback(message, type = 'info') {
-  feedback.message = message;
-  feedback.type = type;
-  if (message) {
-    setTimeout(() => {
-      feedback.message = '';
-    }, 4000);
-  }
 }
 </script>
 
 <style scoped>
-.feedback {
-  padding: 10px 14px;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
+.actions { display: flex; gap: 12px; }
 </style>

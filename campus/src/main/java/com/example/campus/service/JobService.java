@@ -134,7 +134,8 @@ public class JobService {
 
     private String normalizeStatus(String status) {
         if (status == null || status.isBlank()) {
-            return "pending";
+            // Default to approved so companies can publish immediately after registration
+            return "approved";
         }
         String normalized = status.toLowerCase();
         if (!ALLOWED_STATUSES.contains(normalized)) {

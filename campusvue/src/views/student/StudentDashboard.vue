@@ -29,6 +29,13 @@
             <span>当前投递简历</span>
             <strong>#{{ selectedResumeId }}</strong>
           </div>
+          <div class="unread" v-if="unreadCount !== null">
+            <span>未读消息</span>
+            <strong>{{ unreadCount }}</strong>
+            <button class="outline" @click="refreshUnreadCount" :disabled="loadingUnread">
+              {{ loadingUnread ? '刷新中' : '刷新' }}
+            </button>
+          </div>
           <button class="outline" @click="handleLogout">退出登录</button>
         </div>
       </header>
@@ -40,15 +47,20 @@
 </template>
 
 <script setup>
-import { provide, ref } from 'vue';
+import { onMounted, onUnmounted, provide, ref, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
-import { clearAuthInfo, getAuthInfo } from '../../api/http';
+import { clearAuthInfo, getAuthInfo, get } from '../../api/http';
+import { UNREAD_POLL_INTERVAL, shouldPoll } from '../../config/ui';
 
 const router = useRouter();
 const route = useRoute();
 const authInfo = getAuthInfo();
 
 const selectedResumeId = ref(null);
+const unreadCount = ref(null);
+const loadingUnread = ref(false);
+let poller = null;
+let visHandler = null;
 
 function setSelectedResumeId(id) {
   selectedResumeId.value = id ?? null;
@@ -67,11 +79,40 @@ const navItems = [
 provide('authInfo', authInfo);
 provide('selectedResumeId', selectedResumeId);
 provide('setSelectedResumeId', setSelectedResumeId);
+provide('refreshUnreadCount', refreshUnreadCount);
 
 function handleLogout() {
   clearAuthInfo();
   router.replace({ name: 'login' });
 }
+
+async function refreshUnreadCount() {
+  try {
+    loadingUnread.value = true;
+    const count = await get('/portal/student/messages/unread-count');
+    unreadCount.value = Number(count ?? 0);
+  } catch (e) {
+    // ignore
+  } finally {
+    loadingUnread.value = false;
+  }
+}
+
+onMounted(() => {
+  refreshUnreadCount();
+  poller = setInterval(() => { if (shouldPoll()) refreshUnreadCount(); }, UNREAD_POLL_INTERVAL);
+  visHandler = () => { if (shouldPoll()) { refreshUnreadCount(); } };
+  document.addEventListener('visibilitychange', visHandler);
+});
+
+onUnmounted(() => {
+  if (poller) clearInterval(poller);
+  if (visHandler) document.removeEventListener('visibilitychange', visHandler);
+});
+
+watch(() => route.fullPath, () => {
+  refreshUnreadCount();
+});
 </script>
 
 <style scoped>
@@ -157,6 +198,18 @@ function handleLogout() {
   font-size: 16px;
 }
 
+.unread {
+  background: #fef3c7;
+  color: #b45309;
+  padding: 10px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  border: 1px solid #fde68a;
+}
+
 .content {
   flex: 1;
   padding: 32px;
@@ -182,3 +235,4 @@ function handleLogout() {
   color: #fff;
 }
 </style>
+

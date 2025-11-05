@@ -19,7 +19,6 @@ import CompanyAnnouncementsView from '../views/company/CompanyAnnouncementsView.
 import AdminDashboard from '../views/admin/AdminDashboard.vue';
 import AdminOverviewView from '../views/admin/AdminOverviewView.vue';
 import AdminCompaniesView from '../views/admin/AdminCompaniesView.vue';
-import AdminJobsView from '../views/admin/AdminJobsView.vue';
 import AdminDiscussionsView from '../views/admin/AdminDiscussionsView.vue';
 import AdminUsersView from '../views/admin/AdminUsersView.vue';
 import AdminFinanceView from '../views/admin/AdminFinanceView.vue';
@@ -160,12 +159,7 @@ const routes = [
         component: AdminCompaniesView,
         meta: { requiresRole: 'ADMIN' }
       },
-      {
-        path: 'jobs',
-        name: 'admin-jobs',
-        component: AdminJobsView,
-        meta: { requiresRole: 'ADMIN' }
-      },
+
       {
         path: 'discussions',
         name: 'admin-discussions',

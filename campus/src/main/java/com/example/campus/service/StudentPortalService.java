@@ -50,7 +50,7 @@ public class StudentPortalService {
     @Transactional(readOnly = true)
     public StudentResponse loadProfile(Long userId) {
         return studentService.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("请先完善学生档案"));
+                .orElseThrow(() -> new ResourceNotFoundException("鐠囧嘲鍘涚€瑰苯鏉界€涳妇鏁撳锝嗩攳"));
     }
 
     @Transactional
@@ -102,9 +102,9 @@ public class StudentPortalService {
         TsukiStudent student = requireStudent(userId);
         TsukiResume resume = requireResume(student.getId(), request.resumeId());
         TsukiJob job = jobRepository.findById(request.jobId())
-                .orElseThrow(() -> new ResourceNotFoundException("未找到对应的职位"));
+                .orElseThrow(() -> new ResourceNotFoundException("閺堫亝澹橀崚鏉款嚠鎼存梻娈戦懕灞肩秴"));
         if (!"approved".equalsIgnoreCase(job.getStatus())) {
-            throw new IllegalArgumentException("该职位尚未通过审核，暂时无法投递");
+            throw new IllegalArgumentException("该职位当前不可投递");
         }
         applicationRepository.findByStudent_IdAndJob_Id(student.getId(), job.getId())
                 .ifPresent(existing -> {
@@ -115,7 +115,7 @@ public class StudentPortalService {
                 .resume(resume)
                 .job(job)
                 .company(job.getCompany())
-                .status("待查看")
+                .status("待查阅")
                 .build();
         TsukiApplication saved = applicationRepository.save(application);
         return applicationService.findById(saved.getId());
@@ -137,7 +137,7 @@ public class StudentPortalService {
         return messageRepository.findById(messageId)
                 .filter(message -> message.getReceiver().getId().equals(userId))
                 .map(message -> messageService.update(messageId, new MessageUpdateRequest(null, null, Boolean.TRUE)))
-                .orElseThrow(() -> new ResourceNotFoundException("未找到对应的消息"));
+                .orElseThrow(() -> new ResourceNotFoundException("閺堫亝澹橀崚鏉款嚠鎼存梻娈戝☉鍫熶紖"));
     }
 
     @Transactional
@@ -149,7 +149,7 @@ public class StudentPortalService {
             resumeAttachmentService.recordUpload(student, file, publicPath);
             return publicPath;
         } catch (Exception ex) {
-            throw new IllegalStateException("上传附件失败: " + ex.getMessage(), ex);
+            throw new IllegalStateException("娑撳﹣绱堕梽鍕婢惰精瑙? " + ex.getMessage(), ex);
         }
     }
 
@@ -169,7 +169,7 @@ public class StudentPortalService {
             resumeAttachmentService.syncAttachment(student, resume, path, file);
             return resumeService.findById(resume.getId());
         } catch (Exception ex) {
-            throw new IllegalStateException("更新附件失败: " + ex.getMessage(), ex);
+            throw new IllegalStateException("閺囧瓨鏌婇梽鍕婢惰精瑙? " + ex.getMessage(), ex);
         }
     }
 
@@ -185,7 +185,7 @@ public class StudentPortalService {
 
     private TsukiStudent requireStudent(Long userId) {
         return studentRepository.findByUser_Id(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("请先完善学生档案"));
+                .orElseThrow(() -> new ResourceNotFoundException("鐠囧嘲鍘涚€瑰苯鏉界€涳妇鏁撳锝嗩攳"));
     }
 
     private TsukiResume requireResume(Long studentId, Long resumeId) {

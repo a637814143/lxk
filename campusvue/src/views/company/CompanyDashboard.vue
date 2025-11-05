@@ -29,7 +29,14 @@
             <span>钱包余额</span>
             <strong>￥{{ formatMoney(walletSummary.balance) }}</strong>
             <button class="outline" @click="refreshWallet" :disabled="loadingWallet">
-              {{ loadingWallet ? '刷新中…' : '刷新余额' }}
+              {{ loadingWallet ? '刷新中' : '刷新余额' }}
+            </button>
+          </div>
+          <div class="unread" v-if="unreadCount !== null">
+            <span>未读消息</span>
+            <strong>{{ unreadCount }}</strong>
+            <button class="outline" @click="refreshUnreadCount" :disabled="loadingUnread">
+              {{ loadingUnread ? '刷新中' : '刷新' }}
             </button>
           </div>
           <button class="outline" @click="handleLogout">退出登录</button>
@@ -43,9 +50,10 @@
 </template>
 
 <script setup>
-import { onMounted, provide, ref } from 'vue';
+import { onMounted, onUnmounted, provide, ref, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { clearAuthInfo, getAuthInfo, get } from '../../api/http';
+import { UNREAD_POLL_INTERVAL, shouldPoll } from '../../config/ui';
 
 const router = useRouter();
 const route = useRoute();
@@ -53,6 +61,11 @@ const authInfo = getAuthInfo();
 
 const walletSummary = ref(null);
 const loadingWallet = ref(false);
+const unreadCount = ref(null);
+const loadingUnread = ref(false);
+let poller = null;
+let visHandler = null;
+
 const navItems = [
   { name: 'profile', route: 'company-profile', label: '企业资料' },
   { name: 'jobs', route: 'company-jobs', label: '职位管理' },
@@ -65,9 +78,23 @@ const navItems = [
 provide('walletSummary', walletSummary);
 provide('refreshWallet', refreshWallet);
 provide('authInfo', authInfo);
+provide('refreshUnreadCount', refreshUnreadCount);
 
 onMounted(() => {
   refreshWallet();
+  refreshUnreadCount();
+  poller = setInterval(() => { if (shouldPoll()) refreshUnreadCount(); }, UNREAD_POLL_INTERVAL);
+  visHandler = () => { if (shouldPoll()) { refreshUnreadCount(); } };
+  document.addEventListener('visibilitychange', visHandler);
+});
+
+onUnmounted(() => {
+  if (poller) clearInterval(poller);
+  if (visHandler) document.removeEventListener('visibilitychange', visHandler);
+});
+
+watch(() => route.fullPath, () => {
+  refreshUnreadCount();
 });
 
 async function refreshWallet() {
@@ -89,6 +116,18 @@ function handleLogout() {
 function formatMoney(value) {
   const amount = Number(value ?? 0);
   return amount.toFixed(2);
+}
+
+async function refreshUnreadCount() {
+  try {
+    loadingUnread.value = true;
+    const count = await get('/portal/company/messages/unread-count');
+    unreadCount.value = Number(count ?? 0);
+  } catch (error) {
+    // ignore
+  } finally {
+    loadingUnread.value = false;
+  }
 }
 </script>
 
@@ -289,4 +328,16 @@ function formatMoney(value) {
 .muted {
   color: #64748b;
 }
+
+.unread {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #b45309;
+}
 </style>
+

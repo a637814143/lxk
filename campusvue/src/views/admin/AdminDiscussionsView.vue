@@ -31,17 +31,16 @@
         </div>
       </form>
     </section>
-
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </section>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { get, post } from '../../api/http';
+import { useToast } from '../../ui/toast';
 
 const pendingDiscussions = ref([]);
-const feedback = reactive({ message: '', type: 'info' });
+const toast = useToast();
 
 const rejectDialog = reactive({
   visible: false,
@@ -57,7 +56,7 @@ async function loadPendingDiscussions() {
   try {
     pendingDiscussions.value = await get('/portal/admin/discussions/pending');
   } catch (error) {
-    showFeedback(error.message ?? '加载待审核讨论失败', 'error');
+    toast.error(error.message ?? '加载待审核讨论失败');
   }
 }
 
@@ -65,10 +64,10 @@ async function review(discussionId, status, reason = '') {
   try {
     const payload = { status, reviewComment: reason };
     await post(`/portal/admin/discussions/${discussionId}/review`, payload);
-    showFeedback('讨论审核已提交', 'success');
+    toast.success('讨论审核已提交');
     await loadPendingDiscussions();
   } catch (error) {
-    showFeedback(error.message ?? '提交审核失败', 'error');
+    toast.error(error.message ?? '提交审核失败');
   }
 }
 
@@ -85,51 +84,18 @@ function closeRejectDialog() {
 }
 
 async function submitReject() {
-  if (!rejectDialog.discussionId) {
-    return;
-  }
+  if (!rejectDialog.discussionId) return;
   await review(rejectDialog.discussionId, 'rejected', rejectDialog.reason);
   closeRejectDialog();
 }
 
 function formatDate(value) {
-  if (!value) {
-    return '-';
-  }
+  if (!value) return '-';
   return new Date(value).toLocaleString();
-}
-
-function showFeedback(message, type = 'info') {
-  feedback.message = message;
-  feedback.type = type;
-  if (message) {
-    setTimeout(() => {
-      feedback.message = '';
-    }, 4000);
-  }
 }
 </script>
 
 <style scoped>
-.list__actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 12px;
-}
-
-.feedback {
-  padding: 10px 14px;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
+.list__actions { display: flex; gap: 12px; margin-top: 12px; }
 </style>
+

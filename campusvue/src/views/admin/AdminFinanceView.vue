@@ -42,19 +42,18 @@
       </tbody>
     </table>
     <p v-else class="muted">暂无财务记录</p>
-
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </section>
 </template>
 
 <script setup>
 import { defineEmits, onMounted, reactive, ref } from 'vue';
 import { get, patch, post } from '../../api/http';
+import { useToast } from '../../ui/toast';
 
 const emit = defineEmits(['request-wallet-refresh']);
 
 const transactions = ref([]);
-const feedback = reactive({ message: '', type: 'info' });
+const toast = useToast();
 
 const transactionForm = reactive({
   companyId: null,
@@ -65,42 +64,40 @@ const transactionForm = reactive({
   notes: ''
 });
 
-onMounted(() => {
-  loadTransactions();
-});
+onMounted(loadTransactions);
 
 async function loadTransactions() {
   try {
     transactions.value = await get('/portal/admin/transactions');
   } catch (error) {
-    showFeedback(error.message ?? '加载财务记录失败', 'error');
+    toast.error(error.message ?? '加载财务记录失败');
   }
 }
 
 async function createTransaction() {
   if (!transactionForm.companyId || !transactionForm.amount || !transactionForm.type) {
-    showFeedback('请完整填写企业ID、金额和费用用途', 'error');
+    toast.error('请完整填写企业ID、金额和费用用途');
     return;
   }
   try {
     await post('/portal/admin/transactions', transactionForm);
-    showFeedback('财务记录已创建', 'success');
+    toast.success('财务记录已创建');
     resetTransactionForm();
     await loadTransactions();
     emit('request-wallet-refresh');
   } catch (error) {
-    showFeedback(error.message ?? '创建财务记录失败', 'error');
+    toast.error(error.message ?? '创建财务记录失败');
   }
 }
 
 async function updateTransactionStatus(item) {
   try {
     await patch(`/portal/admin/transactions/${item.id}`, { status: item.status, notes: item.notes });
-    showFeedback('交易状态已更新', 'success');
+    toast.success('交易状态已更新');
     await loadTransactions();
     emit('request-wallet-refresh');
   } catch (error) {
-    showFeedback(error.message ?? '更新交易状态失败', 'error');
+    toast.error(error.message ?? '更新交易状态失败');
   }
 }
 
@@ -119,42 +116,12 @@ function formatMoney(value) {
 }
 
 function formatDate(value) {
-  if (!value) {
-    return '-';
-  }
+  if (!value) return '-';
   return new Date(value).toLocaleString();
-}
-
-function showFeedback(message, type = 'info') {
-  feedback.message = message;
-  feedback.type = type;
-  if (message) {
-    setTimeout(() => {
-      feedback.message = '';
-    }, 4000);
-  }
 }
 </script>
 
 <style scoped>
-.actions {
-  display: flex;
-  gap: 12px;
-}
-
-.feedback {
-  padding: 10px 14px;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
+.actions { display: flex; gap: 12px; }
 </style>
+

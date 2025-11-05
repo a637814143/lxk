@@ -29,7 +29,7 @@
             <span>平台钱包</span>
             <strong>￥{{ formatMoney(walletSummary.balance) }}</strong>
             <button class="outline" @click="refreshWallet" :disabled="loadingWallet">
-              {{ loadingWallet ? '刷新中…' : '刷新余额' }}
+              {{ loadingWallet ? '刷新中' : '刷新余额' }}
             </button>
           </div>
           <button class="outline" @click="handleLogout">退出登录</button>
@@ -57,7 +57,7 @@ const loadingWallet = ref(false);
 const navItems = [
   { route: 'admin-overview', label: '平台概览' },
   { route: 'admin-companies', label: '企业审核' },
-  { route: 'admin-jobs', label: '职位审核' },
+  // 职位审核入口已移除
   { route: 'admin-discussions', label: '讨论审核' },
   { route: 'admin-users', label: '用户管理' },
   { route: 'admin-finance', label: '财务管理' },
@@ -259,34 +259,5 @@ function formatMoney(value) {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.list__item {
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  border: none;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.outline {
-  background: transparent;
-  border: 1px solid #2563eb;
-  color: #2563eb;
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.muted {
-  color: #64748b;
 }
 </style>

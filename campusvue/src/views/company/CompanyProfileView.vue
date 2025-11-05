@@ -23,8 +23,7 @@
           <button class="outline" type="button" @click="uploadLicense" :disabled="!licenseFile">上传</button>
         </div>
         <small v-if="profileForm.licenseDocument">
-          当前文件：
-          <a :href="profileForm.licenseDocument" target="_blank" rel="noopener">点击查看</a>
+          当前文件：<a :href="profileForm.licenseDocument" target="_blank" rel="noopener">点击查看</a>
         </small>
       </label>
       <div class="full actions">
@@ -32,44 +31,27 @@
         <button class="outline" type="button" @click="loadProfile">重新加载</button>
       </div>
     </form>
-
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </section>
 </template>
 
 <script setup>
 import { computed, inject, onMounted, reactive, ref } from 'vue';
 import { get, put, upload } from '../../api/http';
+import { useToast } from '../../ui/toast';
 
 const walletSummary = inject('walletSummary', ref(null));
 const refreshWallet = inject('refreshWallet', () => Promise.resolve());
+const toast = useToast();
 
 const profileForm = reactive({
-  companyName: '',
-  licenseNumber: '',
-  industry: '',
-  address: '',
-  website: '',
-  description: '',
-  logo: '',
-  licenseDocument: '',
-  walletBalance: 0
+  companyName: '', licenseNumber: '', industry: '', address: '', website: '', description: '', logo: '', licenseDocument: '', walletBalance: 0
 });
-
-const feedback = reactive({ message: '', type: 'info' });
 const licenseFile = ref(null);
 const licenseFileInput = ref(null);
 
-const currentBalance = computed(() => {
-  if (walletSummary?.value?.balance != null) {
-    return walletSummary.value.balance;
-  }
-  return profileForm.walletBalance ?? 0;
-});
+const currentBalance = computed(() => walletSummary?.value?.balance ?? profileForm.walletBalance ?? 0);
 
-onMounted(() => {
-  loadProfile();
-});
+onMounted(loadProfile);
 
 async function loadProfile() {
   try {
@@ -77,108 +59,41 @@ async function loadProfile() {
     Object.assign(profileForm, data);
     await refreshWallet();
   } catch (error) {
-    if (error.status !== 404) {
-      showFeedback(error.message ?? '加载企业资料失败', 'error');
-    }
+    if (error.status !== 404) toast.error(error.message ?? '加载企业资料失败');
   }
 }
 
 async function saveProfile() {
   try {
-    const payload = { ...profileForm };
-    delete payload.walletBalance;
+    const payload = { ...profileForm }; delete payload.walletBalance;
     const data = await put('/portal/company/profile', payload);
     Object.assign(profileForm, data);
-    showFeedback('企业资料已保存', 'success');
+    toast.success('企业资料已保存');
     await refreshWallet();
-  } catch (error) {
-    showFeedback(error.message ?? '保存失败，请稍后再试', 'error');
-  }
+  } catch (error) { toast.error(error.message ?? '保存失败，请稍后再试'); }
 }
 
-function handleLicenseFile(event) {
-  const [file] = event.target.files ?? [];
-  licenseFile.value = file ?? null;
-}
+function handleLicenseFile(event) { const [file] = event.target.files ?? []; licenseFile.value = file ?? null; }
 
 async function uploadLicense() {
-  if (!licenseFile.value) {
-    showFeedback('请先选择要上传的文件', 'error');
-    return;
-  }
+  if (!licenseFile.value) { toast.error('请先选择要上传的文件'); return; }
   try {
-    const formData = new FormData();
-    formData.append('file', licenseFile.value);
+    const formData = new FormData(); formData.append('file', licenseFile.value);
     const data = await upload('/portal/company/profile/license', formData);
     Object.assign(profileForm, data);
-    showFeedback('营业执照上传成功，等待管理员审核', 'success');
+    toast.success('营业执照上传成功，等待管理员审核');
     await refreshWallet();
-  } catch (error) {
-    showFeedback(error.message ?? '上传失败，请稍后再试', 'error');
-  } finally {
-    licenseFile.value = null;
-    if (licenseFileInput.value) {
-      licenseFileInput.value.value = '';
-    }
-  }
+  } catch (error) { toast.error(error.message ?? '上传失败，请稍后再试'); }
+  finally { licenseFile.value = null; if (licenseFileInput.value) licenseFileInput.value.value = ''; }
 }
 
-function showFeedback(message, type = 'info') {
-  feedback.message = message;
-  feedback.type = type;
-  if (message) {
-    setTimeout(() => {
-      feedback.message = '';
-    }, 4000);
-  }
-}
-
-function formatMoney(value) {
-  const amount = Number(value ?? 0);
-  return amount.toFixed(2);
-}
+function formatMoney(value) { const amount = Number(value ?? 0); return amount.toFixed(2); }
 </script>
 
 <style scoped>
-.file-input .file-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-top: 6px;
-}
-
-.file-input input[type='file'] {
-  flex: 1;
-  padding: 8px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-}
-
-.file-input small {
-  display: block;
-  margin-top: 6px;
-  color: #64748b;
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.feedback {
-  padding: 10px 14px;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
+.file-input .file-row { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+.file-input input[type='file'] { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid #d1d5db; }
+.file-input small { display: block; margin-top: 6px; color: #64748b; }
+.actions { display: flex; align-items: center; gap: 12px; }
 </style>
+

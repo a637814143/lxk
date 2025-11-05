@@ -12,19 +12,16 @@ import com.example.campus.dto.discussion.DiscussionReviewRequest;
 import com.example.campus.dto.finance.FinancialTransactionRequest;
 import com.example.campus.dto.finance.FinancialTransactionResponse;
 import com.example.campus.dto.finance.FinancialTransactionStatusRequest;
-import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.message.MessageCreateRequest;
 import com.example.campus.dto.portal.admin.AdminDashboardSummary;
 import com.example.campus.dto.portal.admin.AnnouncementPublishRequest;
 import com.example.campus.dto.portal.admin.CompanyAuditRequest;
-import com.example.campus.dto.portal.admin.JobAuditRequest;
 import com.example.campus.dto.portal.admin.UserStatusRequest;
 import com.example.campus.dto.user.UserResponse;
 import com.example.campus.dto.user.UserUpdateRequest;
 import com.example.campus.dto.wallet.WalletSummaryResponse;
 import com.example.campus.entity.TsukiAdmin;
 import com.example.campus.entity.TsukiCompany;
-import com.example.campus.entity.TsukiJob;
 import com.example.campus.entity.TsukiWallet;
 import com.example.campus.entity.UserRole;
 import com.example.campus.exception.ResourceNotFoundException;
@@ -38,8 +35,8 @@ import com.example.campus.repository.TsukiWalletRepository;
 import com.example.campus.dto.backup.BackupResponse;
 import com.example.campus.dto.backup.BackupCreateRequest;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -53,7 +50,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminPortalService {
 
     private static final Set<String> COMPANY_AUDIT_STATUSES = Set.of("pending", "approved", "rejected");
-    private static final Set<String> JOB_AUDIT_STATUSES = Set.of("pending", "approved", "rejected", "closed");
+    // Job audit statuses constant removed — job review workflow is disabled
 
     private final TsukiAdminRepository adminRepository;
     private final TsukiUserRepository userRepository;
@@ -81,7 +78,7 @@ public class AdminPortalService {
         long pendingCompanies = companyRepository.countByAuditStatus("pending");
         long totalJobs = jobRepository.count();
         long approvedJobs = jobRepository.countByStatus("approved");
-        long pendingJobs = jobRepository.countByStatus("pending");
+        long pendingJobs = 0L;
         long totalApplications = applicationRepository.count();
         Map<String, Long> breakdown = new LinkedHashMap<>();
         breakdown.put("待查看", applicationRepository.countByStatus("待查看"));
@@ -165,12 +162,7 @@ public class AdminPortalService {
         return companyService.findById(company.getId());
     }
 
-    @Transactional(readOnly = true)
-    public List<JobResponse> listPendingJobs() {
-        return jobRepository.findByStatus("pending").stream()
-                .map(job -> jobService.findById(job.getId()))
-                .toList();
-    }
+    // listPendingJobs removed
 
     @Transactional(readOnly = true)
     public List<DiscussionResponse> listPendingDiscussions() {
@@ -182,21 +174,7 @@ public class AdminPortalService {
         return discussionService.review(adminUserId, discussionId, request);
     }
 
-    @Transactional
-    public JobResponse reviewJob(Long adminUserId, Long jobId, JobAuditRequest request) {
-        TsukiAdmin admin = requireAdmin(adminUserId);
-        TsukiJob job = jobRepository.findById(jobId)
-                .orElseThrow(() -> new ResourceNotFoundException("未找到职位信息"));
-        String status = normalizeStatus(request.status(), JOB_AUDIT_STATUSES);
-        job.setStatus(status);
-        jobRepository.save(job);
-        String title = "职位审核结果通知";
-        String content = "您发布的职位《" + job.getJobTitle() + "》审核结果：" + translateStatus(status)
-                + (request.reason() != null && !request.reason().isBlank() ? "，备注：" + request.reason() : "");
-        messageService.create(new MessageCreateRequest(admin.getUser().getId(), job.getCompany().getUser().getId(),
-                title, content, null));
-        return jobService.findById(job.getId());
-    }
+    // reviewJob removed
 
     @Transactional(readOnly = true)
     public List<UserResponse> listUsers() {

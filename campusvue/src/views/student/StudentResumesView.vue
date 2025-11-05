@@ -6,7 +6,7 @@
         <p class="muted">创建或维护多份简历，并选择投递使用的版本</p>
       </div>
       <button class="outline" type="button" @click="loadResumes" :disabled="loading">
-        {{ loading ? '刷新中…' : '刷新' }}
+        {{ loading ? '刷新中...' : '刷新' }}
       </button>
     </header>
 
@@ -19,7 +19,7 @@
       <label class="full file-input">
         附件上传
         <input ref="resumeFileInput" type="file" accept=".pdf,.doc,.docx" @change="handleResumeFile" />
-        <small>支持 PDF/DOC/DOCX，最大 15MB。上传后系统会生成附件链接。</small>
+        <small>支持 PDF/DOC/DOCX，最大15MB。上传后系统会生成附件链接。</small>
       </label>
       <label class="full">附件链接（可选）<input v-model="resumeForm.attachment" placeholder="也可填写已有附件链接" /></label>
       <div class="full actions">
@@ -34,7 +34,7 @@
       <li v-for="resume in resumes" :key="resume.id" class="list__item">
         <div>
           <h3>{{ resume.title }}</h3>
-          <p class="muted">更新于 {{ formatDate(resume.updateTime) }}</p>
+          <p class="muted">更新于：{{ formatDate(resume.updateTime) }}</p>
           <p class="muted" v-if="resume.attachment">附件：{{ resume.attachment }}</p>
         </div>
         <div class="list__actions">
@@ -50,7 +50,7 @@
 
     <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </section>
-</template>
+  </template>
 
 <script setup>
 import { inject, onMounted, reactive, ref } from 'vue';

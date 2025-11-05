@@ -31,17 +31,16 @@
         </div>
       </form>
     </section>
-
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </section>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { get, patch } from '../../api/http';
+import { useToast } from '../../ui/toast';
 
 const pendingCompanies = ref([]);
-const feedback = reactive({ message: '', type: 'info' });
+const toast = useToast();
 
 const rejectDialog = reactive({
   visible: false,
@@ -57,17 +56,17 @@ async function loadPendingCompanies() {
   try {
     pendingCompanies.value = await get('/portal/admin/companies/pending');
   } catch (error) {
-    showFeedback(error.message ?? '加载待审核企业失败', 'error');
+    toast.error(error.message ?? '加载待审核企业失败');
   }
 }
 
 async function review(companyId, status, reason = '') {
   try {
     await patch(`/portal/admin/companies/${companyId}/review`, { status, reason });
-    showFeedback('审核结果已提交', 'success');
+    toast.success('审核结果已提交');
     await loadPendingCompanies();
   } catch (error) {
-    showFeedback(error.message ?? '提交审核失败', 'error');
+    toast.error(error.message ?? '提交审核失败');
   }
 }
 
@@ -84,43 +83,13 @@ function closeRejectDialog() {
 }
 
 async function submitReject() {
-  if (!rejectDialog.companyId) {
-    return;
-  }
+  if (!rejectDialog.companyId) return;
   await review(rejectDialog.companyId, 'rejected', rejectDialog.reason);
   closeRejectDialog();
-}
-
-function showFeedback(message, type = 'info') {
-  feedback.message = message;
-  feedback.type = type;
-  if (message) {
-    setTimeout(() => {
-      feedback.message = '';
-    }, 4000);
-  }
 }
 </script>
 
 <style scoped>
-.actions {
-  display: flex;
-  gap: 12px;
-}
-
-.feedback {
-  padding: 10px 14px;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
+.actions { display: flex; gap: 12px; }
 </style>
+

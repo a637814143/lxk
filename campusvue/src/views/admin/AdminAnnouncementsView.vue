@@ -35,17 +35,16 @@
       </li>
     </ul>
     <p v-else class="muted">暂无公告</p>
-
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
   </section>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { del, get, post, put } from '../../api/http';
+import { useToast } from '../../ui/toast';
 
 const announcements = ref([]);
-const feedback = reactive({ message: '', type: 'info' });
+const toast = useToast();
 
 const announcementForm = reactive({
   id: null,
@@ -62,7 +61,7 @@ async function loadAnnouncements() {
   try {
     announcements.value = await get('/portal/admin/announcements');
   } catch (error) {
-    showFeedback(error.message ?? '加载公告失败', 'error');
+    toast.error(error.message ?? '加载公告失败');
   }
 }
 
@@ -75,15 +74,15 @@ async function saveAnnouncement() {
     };
     if (announcementForm.id) {
       await put(`/portal/admin/announcements/${announcementForm.id}`, payload);
-      showFeedback('公告已更新', 'success');
+      toast.success('公告已更新');
     } else {
       await post('/portal/admin/announcements', payload);
-      showFeedback('公告已发布', 'success');
+      toast.success('公告已发布');
     }
     resetForm();
     await loadAnnouncements();
   } catch (error) {
-    showFeedback(error.message ?? '保存公告失败', 'error');
+    toast.error(error.message ?? '保存公告失败');
   }
 }
 
@@ -100,10 +99,10 @@ async function deleteAnnouncement(id) {
   }
   try {
     await del(`/portal/admin/announcements/${id}`);
-    showFeedback('公告已删除', 'success');
+    toast.success('公告已删除');
     await loadAnnouncements();
   } catch (error) {
-    showFeedback(error.message ?? '删除公告失败', 'error');
+    toast.error(error.message ?? '删除公告失败');
   }
 }
 
@@ -120,16 +119,6 @@ function formatDate(value) {
   }
   return new Date(value).toLocaleString();
 }
-
-function showFeedback(message, type = 'info') {
-  feedback.message = message;
-  feedback.type = type;
-  if (message) {
-    setTimeout(() => {
-      feedback.message = '';
-    }, 4000);
-  }
-}
 </script>
 
 <style scoped>
@@ -138,20 +127,5 @@ function showFeedback(message, type = 'info') {
   gap: 12px;
   margin-top: 12px;
 }
-
-.feedback {
-  padding: 10px 14px;
-  border-radius: 12px;
-  text-align: center;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
 </style>
+

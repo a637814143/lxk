@@ -6,12 +6,12 @@
         <p class="muted">按条件筛选职位并使用选定简历进行投递</p>
       </div>
       <button class="outline" type="button" @click="searchJobs" :disabled="loading">
-        {{ loading ? '搜索中…' : '搜索' }}
+        {{ loading ? '搜索中...' : '搜索' }}
       </button>
     </header>
 
     <div class="filters">
-      <input v-model="jobFilters.keyword" placeholder="关键字" />
+      <input v-model="jobFilters.keyword" placeholder="关键词" />
       <input v-model="jobFilters.company" placeholder="企业名称" />
       <input v-model="jobFilters.jobType" placeholder="职位类别" />
       <input v-model="jobFilters.location" placeholder="工作地点" />
@@ -157,7 +157,6 @@ function handleResumeChange(event) {
 }
 
 watch(() => selectedResumeId.value, () => {
-  // Keep select element in sync when selection is changed elsewhere
   if (!selectedResumeId.value) {
     resumeSelection.value = null;
   }
