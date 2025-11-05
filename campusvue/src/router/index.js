@@ -1,7 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
-import StudentDashboard from '../views/StudentDashboard.vue';
+import StudentDashboard from '../views/student/StudentDashboard.vue';
+import StudentProfileView from '../views/student/StudentProfileView.vue';
+import StudentResumesView from '../views/student/StudentResumesView.vue';
+import StudentJobsView from '../views/student/StudentJobsView.vue';
+import StudentApplicationsView from '../views/student/StudentApplicationsView.vue';
+import StudentMessagesView from '../views/student/StudentMessagesView.vue';
+import StudentAnnouncementsView from '../views/student/StudentAnnouncementsView.vue';
+import StudentDiscussionsView from '../views/student/StudentDiscussionsView.vue';
 import CompanyDashboard from '../views/company/CompanyDashboard.vue';
 import CompanyProfileView from '../views/company/CompanyProfileView.vue';
 import CompanyJobsView from '../views/company/CompanyJobsView.vue';
@@ -38,7 +45,52 @@ const routes = [
     component: StudentDashboard,
     meta: {
       requiresRole: 'STUDENT'
-    }
+    },
+    redirect: { name: 'student-profile' },
+    children: [
+      {
+        path: 'profile',
+        name: 'student-profile',
+        component: StudentProfileView,
+        meta: { requiresRole: 'STUDENT' }
+      },
+      {
+        path: 'resumes',
+        name: 'student-resumes',
+        component: StudentResumesView,
+        meta: { requiresRole: 'STUDENT' }
+      },
+      {
+        path: 'jobs',
+        name: 'student-jobs',
+        component: StudentJobsView,
+        meta: { requiresRole: 'STUDENT' }
+      },
+      {
+        path: 'applications',
+        name: 'student-applications',
+        component: StudentApplicationsView,
+        meta: { requiresRole: 'STUDENT' }
+      },
+      {
+        path: 'messages',
+        name: 'student-messages',
+        component: StudentMessagesView,
+        meta: { requiresRole: 'STUDENT' }
+      },
+      {
+        path: 'announcements',
+        name: 'student-announcements',
+        component: StudentAnnouncementsView,
+        meta: { requiresRole: 'STUDENT' }
+      },
+      {
+        path: 'discussions',
+        name: 'student-discussions',
+        component: StudentDiscussionsView,
+        meta: { requiresRole: 'STUDENT' }
+      }
+    ]
   },
   {
     path: '/company',
