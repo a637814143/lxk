@@ -84,7 +84,7 @@ public class CompanyPortalService {
     public JobResponse createJob(Long userId, CompanyJobRequest request) {
         TsukiCompany company = requireCompany(userId);
         JobCreateRequest createRequest = new JobCreateRequest(company.getId(), request.jobTitle(), request.jobType(),
-                request.salaryRange(), request.location(), request.requirement(), request.description(), "pending");
+                request.salaryRange(), request.location(), request.requirement(), request.description(), "approved");
         return jobService.create(createRequest);
     }
 
