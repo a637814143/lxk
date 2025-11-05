@@ -8,7 +8,7 @@ public record AdminDashboardSummary(
         long pendingCompanies,
         long totalJobs,
         long approvedJobs,
-        long pendingJobs,
+        long openJobs,
         long totalApplications,
         Map<String, Long> statusBreakdown,
         long unreadMessages) {
