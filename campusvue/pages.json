@@ -1,17 +1,41 @@
 {
-	"pages": [ //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
-		{
-			"path": "pages/index/index",
-			"style": {
-				"navigationBarTitleText": "uni-app"
-			}
-		}
-	],
-	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "uni-app",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
-	},
-	"uniIdRouter": {}
+        "pages": [
+                {
+                        "path": "pages/index/index",
+                        "style": {
+                                "navigationBarTitleText": "智慧校园门户"
+                        }
+                },
+                {
+                        "path": "pages/admin/index",
+                        "style": {
+                                "navigationBarTitleText": "管理员中心",
+                                "navigationBarBackgroundColor": "#4B6BFB",
+                                "navigationBarTextStyle": "white"
+                        }
+                },
+                {
+                        "path": "pages/teacher/index",
+                        "style": {
+                                "navigationBarTitleText": "教师工作台",
+                                "navigationBarBackgroundColor": "#00B894",
+                                "navigationBarTextStyle": "white"
+                        }
+                },
+                {
+                        "path": "pages/student/index",
+                        "style": {
+                                "navigationBarTitleText": "学生主页",
+                                "navigationBarBackgroundColor": "#0984E3",
+                                "navigationBarTextStyle": "white"
+                        }
+                }
+        ],
+        "globalStyle": {
+                "navigationBarTextStyle": "black",
+                "navigationBarTitleText": "智慧校园门户",
+                "navigationBarBackgroundColor": "#F8F8F8",
+                "backgroundColor": "#F5F7FF"
+        },
+        "uniIdRouter": {}
 }
