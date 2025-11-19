@@ -3,7 +3,6 @@ package com.example.campus.service;
 import com.example.campus.dto.LoginRequest;
 import com.example.campus.dto.RegisterRequest;
 import com.example.campus.dto.admin.AdminCreateRequest;
-import com.example.campus.dto.company.CompanyCreateRequest;
 import com.example.campus.dto.student.StudentCreateRequest;
 import com.example.campus.entity.TsukiUser;
 import com.example.campus.entity.UserRole;
@@ -25,9 +24,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final StudentService studentService;
-    private final CompanyService companyService;
     private final AdminService adminService;
-    private final CompanyInviteService companyInviteService;
 
     @Transactional
     public void register(RegisterRequest request) {
@@ -62,7 +59,7 @@ public class AuthService {
                 .build();
 
         TsukiUser savedUser = userRepository.save(user);
-        initializeRoleProfile(savedUser, role, displayName, companyName, inviteCode);
+        initializeRoleProfile(savedUser, role, displayName);
     }
 
     @Transactional(readOnly = true)
@@ -112,12 +109,6 @@ public class AuthService {
                 }
             }
             case COMPANY -> {
-                if (companyName == null || companyName.isEmpty()) {
-                    throw new IllegalArgumentException("企业名称不能为空");
-                }
-                if (inviteCode == null || inviteCode.isEmpty()) {
-                    throw new IllegalArgumentException("企业注册必须填写邀请码");
-                }
             }
             case ADMIN -> {
                 if (displayName == null || displayName.isEmpty()) {
@@ -129,12 +120,12 @@ public class AuthService {
         }
     }
 
-    private void initializeRoleProfile(TsukiUser user, UserRole role, String displayName, String companyName,
-            String inviteCode) {
+    private void initializeRoleProfile(TsukiUser user, UserRole role, String displayName) {
         Long userId = user.getId();
         switch (role) {
             case STUDENT -> createStudentProfile(userId, displayName);
-            case COMPANY -> createCompanyProfile(userId, companyName, inviteCode);
+            case COMPANY -> {
+            }
             case ADMIN -> createAdminProfile(userId, displayName);
             default -> {
             }
@@ -146,15 +137,6 @@ public class AuthService {
             return;
         }
         studentService.create(new StudentCreateRequest(userId, displayName, null, null, null, null, null, null));
-    }
-
-    private void createCompanyProfile(Long userId, String companyName, String inviteCode) {
-        if (companyService.findByUserId(userId).isPresent()) {
-            return;
-        }
-        companyInviteService.consumeInvite(inviteCode, companyName);
-        companyService.create(new CompanyCreateRequest(userId, companyName, null, null, null, null, null, null, null,
-                "pending", null));
     }
 
     private void createAdminProfile(Long userId, String displayName) {

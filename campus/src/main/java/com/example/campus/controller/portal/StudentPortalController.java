@@ -7,6 +7,10 @@ import com.example.campus.dto.message.MessageResponse;
 import com.example.campus.dto.portal.student.StudentApplicationRequest;
 import com.example.campus.dto.portal.student.StudentProfileRequest;
 import com.example.campus.dto.portal.student.StudentResumeRequest;
+import com.example.campus.dto.discussion.DiscussionCreateRequest;
+import com.example.campus.dto.discussion.DiscussionResponse;
+import com.example.campus.dto.discussion.DiscussionCommentCreateRequest;
+import com.example.campus.dto.discussion.DiscussionCommentResponse;
 import com.example.campus.dto.resume.ResumeResponse;
 import com.example.campus.dto.resume.ResumeUpdateRequest;
 import com.example.campus.dto.student.StudentResponse;
@@ -121,5 +125,19 @@ public class StudentPortalController {
     @GetMapping("/announcements")
     public List<AnnouncementResponse> listAnnouncements() {
         return studentPortalService.listAnnouncements();
+    }
+
+    @PostMapping("/discussions")
+    public DiscussionResponse createDiscussion(@AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody DiscussionCreateRequest request) {
+        return studentPortalService.createDiscussion(principal.getUserId(), request);
+    }
+
+    @PostMapping("/discussions/{postId}/comments")
+    public DiscussionCommentResponse createComment(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long postId, @Valid @RequestBody DiscussionCommentCreateRequest request) {
+        // 以路径参数为准
+        DiscussionCommentCreateRequest effective = new DiscussionCommentCreateRequest(postId, request.content());
+        return studentPortalService.createComment(principal.getUserId(), effective);
     }
 }

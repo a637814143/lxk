@@ -89,8 +89,8 @@ const loading = ref(false);
 const feedback = reactive({ message: '', type: 'info' });
 
 const requiresDisplayName = computed(() => form.role === 'STUDENT' || form.role === 'ADMIN');
-const requiresCompanyName = computed(() => form.role === 'COMPANY');
-const requiresInviteCode = computed(() => form.role === 'COMPANY');
+const requiresCompanyName = computed(() => false);
+const requiresInviteCode = computed(() => false);
 
 function showFeedback(message, type = 'info') {
   feedback.message = message;

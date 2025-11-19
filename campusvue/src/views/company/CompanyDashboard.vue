@@ -7,7 +7,7 @@
       </div>
       <nav class="sidebar__nav">
         <RouterLink
-          v-for="item in navItems"
+          v-for="item in navMenu"
           :key="item.name"
           :to="{ name: item.route }"
           class="sidebar__link"
@@ -43,6 +43,12 @@
         </div>
       </header>
       <main class="content">
+        <div v-if="!isApproved" class="notice">
+          <strong>企业资料待审核</strong>：完成基本信息并等待管理员审核通过后，方可发布职位、参与讨论、批阅学生简历。
+          <template v-if="companyProfile && companyProfile.auditStatus === 'rejected'">
+            审核未通过<span v-if="companyProfile.auditReason">（{{ companyProfile.auditReason }}）</span>，请修改资料后重新提交。
+          </template>
+        </div>
         <RouterView @request-wallet-refresh="refreshWallet" />
       </main>
     </div>
@@ -50,7 +56,7 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, provide, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, provide, ref, watch } from 'vue';
 import { useRoute, useRouter, RouterLink } from 'vue-router';
 import { clearAuthInfo, getAuthInfo, get } from '../../api/http';
 import { UNREAD_POLL_INTERVAL, shouldPoll } from '../../config/ui';
@@ -60,6 +66,10 @@ const route = useRoute();
 const authInfo = getAuthInfo();
 
 const walletSummary = ref(null);
+const companyProfile = ref(null);
+const isApproved = computed(() => (companyProfile.value?.auditStatus ?? 'pending') === 'approved');
+const isActivated = computed(() => !!companyProfile.value?.inviteActivated);
+const canUseFeatures = computed(() => isApproved.value && isActivated.value);
 const loadingWallet = ref(false);
 const unreadCount = ref(null);
 const loadingUnread = ref(false);
@@ -75,6 +85,8 @@ const navItems = [
   { name: 'announcements', route: 'company-announcements', label: '平台公告' }
 ];
 
+const navMenu = computed(() => (canUseFeatures.value ? navItems : navItems.filter(i => i.name === 'profile')));
+
 provide('walletSummary', walletSummary);
 provide('refreshWallet', refreshWallet);
 provide('authInfo', authInfo);
@@ -82,6 +94,7 @@ provide('refreshUnreadCount', refreshUnreadCount);
 
 onMounted(() => {
   refreshWallet();
+  loadCompanyProfile();
   refreshUnreadCount();
   poller = setInterval(() => { if (shouldPoll()) refreshUnreadCount(); }, UNREAD_POLL_INTERVAL);
   visHandler = () => { if (shouldPoll()) { refreshUnreadCount(); } };
@@ -105,6 +118,14 @@ async function refreshWallet() {
     console.error('加载钱包余额失败', error);
   } finally {
     loadingWallet.value = false;
+  }
+}
+
+async function loadCompanyProfile() {
+  try {
+    companyProfile.value = await get('/portal/company/profile');
+  } catch (error) {
+    companyProfile.value = null;
   }
 }
 
@@ -340,4 +361,3 @@ async function refreshUnreadCount() {
   color: #b45309;
 }
 </style>
-

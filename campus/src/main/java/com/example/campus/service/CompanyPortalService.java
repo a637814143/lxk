@@ -15,6 +15,7 @@ import com.example.campus.dto.message.MessageCreateRequest;
 import com.example.campus.dto.portal.company.ApplicationStatusRequest;
 import com.example.campus.dto.portal.company.CompanyJobRequest;
 import com.example.campus.dto.portal.company.CompanyProfileRequest;
+import com.example.campus.dto.portal.company.CompanyInviteVerifyRequest;
 import com.example.campus.dto.portal.company.JobStatusUpdateRequest;
 import com.example.campus.dto.company.CompanyCreateRequest;
 import com.example.campus.dto.portal.company.CompanySubscriptionRequest;
@@ -42,6 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CompanyPortalService {
 
     private final CompanyService companyService;
+    private final CompanyInviteService companyInviteService;
     private final JobService jobService;
     private final ApplicationService applicationService;
     private final MessageService messageService;
@@ -76,13 +78,13 @@ public class CompanyPortalService {
 
     @Transactional(readOnly = true)
     public List<JobResponse> listJobs(Long userId) {
-        TsukiCompany company = requireCompany(userId);
+        TsukiCompany company = requireApprovedAndActivatedCompany(userId);
         return jobService.findByCompanyId(company.getId());
     }
 
     @Transactional
     public JobResponse createJob(Long userId, CompanyJobRequest request) {
-        TsukiCompany company = requireCompany(userId);
+        TsukiCompany company = requireApprovedAndActivatedCompany(userId);
         JobCreateRequest createRequest = new JobCreateRequest(company.getId(), request.jobTitle(), request.jobType(),
                 request.salaryRange(), request.location(), request.requirement(), request.description(), "approved");
         return jobService.create(createRequest);
@@ -90,7 +92,7 @@ public class CompanyPortalService {
 
     @Transactional
     public JobResponse updateJob(Long userId, Long jobId, CompanyJobRequest request) {
-        TsukiCompany company = requireCompany(userId);
+        TsukiCompany company = requireApprovedAndActivatedCompany(userId);
         TsukiJob job = requireJob(jobId, company.getId());
         JobUpdateRequest updateRequest = new JobUpdateRequest(request.jobTitle(), request.jobType(),
                 request.salaryRange(), request.location(), request.requirement(), request.description(), null);
@@ -99,7 +101,7 @@ public class CompanyPortalService {
 
     @Transactional
     public JobResponse updateJobStatus(Long userId, Long jobId, JobStatusUpdateRequest request) {
-        TsukiCompany company = requireCompany(userId);
+        TsukiCompany company = requireApprovedAndActivatedCompany(userId);
         TsukiJob job = requireJob(jobId, company.getId());
         JobUpdateRequest updateRequest = new JobUpdateRequest(null, null, null, null, null, null, request.status());
         return jobService.update(job.getId(), updateRequest);
@@ -157,23 +159,25 @@ public class CompanyPortalService {
 
     @Transactional(readOnly = true)
     public List<DiscussionResponse> listDiscussions(Long userId) {
+        requireApprovedAndActivatedCompany(userId);
         return discussionService.findByCompany(userId);
     }
 
     @Transactional
     public DiscussionResponse createDiscussion(Long userId, DiscussionCreateRequest request) {
+        requireApprovedAndActivatedCompany(userId);
         return discussionService.create(userId, request);
     }
 
     @Transactional(readOnly = true)
     public List<ApplicationResponse> listApplications(Long userId) {
-        TsukiCompany company = requireCompany(userId);
+        TsukiCompany company = requireApprovedAndActivatedCompany(userId);
         return applicationService.findByCompanyId(company.getId());
     }
 
     @Transactional
     public ApplicationResponse updateApplicationStatus(Long userId, Long applicationId, ApplicationStatusRequest request) {
-        TsukiCompany company = requireCompany(userId);
+        TsukiCompany company = requireApprovedAndActivatedCompany(userId);
         TsukiApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到投递记录"));
         if (!application.getCompany().getId().equals(company.getId())) {
@@ -199,6 +203,27 @@ public class CompanyPortalService {
         return announcementService.findByTargets(List.of("all", "company"));
     }
 
+    @Transactional
+    public CompanyResponse activateInvite(Long userId, CompanyInviteVerifyRequest request) {
+        TsukiCompany company = requireCompany(userId);
+        String status = company.getAuditStatus() == null ? "" : company.getAuditStatus().toLowerCase();
+        if (!"approved".equals(status)) {
+            throw new IllegalArgumentException("企业资料未通过审核或正在审核中，暂无法激活平台功能");
+        }
+        if (!companyInviteService.isCompanyActivated(company.getCompanyName())) {
+            companyInviteService.consumeInvite(request.inviteCode(), company.getCompanyName());
+        }
+        return companyService.findById(company.getId());
+    }
+
+    private TsukiCompany requireApprovedAndActivatedCompany(Long userId) {
+        TsukiCompany company = requireApprovedCompany(userId);
+        if (!companyInviteService.isCompanyActivated(company.getCompanyName())) {
+            throw new IllegalArgumentException("企业尚未完成邀请码验证，当前仅可填写基本信息");
+        }
+        return company;
+    }
+
     private TsukiCompany requireCompany(Long userId) {
         return companyRepository.findByUser_Id(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("请先完善企业资料"));
@@ -211,5 +236,14 @@ public class CompanyPortalService {
             throw new IllegalArgumentException("无法操作其他企业的职位");
         }
         return job;
+    }
+
+    private TsukiCompany requireApprovedCompany(Long userId) {
+        TsukiCompany company = requireCompany(userId);
+        String status = company.getAuditStatus() == null ? "" : company.getAuditStatus().toLowerCase();
+        if (!"approved".equals(status)) {
+            throw new IllegalArgumentException("企业资料未通过审核或正在审核中，当前仅可填写基本信息");
+        }
+        return company;
     }
 }

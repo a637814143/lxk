@@ -10,6 +10,7 @@ import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.portal.company.ApplicationStatusRequest;
 import com.example.campus.dto.portal.company.CompanyJobRequest;
 import com.example.campus.dto.portal.company.CompanyProfileRequest;
+import com.example.campus.dto.portal.company.CompanyInviteVerifyRequest;
 import com.example.campus.dto.portal.company.CompanySubscriptionRequest;
 import com.example.campus.dto.portal.company.CompanyTransactionRequest;
 import com.example.campus.dto.portal.company.JobStatusUpdateRequest;
@@ -120,7 +121,9 @@ public class CompanyPortalController {
     @PostMapping("/discussions")
     public DiscussionResponse createDiscussion(@AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody DiscussionCreateRequest request) {
-        return companyPortalService.createDiscussion(principal.getUserId(), request);
+        // 公司端创建时，忽略外部传入的 companyId，固定发到本企业
+        DiscussionCreateRequest effective = new DiscussionCreateRequest(null, request.title(), request.content());
+        return companyPortalService.createDiscussion(principal.getUserId(), effective);
     }
 
     @GetMapping("/messages/unread-count")
@@ -131,5 +134,11 @@ public class CompanyPortalController {
     @GetMapping("/announcements")
     public List<AnnouncementResponse> listAnnouncements() {
         return companyPortalService.listAnnouncements();
+    }
+
+    @PostMapping("/invite/activate")
+    public CompanyResponse activateInvite(@AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody CompanyInviteVerifyRequest request) {
+        return companyPortalService.activateInvite(principal.getUserId(), request);
     }
 }

@@ -174,6 +174,17 @@ public class AdminPortalService {
         return discussionService.review(adminUserId, discussionId, request);
     }
 
+    @Transactional(readOnly = true)
+    public java.util.List<com.example.campus.dto.discussion.DiscussionCommentResponse> listPendingDiscussionComments() {
+        return discussionService.findPendingComments();
+    }
+
+    @Transactional
+    public com.example.campus.dto.discussion.DiscussionCommentResponse reviewDiscussionComment(Long adminUserId,
+            Long commentId, DiscussionReviewRequest request) {
+        return discussionService.reviewComment(adminUserId, commentId, request);
+    }
+
     // reviewJob removed
 
     @Transactional(readOnly = true)

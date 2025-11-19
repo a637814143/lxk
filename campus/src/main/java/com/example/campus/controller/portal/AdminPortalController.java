@@ -8,6 +8,7 @@ import com.example.campus.dto.company.CompanyInviteResponse;
 import com.example.campus.dto.company.CompanyInviteStatusRequest;
 import com.example.campus.dto.company.CompanyResponse;
 import com.example.campus.dto.discussion.DiscussionResponse;
+import com.example.campus.dto.discussion.DiscussionCommentResponse;
 import com.example.campus.dto.discussion.DiscussionReviewRequest;
 import com.example.campus.dto.finance.FinancialTransactionRequest;
 import com.example.campus.dto.finance.FinancialTransactionResponse;
@@ -58,6 +59,12 @@ public class AdminPortalController {
         return adminPortalService.reviewCompany(principal.getUserId(), companyId, request);
     }
 
+    @PostMapping("/companies/{companyId}/review")
+    public CompanyResponse reviewCompanyWithPost(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long companyId, @Valid @RequestBody CompanyAuditRequest request) {
+        return adminPortalService.reviewCompany(principal.getUserId(), companyId, request);
+    }
+
 
     @GetMapping("/discussions/pending")
     public List<DiscussionResponse> listPendingDiscussions() {
@@ -68,6 +75,17 @@ public class AdminPortalController {
     public DiscussionResponse reviewDiscussion(@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long discussionId, @Valid @RequestBody DiscussionReviewRequest request) {
         return adminPortalService.reviewDiscussion(principal.getUserId(), discussionId, request);
+    }
+
+    @GetMapping("/discussions/comments/pending")
+    public java.util.List<DiscussionCommentResponse> listPendingComments() {
+        return adminPortalService.listPendingDiscussionComments();
+    }
+
+    @PostMapping("/discussions/comments/{commentId}/review")
+    public DiscussionCommentResponse reviewComment(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long commentId, @Valid @RequestBody DiscussionReviewRequest request) {
+        return adminPortalService.reviewDiscussionComment(principal.getUserId(), commentId, request);
     }
 
 

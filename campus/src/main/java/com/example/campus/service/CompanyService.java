@@ -29,6 +29,7 @@ public class CompanyService {
     private final TsukiCompanyRepository companyRepository;
     private final TsukiUserRepository userRepository;
     private final TsukiWalletRepository walletRepository;
+    private final CompanyInviteService companyInviteService;
 
     @Transactional(readOnly = true)
     public List<CompanyResponse> findAll() {
@@ -133,6 +134,7 @@ public class CompanyService {
                     .map(TsukiWallet::getBalance)
                     .orElse(BigDecimal.ZERO);
         }
+        boolean inviteActivated = companyInviteService.isCompanyActivated(company.getCompanyName());
         return new CompanyResponse(
                 company.getId(),
                 company.getUser().getId(),
@@ -146,7 +148,8 @@ public class CompanyService {
                 company.getLicenseDocument(),
                 company.getAuditStatus(),
                 company.getAuditReason(),
-                walletBalance);
+                walletBalance,
+                inviteActivated);
     }
 
     private String normalizeStatus(String status) {

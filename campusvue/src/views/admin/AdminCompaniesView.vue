@@ -6,7 +6,14 @@
     </div>
 
     <table v-if="pendingCompanies.length" class="table">
-      <thead><tr><th>企业名称</th><th>行业</th><th>状态</th><th>操作</th></tr></thead>
+      <thead>
+        <tr>
+          <th>企业名称</th>
+          <th>行业</th>
+          <th>状态</th>
+          <th>操作</th>
+        </tr>
+      </thead>
       <tbody>
         <tr v-for="company in pendingCompanies" :key="company.id">
           <td>{{ company.companyName }}</td>
@@ -24,7 +31,14 @@
     <section v-if="rejectDialog.visible" class="card">
       <h3>驳回原因</h3>
       <form class="form-grid" @submit.prevent="submitReject">
-        <label class="full">备注<textarea v-model="rejectDialog.reason" maxlength="255" placeholder="请输入驳回原因"></textarea></label>
+        <label class="full">
+          备注
+          <textarea
+            v-model="rejectDialog.reason"
+            maxlength="255"
+            placeholder="请输入驳回原因（可选）"
+          ></textarea>
+        </label>
         <div class="full actions">
           <button class="primary" type="submit">确认驳回</button>
           <button class="outline" type="button" @click="closeRejectDialog">取消</button>
@@ -36,7 +50,7 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
-import { get, patch } from '../../api/http';
+import { get, post } from '../../api/http';
 import { useToast } from '../../ui/toast';
 
 const pendingCompanies = ref([]);
@@ -62,7 +76,7 @@ async function loadPendingCompanies() {
 
 async function review(companyId, status, reason = '') {
   try {
-    await patch(`/portal/admin/companies/${companyId}/review`, { status, reason });
+    await post(`/portal/admin/companies/${companyId}/review`, { status, reason });
     toast.success('审核结果已提交');
     await loadPendingCompanies();
   } catch (error) {
@@ -90,6 +104,8 @@ async function submitReject() {
 </script>
 
 <style scoped>
-.actions { display: flex; gap: 12px; }
+.actions {
+  display: flex;
+  gap: 12px;
+}
 </style>
-

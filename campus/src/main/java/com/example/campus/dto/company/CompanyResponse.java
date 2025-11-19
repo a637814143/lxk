@@ -15,5 +15,6 @@ public record CompanyResponse(
         String licenseDocument,
         String auditStatus,
         String auditReason,
-        BigDecimal walletBalance) {
+        BigDecimal walletBalance,
+        Boolean inviteActivated) {
 }

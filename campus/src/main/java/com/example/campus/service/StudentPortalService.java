@@ -38,6 +38,7 @@ public class StudentPortalService {
     private final MessageService messageService;
     private final JobService jobService;
     private final AnnouncementService announcementService;
+    private final DiscussionService discussionService;
 
     private final TsukiStudentRepository studentRepository;
     private final TsukiResumeRepository resumeRepository;
@@ -181,6 +182,18 @@ public class StudentPortalService {
     @Transactional(readOnly = true)
     public List<AnnouncementResponse> listAnnouncements() {
         return announcementService.findByTargets(List.of("all", "student"));
+    }
+
+    @Transactional
+    public com.example.campus.dto.discussion.DiscussionResponse createDiscussion(Long userId,
+            com.example.campus.dto.discussion.DiscussionCreateRequest request) {
+        return discussionService.create(userId, request);
+    }
+
+    @Transactional
+    public com.example.campus.dto.discussion.DiscussionCommentResponse createComment(Long userId,
+            com.example.campus.dto.discussion.DiscussionCommentCreateRequest request) {
+        return discussionService.createComment(userId, request);
     }
 
     private TsukiStudent requireStudent(Long userId) {

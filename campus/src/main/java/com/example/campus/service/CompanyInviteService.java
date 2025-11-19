@@ -89,6 +89,15 @@ public class CompanyInviteService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public boolean isCompanyActivated(String companyName) {
+        if (!StringUtils.hasText(companyName)) {
+            return false;
+        }
+        String normalizedName = companyName.trim();
+        return inviteRepository.existsByCompanyNameHintAndStatus(normalizedName, "used");
+    }
+
     private String generateUniqueCode() {
         for (int attempts = 0; attempts < 10_000; attempts++) {
             String candidate = randomCode();

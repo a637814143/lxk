@@ -9,4 +9,6 @@ public interface TsukiCompanyInviteRepository extends JpaRepository<TsukiCompany
     Optional<TsukiCompanyInvite> findByCode(String code);
 
     Optional<TsukiCompanyInvite> findByCodeIgnoreCase(String code);
+
+    boolean existsByCompanyNameHintAndStatus(String companyNameHint, String status);
 }

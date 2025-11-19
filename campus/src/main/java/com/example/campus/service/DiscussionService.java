@@ -1,17 +1,22 @@
 package com.example.campus.service;
 
+import com.example.campus.dto.discussion.DiscussionCommentCreateRequest;
+import com.example.campus.dto.discussion.DiscussionCommentResponse;
 import com.example.campus.dto.discussion.DiscussionCreateRequest;
 import com.example.campus.dto.discussion.DiscussionResponse;
 import com.example.campus.dto.discussion.DiscussionReviewRequest;
 import com.example.campus.entity.TsukiAdmin;
 import com.example.campus.entity.TsukiCompany;
+import com.example.campus.entity.TsukiDiscussionComment;
 import com.example.campus.entity.TsukiDiscussionPost;
 import com.example.campus.entity.TsukiUser;
 import com.example.campus.exception.ResourceNotFoundException;
 import com.example.campus.repository.TsukiAdminRepository;
 import com.example.campus.repository.TsukiCompanyRepository;
+import com.example.campus.repository.TsukiDiscussionCommentRepository;
 import com.example.campus.repository.TsukiDiscussionPostRepository;
 import com.example.campus.repository.TsukiUserRepository;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -27,27 +32,48 @@ public class DiscussionService {
     private static final Set<String> STATUSES = Set.of("pending", "approved", "rejected");
 
     private final TsukiDiscussionPostRepository discussionRepository;
+    private final TsukiDiscussionCommentRepository commentRepository;
     private final TsukiCompanyRepository companyRepository;
     private final TsukiUserRepository userRepository;
     private final TsukiAdminRepository adminRepository;
     private final SensitiveWordFilter sensitiveWordFilter;
 
+    /**
+     * 发布讨论时使用敏感词过滤：
+     * - 如未命中敏感词，状态直接设为 approved，自动对外展示；
+     * - 如命中敏感词，状态设为 pending，并在 reviewComment 中标记“检测到敏感词，待审核”，等待管理员复核。
+     */
     @Transactional
     public DiscussionResponse create(Long authorUserId, DiscussionCreateRequest request) {
         TsukiUser author = userRepository.findById(authorUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("未找到用户信息"));
+
+        // 企业用户发帖：优先使用其所属企业；学生发帖：需提供 companyId
         TsukiCompany company = companyRepository.findByUser_Id(authorUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("请先完善企业资料"));
-        SensitiveWordFilter.Result result = sensitiveWordFilter.sanitize(request.content());
+                .orElseGet(() -> {
+                    if (request.companyId() == null) {
+                        throw new IllegalArgumentException("请选择要发布到的企业");
+                    }
+                    return companyRepository.findById(request.companyId())
+                            .orElseThrow(() -> new ResourceNotFoundException("未找到企业信息"));
+                });
+
+        SensitiveWordFilter.Result contentResult = sensitiveWordFilter.sanitize(request.content());
+        boolean flagged = contentResult.flagged();
+        String status = flagged ? "pending" : "approved";
+        String reviewComment = flagged ? "检测到敏感词，待审核" : null;
+
         TsukiDiscussionPost post = TsukiDiscussionPost.builder()
                 .author(author)
                 .company(company)
                 .title(request.title())
                 .content(request.content())
-                .sanitizedContent(result.content())
-                .status("pending")
-                .reviewComment(result.flagged() ? "检测到敏感词，待审核" : null)
+                .sanitizedContent(contentResult.content())
+                .status(status)
+                .reviewComment(reviewComment)
+                .reviewTime(flagged ? null : LocalDateTime.now())
                 .build();
+
         return toResponse(discussionRepository.save(post));
     }
 
@@ -77,7 +103,7 @@ public class DiscussionService {
         post.setStatus(status);
         post.setReviewer(admin);
         post.setReviewComment(request.comment());
-        post.setReviewTime(java.time.LocalDateTime.now());
+        post.setReviewTime(LocalDateTime.now());
         return toResponse(discussionRepository.save(post));
     }
 
@@ -86,6 +112,64 @@ public class DiscussionService {
         return discussionRepository.findByCompany_IdAndStatus(companyId, "approved").stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DiscussionCommentResponse> findApprovedCommentsByPost(Long postId) {
+        return commentRepository.findByPost_IdAndStatus(postId, "approved").stream()
+                .map(this::toCommentResponse)
+                .toList();
+    }
+
+    /**
+     * 评论同样做敏感词过滤，逻辑与发帖一致：
+     * - 未命中敏感词：直接 approved；
+     * - 命中敏感词：pending + “检测到敏感词，待审核”。
+     */
+    @Transactional
+    public DiscussionCommentResponse createComment(Long authorUserId, DiscussionCommentCreateRequest request) {
+        TsukiUser author = userRepository.findById(authorUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到用户信息"));
+        TsukiDiscussionPost post = discussionRepository.findById(request.postId())
+                .orElseThrow(() -> new ResourceNotFoundException("未找到讨论内容"));
+
+        SensitiveWordFilter.Result contentResult = sensitiveWordFilter.sanitize(request.content());
+        boolean flagged = contentResult.flagged();
+        String status = flagged ? "pending" : "approved";
+        String reviewComment = flagged ? "检测到敏感词，待审核" : null;
+
+        TsukiDiscussionComment comment = TsukiDiscussionComment.builder()
+                .post(post)
+                .author(author)
+                .content(request.content())
+                .sanitizedContent(contentResult.content())
+                .status(status)
+                .reviewComment(reviewComment)
+                .reviewTime(flagged ? null : LocalDateTime.now())
+                .build();
+
+        return toCommentResponse(commentRepository.save(comment));
+    }
+
+    @Transactional(readOnly = true)
+    public List<DiscussionCommentResponse> findPendingComments() {
+        return commentRepository.findByStatus("pending").stream()
+                .map(this::toCommentResponse)
+                .toList();
+    }
+
+    @Transactional
+    public DiscussionCommentResponse reviewComment(Long adminUserId, Long commentId, DiscussionReviewRequest request) {
+        TsukiAdmin admin = adminRepository.findByUser_Id(adminUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("当前账号不是系统管理员"));
+        TsukiDiscussionComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到评论内容"));
+        String status = normalizeStatus(request.status());
+        comment.setStatus(status);
+        comment.setReviewer(admin);
+        comment.setReviewComment(request.comment());
+        comment.setReviewTime(LocalDateTime.now());
+        return toCommentResponse(comment);
     }
 
     private String normalizeStatus(String raw) {
@@ -118,4 +202,23 @@ public class DiscussionService {
                 post.getCreatedAt(),
                 post.getUpdatedAt());
     }
+
+    private DiscussionCommentResponse toCommentResponse(TsukiDiscussionComment c) {
+        return new DiscussionCommentResponse(
+                c.getId(),
+                c.getPost() != null ? c.getPost().getId() : null,
+                c.getAuthor() != null ? c.getAuthor().getId() : null,
+                c.getAuthor() != null ? c.getAuthor().getUsername() : null,
+                c.getContent(),
+                c.getSanitizedContent(),
+                c.getStatus(),
+                c.getReviewComment(),
+                c.getReviewer() != null ? c.getReviewer().getId() : null,
+                c.getReviewer() != null && c.getReviewer().getUser() != null
+                        ? c.getReviewer().getUser().getUsername() : null,
+                c.getReviewTime(),
+                c.getCreatedAt(),
+                c.getUpdatedAt());
+    }
 }
+
