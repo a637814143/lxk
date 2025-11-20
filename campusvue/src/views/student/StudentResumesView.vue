@@ -11,17 +11,47 @@
     </header>
 
     <form class="form-grid" @submit.prevent="submitResume">
-      <label class="full">简历标题<input v-model="resumeForm.title" required /></label>
-      <label class="full">教育经历<textarea v-model="resumeForm.educationExperience"></textarea></label>
-      <label class="full">实习/工作经历<textarea v-model="resumeForm.workExperience"></textarea></label>
-      <label class="full">技能特长<textarea v-model="resumeForm.skills"></textarea></label>
-      <label class="full">自我评价<textarea v-model="resumeForm.selfEvaluation"></textarea></label>
+      <label class="full">
+        简历标题
+        <input v-model="resumeForm.title" required />
+      </label>
+      <label class="full">
+        附件链接（可选）
+        <input v-model="resumeForm.attachment" placeholder="如已有网盘/官网链接，可直接填写" />
+      </label>
+      <label class="full">
+        教育经历
+        <textarea
+          v-model="resumeForm.educationExperience"
+          placeholder="按时间倒序填写：学校、专业、起止时间等"
+        ></textarea>
+      </label>
+      <label class="full">
+        实习 / 工作经历
+        <textarea
+          v-model="resumeForm.workExperience"
+          placeholder="描述公司、岗位、时间及负责的主要工作"
+        ></textarea>
+      </label>
+      <label class="full">
+        技能特长
+        <textarea
+          v-model="resumeForm.skills"
+          placeholder="例如：编程语言、办公软件、证书、项目经验等"
+        ></textarea>
+      </label>
+      <label class="full">
+        自我评价
+        <textarea
+          v-model="resumeForm.selfEvaluation"
+          placeholder="简要概括个人优势与求职意向"
+        ></textarea>
+      </label>
       <label class="full file-input">
         附件上传
         <input ref="resumeFileInput" type="file" accept=".pdf,.doc,.docx" @change="handleResumeFile" />
-        <small>支持 PDF/DOC/DOCX，最大15MB。上传后系统会生成附件链接。</small>
+        <small>支持 PDF / DOC / DOCX，最大约 5MB，上传后系统会生成附件链接</small>
       </label>
-      <label class="full">附件链接（可选）<input v-model="resumeForm.attachment" placeholder="也可填写已有附件链接" /></label>
       <div class="full actions">
         <button class="primary" type="submit">
           {{ editingResumeId ? '更新简历' : '新建简历' }}
@@ -48,9 +78,11 @@
     </ul>
     <p v-else class="muted">还没有简历，填写上方表单即可新建。</p>
 
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
+    <p v-if="feedback.message" :class="['feedback', feedback.type]">
+      {{ feedback.message }}
+    </p>
   </section>
-  </template>
+</template>
 
 <script setup>
 import { inject, onMounted, reactive, ref } from 'vue';
@@ -73,7 +105,7 @@ const editingResumeId = ref(null);
 const feedback = reactive({ message: '', type: 'info' });
 
 const selectedResumeId = inject('selectedResumeId', ref(null));
-const setSelectedResumeId = inject('setSelectedResumeId', (id) => {
+const setSelectedResumeId = inject('setSelectedResumeId', id => {
   selectedResumeId.value = id;
 });
 
@@ -200,52 +232,6 @@ onMounted(loadResumes);
 </script>
 
 <style scoped>
-.section {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.section__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.form-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.form-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-weight: 600;
-}
-
-.form-grid textarea,
-.form-grid input {
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 10px;
-  font-size: 14px;
-}
-
-.form-grid textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-.form-grid .full {
-  grid-column: 1 / -1;
-}
-
 .file-input input[type='file'] {
   padding: 8px;
   border-radius: 10px;
@@ -263,80 +249,10 @@ onMounted(loadResumes);
   gap: 12px;
 }
 
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.list__item {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-}
-
 .list__actions {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
-.primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  border: none;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.outline {
-  background: transparent;
-  border: 1px solid #2563eb;
-  color: #2563eb;
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.danger {
-  background: transparent;
-  border: 1px solid #dc2626;
-  color: #dc2626;
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.muted {
-  color: #6b7280;
-  margin: 0;
-}
-
-.feedback {
-  text-align: center;
-  padding: 12px;
-  border-radius: 12px;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.feedback.info {
-  background: #e0f2fe;
-  color: #0369a1;
-}
 </style>
+

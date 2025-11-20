@@ -120,11 +120,10 @@ watch(() => route.fullPath, () => {
   display: grid;
   grid-template-columns: 240px 1fr;
   min-height: 100vh;
-  background: #f8fafc;
 }
 
 .sidebar {
-  background: linear-gradient(145deg, #1e293b, #334155);
+  background: linear-gradient(145deg, #0f172a, #1f2937);
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -173,8 +172,8 @@ watch(() => route.fullPath, () => {
   justify-content: space-between;
   align-items: center;
   padding: 24px 32px;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .topbar__actions {
@@ -184,8 +183,8 @@ watch(() => route.fullPath, () => {
 }
 
 .selected-resume {
-  background: #eff6ff;
-  color: #1d4ed8;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
   padding: 10px 16px;
   border-radius: 12px;
   display: flex;
@@ -214,25 +213,4 @@ watch(() => route.fullPath, () => {
   flex: 1;
   padding: 32px;
 }
-
-.muted {
-  color: #64748b;
-  margin: 0;
-}
-
-.outline {
-  background: transparent;
-  border: 1px solid #2563eb;
-  color: #2563eb;
-  padding: 10px 18px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.outline:hover {
-  background: #2563eb;
-  color: #fff;
-}
 </style>
-

@@ -3,7 +3,7 @@
     <header class="section__header">
       <div>
         <h2>职位浏览</h2>
-        <p class="muted">按条件筛选职位并使用选定简历进行投递</p>
+        <p class="muted">按条件筛选职位，并使用选定简历进行投递</p>
       </div>
       <button class="outline" type="button" @click="searchJobs" :disabled="loading">
         {{ loading ? '搜索中...' : '搜索' }}
@@ -11,11 +11,24 @@
     </header>
 
     <div class="filters">
-      <input v-model="jobFilters.keyword" placeholder="关键词" />
+      <input v-model="jobFilters.keyword" placeholder="关键字（岗位名称、关键词）" />
       <input v-model="jobFilters.company" placeholder="企业名称" />
-      <input v-model="jobFilters.jobType" placeholder="职位类别" />
-      <input v-model="jobFilters.location" placeholder="工作地点" />
-      <input v-model="jobFilters.salaryRange" placeholder="薪资范围" />
+      <select v-model="jobFilters.jobType">
+        <option value="">职位类别（全部）</option>
+        <option value="实习">实习</option>
+        <option value="全职">全职</option>
+        <option value="兼职">兼职</option>
+        <option value="校招">校招</option>
+        <option value="社招">社招</option>
+      </select>
+      <input v-model="jobFilters.location" placeholder="工作地点（城市/省份）" />
+      <select v-model="jobFilters.salaryRange">
+        <option value="">薪资范围（不限）</option>
+        <option value="3k-5k">3k-5k</option>
+        <option value="5k-8k">5k-8k</option>
+        <option value="8k-12k">8k-12k</option>
+        <option value="12k+">12k 以上</option>
+      </select>
       <select v-model="resumeSelection" @change="handleResumeChange">
         <option :value="null">请选择投递简历</option>
         <option v-for="resume in resumes" :key="resume.id" :value="resume.id">
@@ -46,7 +59,9 @@
     </div>
     <p v-else class="muted">请调整筛选条件或稍后再试，目前没有符合条件的职位。</p>
 
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
+    <p v-if="feedback.message" :class="['feedback', feedback.type]">
+      {{ feedback.message }}
+    </p>
   </section>
 </template>
 
@@ -58,7 +73,7 @@ import { get, post } from '../../api/http';
 const router = useRouter();
 
 const selectedResumeId = inject('selectedResumeId', ref(null));
-const setSelectedResumeId = inject('setSelectedResumeId', (id) => {
+const setSelectedResumeId = inject('setSelectedResumeId', id => {
   selectedResumeId.value = id;
 });
 
@@ -156,11 +171,14 @@ function handleResumeChange(event) {
   resumeSelection.value = value ? Number(value) : null;
 }
 
-watch(() => selectedResumeId.value, () => {
-  if (!selectedResumeId.value) {
-    resumeSelection.value = null;
+watch(
+  () => selectedResumeId.value,
+  () => {
+    if (!selectedResumeId.value) {
+      resumeSelection.value = null;
+    }
   }
-});
+);
 
 onMounted(async () => {
   await loadResumes();
@@ -169,35 +187,16 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.section {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.section__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .filters {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  margin-bottom: 16px;
 }
 
 .filters input,
 .filters select {
   flex: 1 1 180px;
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 8px 10px;
-  font-size: 14px;
 }
 
 .job-grid {
@@ -234,48 +233,5 @@ onMounted(async () => {
   padding: 4px 10px;
   font-size: 12px;
 }
-
-.primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  border: none;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.outline {
-  background: transparent;
-  border: 1px solid #2563eb;
-  color: #2563eb;
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.muted {
-  color: #6b7280;
-  margin: 0;
-}
-
-.feedback {
-  text-align: center;
-  padding: 12px;
-  border-radius: 12px;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
 </style>
+

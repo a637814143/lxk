@@ -112,15 +112,16 @@ async function handleSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 24px 16px;
 }
 
 .login-card {
   width: min(420px, 100%);
-  border-radius: 24px;
-  padding: 36px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 24px 48px rgba(30, 64, 175, 0.22);
+  padding: 32px 28px;
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(18px);
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -129,95 +130,43 @@ async function handleSubmit() {
 .login-header h1 {
   margin: 0;
   font-size: 26px;
-  color: #1e3a8a;
+  color: var(--color-primary-strong);
 }
 
 .login-header p {
-  margin: 4px 0 0;
-  color: #475569;
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 label {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  color: #1f2937;
+  gap: 6px;
+  color: var(--color-text-main);
   font-weight: 600;
-}
-
-input {
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(59, 130, 246, 0.35);
-  font-size: 15px;
-}
-
-input:focus {
-  outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
-}
-
-button.primary {
-  margin-top: 12px;
-  padding: 12px;
-  border: none;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 16px;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-button.primary:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-button.primary:not(:disabled):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
-}
-
-.feedback {
-  margin: 0;
-  padding: 12px 16px;
-  border-radius: 14px;
   font-size: 14px;
 }
 
-.feedback.info {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
+.feedback {
+  text-align: center;
 }
 
 .note {
   margin: 0;
   text-align: center;
   font-size: 13px;
-  color: #4b5563;
+  color: var(--color-text-muted);
 }
 
 .note a {
-  color: #2563eb;
+  color: var(--color-primary);
   font-weight: 600;
   text-decoration: none;
 }

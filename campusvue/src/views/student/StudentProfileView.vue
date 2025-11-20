@@ -8,22 +8,79 @@
       <span v-if="profileSaved" class="hint">资料已更新</span>
     </header>
 
-    <form class="form-grid" @submit.prevent="saveProfile">
-      <label>姓名<input v-model="profileForm.name" required /></label>
-      <label>性别<input v-model="profileForm.gender" placeholder="男/女/其他" /></label>
-      <label>学校<input v-model="profileForm.school" /></label>
-      <label>专业<input v-model="profileForm.major" /></label>
-      <label>年级<input v-model="profileForm.grade" /></label>
-      <label>学历<input v-model="profileForm.education" /></label>
-      <label class="full">头像地址<input v-model="profileForm.avatar" /></label>
-      <div class="full actions">
+    <form class="profile-form" @submit.prevent="saveProfile">
+      <div class="profile-row">
+        <label class="field">
+          <span class="field-label">姓名</span>
+          <input v-model="profileForm.name" required />
+        </label>
+        <label class="field">
+          <span class="field-label">性别</span>
+          <select v-model="profileForm.gender">
+            <option value="">请选择</option>
+            <option value="男">男</option>
+            <option value="女">女</option>
+            <option value="其他">其他 / 保密</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="profile-row">
+        <label class="field">
+          <span class="field-label">学校</span>
+          <input v-model="profileForm.school" />
+        </label>
+        <label class="field">
+          <span class="field-label">专业</span>
+          <input v-model="profileForm.major" />
+        </label>
+      </div>
+
+      <div class="profile-row">
+        <label class="field">
+          <span class="field-label">年级</span>
+          <select v-model="profileForm.grade">
+            <option value="">请选择</option>
+            <option value="大一">大一</option>
+            <option value="大二">大二</option>
+            <option value="大三">大三</option>
+            <option value="大四">大四</option>
+            <option value="研一">研一</option>
+            <option value="研二">研二</option>
+            <option value="研三">研三</option>
+            <option value="其他">其他</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="field-label">学历</span>
+          <select v-model="profileForm.education">
+            <option value="">请选择</option>
+            <option value="专科">专科</option>
+            <option value="本科">本科</option>
+            <option value="硕士">硕士</option>
+            <option value="博士">博士</option>
+            <option value="其他">其他</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="profile-row profile-row-full">
+        <label class="field">
+          <span class="field-label">头像地址</span>
+          <input v-model="profileForm.avatar" placeholder="可填写在线头像图片链接" />
+        </label>
+      </div>
+
+      <div class="actions">
         <button class="primary" type="submit" :disabled="saving">
           {{ saving ? '保存中...' : '保存资料' }}
         </button>
       </div>
     </form>
 
-    <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
+    <p v-if="feedback.message" :class="['feedback', feedback.type]">
+      {{ feedback.message }}
+    </p>
   </section>
 </template>
 
@@ -85,87 +142,43 @@ onMounted(loadProfile);
 </script>
 
 <style scoped>
-.section {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+.profile-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
-.section__header {
+.profile-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.form-grid {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+.profile-row-full {
+  flex-direction: column;
 }
 
-.form-grid label {
+.field {
+  flex: 1 1 220px;
   display: flex;
   flex-direction: column;
   gap: 6px;
   font-weight: 600;
 }
 
-.form-grid input {
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 10px;
+.field-label {
   font-size: 14px;
-}
-
-.form-grid .full {
-  grid-column: 1 / -1;
 }
 
 .actions {
   display: flex;
   justify-content: flex-start;
+  margin-top: 4px;
 }
 
-.primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  border: none;
-  color: #fff;
-  padding: 10px 18px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.primary:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.muted {
-  color: #6b7280;
-  margin: 0;
-}
-
-.hint {
-  color: #10b981;
-}
-
-.feedback {
-  text-align: center;
-  padding: 12px;
-  border-radius: 12px;
-}
-
-.feedback.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
+.profile-form input,
+.profile-form select {
+  border-radius: 999px;
+  padding: 10px 14px;
 }
 </style>

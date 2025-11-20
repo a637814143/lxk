@@ -1,15 +1,305 @@
 :root {
   color-scheme: light;
-  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  background: #f5f7fb;
+  --font-sans: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --bg-app: linear-gradient(135deg, #f5f7fb 0%, #dde5ff 100%);
+  --bg-card: #ffffff;
+  --border-subtle: #e5e7eb;
+  --shadow-soft: 0 18px 40px rgba(15, 23, 42, 0.08);
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  --color-primary: #2563eb;
+  --color-primary-soft: #eff6ff;
+  --color-primary-strong: #1d4ed8;
+  --color-primary-border: #bfdbfe;
+
+  --color-success: #16a34a;
+  --color-success-soft: #dcfce7;
+
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fee2e2;
+
+  --color-text-main: #0f172a;
+  --color-text-muted: #6b7280;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
 body {
   margin: 0;
+  padding: 0;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fb 0%, #dde5ff 100%);
+  font-family: var(--font-sans);
+  color: var(--color-text-main);
+  background: var(--bg-app);
 }
 
-* {
-  box-sizing: border-box;
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* 通用卡片与页面布局基础样式，覆盖大部分列表/表单页面 */
+.card,
+.section {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-soft);
+}
+
+.card__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.card__title h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.hint {
+  color: var(--color-success);
+  font-size: 13px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.list__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border-subtle);
+  background: #ffffff;
+}
+
+.list__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 通用表单布局 */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px 18px;
+}
+
+.form-grid .full {
+  grid-column: 1 / -1;
+}
+
+input[type='text'],
+input[type='password'],
+input[type='email'],
+input[type='tel'],
+input[type='number'],
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  background-color: #ffffff;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.feedback {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+}
+
+.feedback.info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.feedback.success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.feedback.error {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+/* 通用按钮样式，供未单独定义样式的按钮使用 */
+.primary,
+button.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-strong));
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.primary:hover,
+button.primary:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
+}
+
+.primary:disabled,
+button.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.outline,
+button.outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 16px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(148, 163, 184, 0.8);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-text-main);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+
+.outline:hover,
+button.outline:hover {
+  background: #f9fafb;
+  border-color: var(--color-primary);
+  transform: translateY(-0.5px);
+}
+
+.outline:disabled,
+button.outline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.danger {
+  background: linear-gradient(135deg, #ef4444, #b91c1c);
+  color: #fff;
+  border: none;
+}
+
+/* 通用表格样式 */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.table thead {
+  background: #f1f5f9;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.table th {
+  text-align: left;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.table tbody tr:hover {
+  background: #f9fafb;
+}
+
+/* 简单的提示条样式，可与各页面现有 feedback 类配合使用 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.badge.success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.badge.danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #e5e7eb;
+  color: #374151;
 }

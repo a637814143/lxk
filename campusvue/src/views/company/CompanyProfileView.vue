@@ -8,7 +8,7 @@
       <button class="outline" @click="refreshWallet">刷新余额</button>
     </div>
 
-    <form class="form-grid" @submit.prevent="saveProfile">
+    <form class="form-grid company-form" @submit.prevent="saveProfile">
       <label>企业名称<input v-model="profileForm.companyName" required maxlength="100" /></label>
       <label>营业执照号<input v-model="profileForm.licenseNumber" maxlength="100" /></label>
       <label>行业类别<input v-model="profileForm.industry" maxlength="100" /></label>
@@ -194,6 +194,16 @@ async function submitInvite() {
   margin-top: 6px;
   color: #64748b;
 }
+
+.company-form input[type='text'],
+.company-form input[type='email'],
+.company-form input[type='url'],
+.company-form input[type='tel'],
+.company-form input[type='number'],
+.company-form select {
+  border-radius: 999px;
+  padding: 10px 14px;
+}
 .actions {
   display: flex;
   align-items: center;
@@ -214,8 +224,8 @@ async function submitInvite() {
 }
 .activation-row input[type='text'] {
   flex: 1;
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
   border: 1px solid #d1d5db;
 }
 </style>

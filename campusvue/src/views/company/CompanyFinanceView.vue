@@ -10,19 +10,6 @@
     </div>
 
     <div class="finance-grid">
-      <form class="form-grid" @submit.prevent="submitTransaction">
-        <h3 class="form-title">提交财务申请</h3>
-        <label>金额（元）<input v-model.number="transactionForm.amount" type="number" min="0" step="0.01" required /></label>
-        <label>币种<input v-model="transactionForm.currency" placeholder="默认 CNY" /></label>
-        <label class="full">费用用途<input v-model="transactionForm.type" required maxlength="50" placeholder="例如：平台服务费" /></label>
-        <label class="full">业务编号<input v-model="transactionForm.reference" maxlength="100" placeholder="可选的内部编号" /></label>
-        <label class="full">备注<textarea v-model="transactionForm.notes" maxlength="255" placeholder="补充说明（可选）"></textarea></label>
-        <div class="full actions">
-          <button class="primary" type="submit">提交审核</button>
-          <button class="outline" type="button" @click="resetTransactionForm">清空</button>
-        </div>
-      </form>
-
       <form class="form-grid" @submit.prevent="purchaseSubscription">
         <h3 class="form-title">购买季度服务</h3>
         <label>季度数量<input v-model.number="subscriptionForm.quarters" type="number" min="1" max="12" required /></label>
@@ -66,8 +53,6 @@ const toast = useToast();
 
 const transactions = ref([]);
 const walletBalance = computed(() => Number(walletSummary.value?.balance ?? 0));
-
-const transactionForm = reactive({ amount: null, type: '', currency: 'CNY', reference: '', notes: '' });
 const subscriptionForm = reactive({ quarters: 1, quarterPrice: 1999, note: '', reference: '' });
 
 const subscriptionTotal = computed(() => Number(subscriptionForm.quarters || 0) * Number(subscriptionForm.quarterPrice || 0));
@@ -79,27 +64,6 @@ async function loadTransactions() {
     transactions.value = await get('/portal/company/transactions');
   } catch (error) {
     toast.error(error.message ?? '加载财务记录失败');
-  }
-}
-
-async function submitTransaction() {
-  if (!transactionForm.amount || !transactionForm.type) {
-    toast.error('请填写金额和费用用途');
-    return;
-  }
-  try {
-    await post('/portal/company/transactions', {
-      amount: transactionForm.amount,
-      type: transactionForm.type,
-      currency: transactionForm.currency || 'CNY',
-      reference: transactionForm.reference,
-      notes: transactionForm.notes
-    });
-    toast.success('财务申请已提交，等待管理员处理');
-    resetTransactionForm();
-    await loadTransactions();
-  } catch (error) {
-    toast.error(error.message ?? '提交失败，请稍后再试');
   }
 }
 
@@ -123,14 +87,6 @@ async function purchaseSubscription() {
   }
 }
 
-function resetTransactionForm() {
-  transactionForm.amount = null;
-  transactionForm.type = '';
-  transactionForm.currency = 'CNY';
-  transactionForm.reference = '';
-  transactionForm.notes = '';
-}
-
 function formatMoney(value) { const amount = Number(value ?? 0); return amount.toFixed(2); }
 function formatDate(value) { if (!value) return '-'; return new Date(value).toLocaleString(); }
 </script>
@@ -140,4 +96,3 @@ function formatDate(value) { if (!value) return '-'; return new Date(value).toLo
 .form-title { margin: 0; color: #1e293b; }
 .actions { display: flex; gap: 12px; align-items: center; }
 </style>
-

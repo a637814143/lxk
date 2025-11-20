@@ -3,8 +3,8 @@
     <div class="card__title">
       <h2>财务记录管理</h2>
       <div class="actions">
-        <button class="outline" @click="loadTransactions">刷新</button>
-        <button class="outline" @click="emit('request-wallet-refresh')">刷新钱包</button>
+        <button class="outline" @click="loadTransactions">刷新记录</button>
+        <button class="outline" @click="refreshAdminWallet">刷新钱包</button>
       </div>
     </div>
 
@@ -46,11 +46,11 @@
 </template>
 
 <script setup>
-import { defineEmits, onMounted, reactive, ref } from 'vue';
+import { inject, onMounted, reactive, ref } from 'vue';
 import { get, patch, post } from '../../api/http';
 import { useToast } from '../../ui/toast';
 
-const emit = defineEmits(['request-wallet-refresh']);
+const refreshAdminWallet = inject('refreshWallet', () => {});
 
 const transactions = ref([]);
 const toast = useToast();
@@ -84,7 +84,7 @@ async function createTransaction() {
     toast.success('财务记录已创建');
     resetTransactionForm();
     await loadTransactions();
-    emit('request-wallet-refresh');
+    refreshAdminWallet();
   } catch (error) {
     toast.error(error.message ?? '创建财务记录失败');
   }
@@ -95,7 +95,7 @@ async function updateTransactionStatus(item) {
     await patch(`/portal/admin/transactions/${item.id}`, { status: item.status, notes: item.notes });
     toast.success('交易状态已更新');
     await loadTransactions();
-    emit('request-wallet-refresh');
+    refreshAdminWallet();
   } catch (error) {
     toast.error(error.message ?? '更新交易状态失败');
   }
@@ -124,4 +124,3 @@ function formatDate(value) {
 <style scoped>
 .actions { display: flex; gap: 12px; }
 </style>
-

@@ -36,7 +36,7 @@
         </div>
       </header>
       <main class="content">
-        <RouterView @request-wallet-refresh="refreshWallet" />
+        <RouterView />
       </main>
     </div>
   </div>
@@ -101,11 +101,10 @@ function formatMoney(value) {
   display: grid;
   grid-template-columns: 260px 1fr;
   min-height: 100vh;
-  background: #f8fafc;
 }
 
 .sidebar {
-  background: linear-gradient(160deg, #0f172a, #1e3a8a);
+  background: linear-gradient(160deg, #020617, #1d4ed8);
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -154,8 +153,8 @@ function formatMoney(value) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .topbar h2 {
@@ -176,9 +175,9 @@ function formatMoney(value) {
   gap: 12px;
   padding: 10px 16px;
   border-radius: 14px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1d4ed8;
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-border);
+  color: var(--color-primary-strong);
 }
 
 .content {
@@ -188,76 +187,5 @@ function formatMoney(value) {
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-.card {
-  background: #fff;
-  border-radius: 18px;
-  padding: 24px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.card__title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.form-grid {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-
-.form-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.form-grid input,
-.form-grid textarea,
-.table select,
-.table input {
-  border: 1px solid #d1d5db;
-  border-radius: 10px;
-  padding: 10px;
-  font-size: 14px;
-}
-
-.form-grid textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-.form-grid .full {
-  grid-column: 1 / -1;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.table th,
-.table td {
-  text-align: left;
-  padding: 8px 12px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 </style>

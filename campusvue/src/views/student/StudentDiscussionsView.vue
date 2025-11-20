@@ -4,19 +4,25 @@
       <div>
         <h2>企业讨论区</h2>
         <p class="muted">
-          查看企业的公开讨论记录，可通过职位列表的“查看企业讨论”快速跳转
+          查看企业的公开讨论记录，可通过职位列表的「查看企业讨论」快速跳转。
         </p>
       </div>
       <div class="actions">
-        <input v-model="manualCompanyId" placeholder="输入企业ID" />
-        <button class="outline" type="button" @click="loadByManualId" :disabled="loading">加载讨论</button>
+        <input v-model="manualCompanyId" placeholder="输入企业 ID" />
+        <button class="outline" type="button" @click="loadByManualId" :disabled="loading">
+          加载讨论
+        </button>
         <input v-model="searchKeyword" placeholder="按企业名称搜索" />
-        <button class="outline" type="button" @click="searchCompanies" :disabled="loading">搜索企业</button>
+        <button class="outline" type="button" @click="searchCompanies" :disabled="loading">
+          搜索企业
+        </button>
         <button class="outline" type="button" @click="goBackToJobs">返回职位</button>
       </div>
       <ul v-if="companySearchResults.length" class="companies">
         <li v-for="c in companySearchResults" :key="c.id">
-          <button class="outline" type="button" @click="selectCompany(c)">{{ c.companyName }}（#{{ c.id }}）</button>
+          <button class="outline" type="button" @click="selectCompany(c)">
+            {{ c.companyName }} · #{{ c.id }}
+          </button>
         </li>
       </ul>
     </header>
@@ -25,6 +31,7 @@
       <h3>{{ currentCompany.name }}</h3>
       <p class="muted">企业 ID：{{ currentCompany.id }}</p>
     </div>
+
     <section v-if="currentCompany.id" class="compose card">
       <h3>发布讨论</h3>
       <form class="form" @submit.prevent="submitDiscussion">
@@ -40,20 +47,82 @@
     <p class="muted" v-if="loading">正在加载企业讨论，请稍候…</p>
     <template v-else>
       <p class="muted" v-if="!currentCompany.id">
-        尚未选择企业。可在职位列表中点击“查看企业讨论”或在上方输入企业 ID。
+        尚未选择企业。可在职位列表中点击「查看企业讨论」或在上方输入企业 ID。
       </p>
       <div v-else>
-        <p v-if="feedback.message" :class="['feedback', feedback.type]">{{ feedback.message }}</p>
+        <p v-if="feedback.message" :class="['feedback', feedback.type]">
+          {{ feedback.message }}
+        </p>
+
         <ul class="list" v-if="discussions.length">
           <li v-for="post in discussions" :key="post.id" class="list__item">
             <div>
               <h3>{{ post.title }}</h3>
               <p class="muted">发布时间：{{ formatDate(post.createdAt) }}</p>
-              <p>{{ post.sanitizedContent }}</p>
-              <p v-if="post.reviewComment" class="muted">审核备注：{{ post.reviewComment }}</p>
+              <p>{{ post.sanitizedContent || post.content }}</p>
+              <p v-if="post.reviewComment" class="muted">
+                审核备注：{{ post.reviewComment }}
+              </p>
+            </div>
+
+            <div class="comments">
+              <button class="outline" type="button" @click="toggleComments(post)">
+                {{ post._showComments ? '收起评论' : '展开评论' }}
+              </button>
+
+              <div v-if="post._showComments" class="comments__body">
+                <p v-if="post._loadingComments" class="muted">正在加载评论...</p>
+
+                <template v-else>
+                  <ul v-if="post._comments.length" class="comments__list">
+                    <li
+                      v-for="comment in post._comments"
+                      :key="comment.id"
+                      class="comments__item"
+                    >
+                      <p class="comment-meta">
+                        {{ comment.authorUsername || '用户' }} ·
+                        {{ formatDate(comment.createdAt) }}
+                      </p>
+                      <p>{{ comment.sanitizedContent || comment.content }}</p>
+                      <button
+                        class="comment-reply"
+                        type="button"
+                        @click="startReply(post, comment)"
+                      >
+                        回复
+                      </button>
+                    </li>
+                  </ul>
+                  <p v-else class="muted">暂无评论，来说两句吧～</p>
+
+                  <div class="comments__editor">
+                    <input
+                      v-model="post._newComment"
+                      :placeholder="post._replyTo ? `回复 @${post._replyTo.authorUsername}` : '发表你的看法...'"
+                    />
+                    <button class="primary" type="button" @click="submitComment(post)">
+                      发送
+                    </button>
+                    <button
+                      v-if="post._replyTo"
+                      class="outline"
+                      type="button"
+                      @click="cancelReply(post)"
+                    >
+                      取消回复
+                    </button>
+                  </div>
+
+                  <p v-if="post._feedback" :class="['feedback', post._feedbackType]">
+                    {{ post._feedback }}
+                  </p>
+                </template>
+              </div>
             </div>
           </li>
         </ul>
+
         <p v-else class="muted">暂无公开讨论，欢迎稍后再来查看。</p>
       </div>
     </template>
@@ -96,7 +165,15 @@ async function loadDiscussions(companyId, companyName = '') {
   try {
     const data = await get(`/public/discussions/company/${companyId}`);
     discussions.value = data;
-    discussions.value.forEach(p => { p._showComments = false; p._loadingComments = false; p._comments = []; p._newComment = ''; p._feedback = ''; p._feedbackType = 'info'; });
+    discussions.value.forEach(post => {
+      post._showComments = false;
+      post._loadingComments = false;
+      post._comments = [];
+      post._newComment = '';
+      post._feedback = '';
+      post._feedbackType = 'info';
+      post._replyTo = null;
+    });
     if (!data.length) {
       feedback.message = '暂无公开讨论记录';
       feedback.type = 'info';
@@ -136,15 +213,20 @@ function formatDate(value) {
 async function searchCompanies() {
   try {
     const q = (searchKeyword.value || '').trim();
-    companySearchResults.value = await get(`/public/companies${q ? `?q=${encodeURIComponent(q)}` : ''}`);
-  } catch (e) {
+    companySearchResults.value = await get(
+      `/public/companies${q ? `?q=${encodeURIComponent(q)}` : ''}`
+    );
+  } catch {
     companySearchResults.value = [];
   }
 }
 
 function selectCompany(c) {
   companySearchResults.value = [];
-  router.replace({ name: 'student-discussions', query: { companyId: c.id, companyName: c.companyName } });
+  router.replace({
+    name: 'student-discussions',
+    query: { companyId: c.id, companyName: c.companyName }
+  });
   loadDiscussions(c.id, c.companyName);
 }
 
@@ -152,7 +234,11 @@ async function submitDiscussion() {
   if (!currentCompany.id) return;
   if (!form.title || !form.content) return;
   try {
-    await post('/portal/student/discussions', { companyId: currentCompany.id, title: form.title, content: form.content });
+    await post('/portal/student/discussions', {
+      companyId: currentCompany.id,
+      title: form.title,
+      content: form.content
+    });
     form.title = '';
     form.content = '';
     await loadDiscussions(currentCompany.id, currentCompany.name);
@@ -164,16 +250,22 @@ async function submitDiscussion() {
   }
 }
 
-function resetForm() { form.title = ''; form.content = ''; }
+function resetForm() {
+  form.title = '';
+  form.content = '';
+}
 
 async function toggleComments(post) {
   post._showComments = !post._showComments;
   if (!post._showComments) return;
-  if (post._comments && post._comments.length) return; // 已加载
+  post._feedback = '';
+  post._feedbackType = 'info';
+  post._replyTo = null;
+  if (post._comments && post._comments.length) return;
   try {
     post._loadingComments = true;
     post._comments = await get(`/public/discussions/${post.id}/comments`);
-  } catch (e) {
+  } catch {
     post._comments = [];
   } finally {
     post._loadingComments = false;
@@ -183,17 +275,43 @@ async function toggleComments(post) {
 async function submitComment(post) {
   if (!post._newComment || !post.id) return;
   try {
-    await postApi(`/portal/student/discussions/${post.id}/comments`, { postId: post.id, content: post._newComment });
+    const base = post._newComment.trim();
+    if (!base) return;
+
+    const content =
+      post._replyTo && post._replyTo.authorUsername
+        ? `回复 @${post._replyTo.authorUsername}: ${base}`
+        : base;
+
+    await post('/portal/student/discussions/' + post.id + '/comments', {
+      postId: post.id,
+      content
+    });
     post._newComment = '';
+    post._replyTo = null;
     post._feedback = '已提交评论，待审核通过后可见';
     post._feedbackType = 'success';
+    try {
+      post._comments = await get(`/public/discussions/${post.id}/comments`);
+    } catch {
+      // ignore refresh error
+    }
   } catch (error) {
     post._feedback = error.message ?? '发表评论失败';
     post._feedbackType = 'error';
   }
 }
 
-async function postApi(url, body) { return post(url, body); }
+function startReply(post, comment) {
+  post._replyTo = comment;
+  post._newComment = '';
+  post._feedback = '';
+}
+
+function cancelReply(post) {
+  post._replyTo = null;
+  post._newComment = '';
+}
 
 watch(
   () => route.query,
@@ -207,16 +325,6 @@ watch(
 </script>
 
 <style scoped>
-.section {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 .section__header {
   display: flex;
   justify-content: space-between;
@@ -237,11 +345,22 @@ watch(
   padding: 8px 10px;
   min-width: 160px;
 }
-.companies { list-style: none; margin: 8px 0 0; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
-.companies li { display: inline-flex; }
+
+.companies {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.companies li {
+  display: inline-flex;
+}
 
 .current-company {
-  background: #eff6ff;
+  background: var(--color-primary-soft);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -249,60 +368,79 @@ watch(
   gap: 6px;
 }
 
-.list {
+.compose {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form input,
+.form textarea {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.comments {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comments__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.comments__list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
-.list__item {
-  padding: 16px;
+.comments__item {
+  padding: 8px;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  border-radius: 10px;
+  background: #fff;
 }
 
-.outline {
+.comment-meta {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.comment-reply {
+  margin-top: 4px;
+  padding: 0;
+  border: none;
   background: transparent;
-  border: 1px solid #2563eb;
   color: #2563eb;
-  padding: 8px 16px;
-  border-radius: 10px;
+  font-size: 12px;
   cursor: pointer;
 }
 
-.muted {
-  color: #6b7280;
-  margin: 0;
+.comments__editor {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
-.feedback {
-  text-align: center;
-  padding: 12px;
-  border-radius: 12px;
+.comments__editor input {
+  flex: 1;
 }
-
-.feedback.error {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-
-.feedback.info {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.compose { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08); }
-.form { display: flex; flex-direction: column; gap: 8px; }
-.form input, .form textarea { border: 1px solid #d1d5db; border-radius: 10px; padding: 10px; }
-.comment-actions { margin-top: 8px; }
-.comments { margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
-.comments__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.comments__item { padding: 8px; border: 1px solid #e5e7eb; border-radius: 10px; }
-.comments__editor { display: flex; gap: 8px; }
 </style>
+
