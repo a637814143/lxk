@@ -7,7 +7,8 @@ public record DiscussionCommentCreateRequest(
         @NotNull(message = "帖子ID不能为空")
         Long postId,
 
+        Long parentCommentId,
+
         @NotBlank(message = "评论内容不能为空")
         String content) {
 }
-

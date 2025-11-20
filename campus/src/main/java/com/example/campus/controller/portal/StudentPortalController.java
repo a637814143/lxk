@@ -136,8 +136,10 @@ public class StudentPortalController {
     @PostMapping("/discussions/{postId}/comments")
     public DiscussionCommentResponse createComment(@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long postId, @Valid @RequestBody DiscussionCommentCreateRequest request) {
-        // 以路径参数为准
-        DiscussionCommentCreateRequest effective = new DiscussionCommentCreateRequest(postId, request.content());
+        // 以路径参数为主，保留前端传入的父评论 ID
+        DiscussionCommentCreateRequest effective =
+                new DiscussionCommentCreateRequest(postId, request.parentCommentId(), request.content());
         return studentPortalService.createComment(principal.getUserId(), effective);
     }
 }
+

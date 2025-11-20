@@ -9,4 +9,3 @@ public interface TsukiDiscussionCommentRepository extends JpaRepository<TsukiDis
     List<TsukiDiscussionComment> findByPost_IdAndStatus(Long postId, String status);
     List<TsukiDiscussionComment> findByStatus(String status);
 }
-

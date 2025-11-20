@@ -74,24 +74,18 @@
                 <p v-if="post._loadingComments" class="muted">正在加载评论...</p>
 
                 <template v-else>
-                  <ul v-if="post._comments.length" class="comments__list">
+                  <ul v-if="post._commentTree.length" class="comments__list">
                     <li
-                      v-for="comment in post._comments"
+                      v-for="comment in post._commentTree"
                       :key="comment.id"
                       class="comments__item"
                     >
-                      <p class="comment-meta">
-                        {{ comment.authorUsername || '用户' }} ·
-                        {{ formatDate(comment.createdAt) }}
-                      </p>
-                      <p>{{ comment.sanitizedContent || comment.content }}</p>
-                      <button
-                        class="comment-reply"
-                        type="button"
-                        @click="startReply(post, comment)"
-                      >
-                        回复
-                      </button>
+                      <CommentNode
+                        :comment="comment"
+                        :level="0"
+                        :format-date="formatDate"
+                        @reply="startReply(post, $event)"
+                      />
                     </li>
                   </ul>
                   <p v-else class="muted">暂无评论，来说两句吧～</p>
@@ -130,9 +124,10 @@
 </template>
 
 <script setup>
+import CommentNode from './StudentDiscussionsViewNode.vue';
 import { reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { get, post } from '../../api/http';
+import { get, post as httpPost } from '../../api/http';
 
 const route = useRoute();
 const router = useRouter();
@@ -169,6 +164,7 @@ async function loadDiscussions(companyId, companyName = '') {
       post._showComments = false;
       post._loadingComments = false;
       post._comments = [];
+      post._commentTree = [];
       post._newComment = '';
       post._feedback = '';
       post._feedbackType = 'info';
@@ -234,7 +230,7 @@ async function submitDiscussion() {
   if (!currentCompany.id) return;
   if (!form.title || !form.content) return;
   try {
-    await post('/portal/student/discussions', {
+    await httpPost('/portal/student/discussions', {
       companyId: currentCompany.id,
       title: form.title,
       content: form.content
@@ -264,9 +260,12 @@ async function toggleComments(post) {
   if (post._comments && post._comments.length) return;
   try {
     post._loadingComments = true;
-    post._comments = await get(`/public/discussions/${post.id}/comments`);
+    const flat = await get(`/public/discussions/${post.id}/comments`);
+    post._comments = flat;
+    post._commentTree = buildCommentTree(flat);
   } catch {
     post._comments = [];
+    post._commentTree = [];
   } finally {
     post._loadingComments = false;
   }
@@ -283,19 +282,20 @@ async function submitComment(post) {
         ? `回复 @${post._replyTo.authorUsername}: ${base}`
         : base;
 
-    await post('/portal/student/discussions/' + post.id + '/comments', {
+    await httpPost('/portal/student/discussions/' + post.id + '/comments', {
       postId: post.id,
-      content
+      content,
+      parentCommentId: post._replyTo ? post._replyTo.id : null
     });
     post._newComment = '';
     post._replyTo = null;
     post._feedback = '已提交评论，待审核通过后可见';
     post._feedbackType = 'success';
     try {
-      post._comments = await get(`/public/discussions/${post.id}/comments`);
-    } catch {
-      // ignore refresh error
-    }
+      const flat = await get(`/public/discussions/${post.id}/comments`);
+      post._comments = flat;
+      post._commentTree = buildCommentTree(flat);
+    } catch {}
   } catch (error) {
     post._feedback = error.message ?? '发表评论失败';
     post._feedbackType = 'error';
@@ -311,6 +311,29 @@ function startReply(post, comment) {
 function cancelReply(post) {
   post._replyTo = null;
   post._newComment = '';
+}
+
+function buildCommentTree(list) {
+  const map = new Map();
+  const roots = [];
+  list.forEach(c => {
+    c.replies = [];
+    map.set(c.id, c);
+  });
+  list.forEach(c => {
+    const parentId = c.parentCommentId || c.parent_comment_id || null;
+    if (parentId) {
+      const parent = map.get(parentId);
+      if (parent) {
+        parent.replies.push(c);
+      } else {
+        roots.push(c);
+      }
+    } else {
+      roots.push(c);
+    }
+  });
+  return roots;
 }
 
 watch(
@@ -443,4 +466,3 @@ watch(
   flex: 1;
 }
 </style>
-

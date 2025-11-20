@@ -41,6 +41,10 @@ public class TsukiDiscussionComment {
     private TsukiUser author;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_comment_id")
+    private TsukiDiscussionComment parent;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reviewer_id")
     private TsukiAdmin reviewer;
 
@@ -77,4 +81,3 @@ public class TsukiDiscussionComment {
         this.updatedAt = LocalDateTime.now();
     }
 }
-

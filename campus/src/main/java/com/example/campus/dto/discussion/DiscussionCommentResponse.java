@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 public record DiscussionCommentResponse(
         Long id,
         Long postId,
+        Long parentCommentId,
         Long authorUserId,
         String authorUsername,
         String content,
@@ -17,4 +18,3 @@ public record DiscussionCommentResponse(
         LocalDateTime createdAt,
         LocalDateTime updatedAt) {
 }
-

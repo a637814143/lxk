@@ -40,8 +40,8 @@ public class DiscussionService {
 
     /**
      * 发布讨论时使用敏感词过滤：
-     * - 如未命中敏感词，状态直接设为 approved，自动对外展示；
-     * - 如命中敏感词，状态设为 pending，并在 reviewComment 中标记“检测到敏感词，待审核”，等待管理员复核。
+     * - 未命中敏感词：状态直接设为 approved，自动对外展示；
+     * - 命中敏感词：状态设为 pending，并在 reviewComment 中标记“检测到敏感词，待审核”，等待管理员复核。
      */
     @Transactional
     public DiscussionResponse create(Long authorUserId, DiscussionCreateRequest request) {
@@ -123,8 +123,8 @@ public class DiscussionService {
 
     /**
      * 评论同样做敏感词过滤，逻辑与发帖一致：
-     * - 未命中敏感词：直接 approved；
-     * - 命中敏感词：pending + “检测到敏感词，待审核”。
+     * - 未命中敏感词：直接 approved
+     * - 命中敏感词：pending + “检测到敏感词，待审核”
      */
     @Transactional
     public DiscussionCommentResponse createComment(Long authorUserId, DiscussionCommentCreateRequest request) {
@@ -138,9 +138,19 @@ public class DiscussionService {
         String status = flagged ? "pending" : "approved";
         String reviewComment = flagged ? "检测到敏感词，待审核" : null;
 
+        TsukiDiscussionComment parent = null;
+        if (request.parentCommentId() != null) {
+            parent = commentRepository.findById(request.parentCommentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("未找到父评论内容"));
+            if (!parent.getPost().getId().equals(post.getId())) {
+                throw new IllegalArgumentException("父评论不属于当前讨论帖");
+            }
+        }
+
         TsukiDiscussionComment comment = TsukiDiscussionComment.builder()
                 .post(post)
                 .author(author)
+                .parent(parent)
                 .content(request.content())
                 .sanitizedContent(contentResult.content())
                 .status(status)
@@ -169,7 +179,7 @@ public class DiscussionService {
         comment.setReviewer(admin);
         comment.setReviewComment(request.comment());
         comment.setReviewTime(LocalDateTime.now());
-        return toCommentResponse(comment);
+        return toCommentResponse(commentRepository.save(comment));
     }
 
     private String normalizeStatus(String raw) {
@@ -207,6 +217,7 @@ public class DiscussionService {
         return new DiscussionCommentResponse(
                 c.getId(),
                 c.getPost() != null ? c.getPost().getId() : null,
+                c.getParent() != null ? c.getParent().getId() : null,
                 c.getAuthor() != null ? c.getAuthor().getId() : null,
                 c.getAuthor() != null ? c.getAuthor().getUsername() : null,
                 c.getContent(),

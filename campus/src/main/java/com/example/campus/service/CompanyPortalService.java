@@ -7,6 +7,8 @@ import com.example.campus.dto.company.CompanyResponse;
 import com.example.campus.dto.company.CompanyUpdateRequest;
 import com.example.campus.dto.discussion.DiscussionCreateRequest;
 import com.example.campus.dto.discussion.DiscussionResponse;
+import com.example.campus.dto.discussion.DiscussionCommentCreateRequest;
+import com.example.campus.dto.discussion.DiscussionCommentResponse;
 import com.example.campus.dto.finance.FinancialTransactionResponse;
 import com.example.campus.dto.job.JobCreateRequest;
 import com.example.campus.dto.job.JobResponse;
@@ -167,6 +169,12 @@ public class CompanyPortalService {
     public DiscussionResponse createDiscussion(Long userId, DiscussionCreateRequest request) {
         requireApprovedAndActivatedCompany(userId);
         return discussionService.create(userId, request);
+    }
+
+    @Transactional
+    public DiscussionCommentResponse createDiscussionComment(Long userId, DiscussionCommentCreateRequest request) {
+        requireApprovedAndActivatedCompany(userId);
+        return discussionService.createComment(userId, request);
     }
 
     @Transactional(readOnly = true)

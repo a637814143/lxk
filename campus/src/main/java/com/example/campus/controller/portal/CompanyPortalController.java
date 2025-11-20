@@ -5,6 +5,8 @@ import com.example.campus.dto.company.CompanyResponse;
 import com.example.campus.dto.application.ApplicationResponse;
 import com.example.campus.dto.discussion.DiscussionCreateRequest;
 import com.example.campus.dto.discussion.DiscussionResponse;
+import com.example.campus.dto.discussion.DiscussionCommentCreateRequest;
+import com.example.campus.dto.discussion.DiscussionCommentResponse;
 import com.example.campus.dto.finance.FinancialTransactionResponse;
 import com.example.campus.dto.job.JobResponse;
 import com.example.campus.dto.portal.company.ApplicationStatusRequest;
@@ -124,6 +126,14 @@ public class CompanyPortalController {
         // 公司端创建时，忽略外部传入的 companyId，固定发到本企业
         DiscussionCreateRequest effective = new DiscussionCreateRequest(null, request.title(), request.content());
         return companyPortalService.createDiscussion(principal.getUserId(), effective);
+    }
+
+    @PostMapping("/discussions/{postId}/comments")
+    public DiscussionCommentResponse createDiscussionComment(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long postId, @Valid @RequestBody DiscussionCommentCreateRequest request) {
+        DiscussionCommentCreateRequest effective =
+                new DiscussionCommentCreateRequest(postId, request.parentCommentId(), request.content());
+        return companyPortalService.createDiscussionComment(principal.getUserId(), effective);
     }
 
     @GetMapping("/messages/unread-count")
