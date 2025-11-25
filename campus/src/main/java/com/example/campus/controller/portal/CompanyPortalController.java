@@ -16,6 +16,7 @@ import com.example.campus.dto.portal.company.CompanyInviteVerifyRequest;
 import com.example.campus.dto.portal.company.CompanySubscriptionRequest;
 import com.example.campus.dto.portal.company.CompanyTransactionRequest;
 import com.example.campus.dto.portal.company.JobStatusUpdateRequest;
+import com.example.campus.dto.portal.company.CompanyRechargeRequest;
 import com.example.campus.dto.wallet.WalletSummaryResponse;
 import com.example.campus.security.UserPrincipal;
 import com.example.campus.service.CompanyPortalService;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -115,6 +117,12 @@ public class CompanyPortalController {
         return companyPortalService.purchaseSubscription(principal.getUserId(), request);
     }
 
+    @PostMapping("/wallet/recharge")
+    public FinancialTransactionResponse rechargeWallet(@AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody CompanyRechargeRequest request) {
+        return companyPortalService.rechargeWallet(principal.getUserId(), request);
+    }
+
     @GetMapping("/discussions")
     public List<DiscussionResponse> listDiscussions(@AuthenticationPrincipal UserPrincipal principal) {
         return companyPortalService.listDiscussions(principal.getUserId());
@@ -128,12 +136,40 @@ public class CompanyPortalController {
         return companyPortalService.createDiscussion(principal.getUserId(), effective);
     }
 
+    @PutMapping("/discussions/{discussionId}")
+    public DiscussionResponse updateDiscussion(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long discussionId, @Valid @RequestBody DiscussionCreateRequest request) {
+        DiscussionCreateRequest effective = new DiscussionCreateRequest(null, request.title(), request.content());
+        return companyPortalService.updateDiscussion(principal.getUserId(), discussionId, effective);
+    }
+
+    @DeleteMapping("/discussions/{discussionId}")
+    public void deleteDiscussion(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long discussionId) {
+        companyPortalService.deleteDiscussion(principal.getUserId(), discussionId);
+    }
+
     @PostMapping("/discussions/{postId}/comments")
     public DiscussionCommentResponse createDiscussionComment(@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long postId, @Valid @RequestBody DiscussionCommentCreateRequest request) {
         DiscussionCommentCreateRequest effective =
                 new DiscussionCommentCreateRequest(postId, request.parentCommentId(), request.content());
         return companyPortalService.createDiscussionComment(principal.getUserId(), effective);
+    }
+
+    @PatchMapping("/discussions/{postId}/comments/{commentId}")
+    public DiscussionCommentResponse updateDiscussionComment(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long postId, @PathVariable Long commentId,
+            @Valid @RequestBody DiscussionCommentCreateRequest request) {
+        DiscussionCommentCreateRequest effective =
+                new DiscussionCommentCreateRequest(postId, request.parentCommentId(), request.content());
+        return companyPortalService.updateDiscussionComment(principal.getUserId(), commentId, effective);
+    }
+
+    @DeleteMapping("/discussions/{postId}/comments/{commentId}")
+    public void deleteDiscussionComment(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long postId, @PathVariable Long commentId) {
+        companyPortalService.deleteDiscussionComment(principal.getUserId(), commentId);
     }
 
     @GetMapping("/messages/unread-count")

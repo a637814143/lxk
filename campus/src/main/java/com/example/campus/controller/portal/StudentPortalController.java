@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -133,6 +134,17 @@ public class StudentPortalController {
         return studentPortalService.createDiscussion(principal.getUserId(), request);
     }
 
+    @PutMapping("/discussions/{discussionId}")
+    public DiscussionResponse updateDiscussion(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long discussionId, @Valid @RequestBody DiscussionCreateRequest request) {
+        return studentPortalService.updateDiscussion(principal.getUserId(), discussionId, request);
+    }
+
+    @DeleteMapping("/discussions/{discussionId}")
+    public void deleteDiscussion(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long discussionId) {
+        studentPortalService.deleteDiscussion(principal.getUserId(), discussionId);
+    }
+
     @PostMapping("/discussions/{postId}/comments")
     public DiscussionCommentResponse createComment(@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long postId, @Valid @RequestBody DiscussionCommentCreateRequest request) {
@@ -141,5 +153,19 @@ public class StudentPortalController {
                 new DiscussionCommentCreateRequest(postId, request.parentCommentId(), request.content());
         return studentPortalService.createComment(principal.getUserId(), effective);
     }
-}
 
+    @PatchMapping("/discussions/{postId}/comments/{commentId}")
+    public DiscussionCommentResponse updateComment(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long postId, @PathVariable Long commentId,
+            @Valid @RequestBody DiscussionCommentCreateRequest request) {
+        DiscussionCommentCreateRequest effective =
+                new DiscussionCommentCreateRequest(postId, request.parentCommentId(), request.content());
+        return studentPortalService.updateComment(principal.getUserId(), commentId, effective);
+    }
+
+    @DeleteMapping("/discussions/{postId}/comments/{commentId}")
+    public void deleteComment(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long postId, @PathVariable Long commentId) {
+        studentPortalService.deleteComment(principal.getUserId(), commentId);
+    }
+}

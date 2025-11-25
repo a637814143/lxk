@@ -71,15 +71,32 @@ public class AdminPortalController {
         return adminPortalService.listPendingDiscussions();
     }
 
+    @GetMapping("/discussions")
+    public List<DiscussionResponse> listDiscussions(@RequestParam(required = false) String status) {
+        return adminPortalService.listDiscussions(status);
+    }
+
     @PostMapping("/discussions/{discussionId}/review")
     public DiscussionResponse reviewDiscussion(@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long discussionId, @Valid @RequestBody DiscussionReviewRequest request) {
         return adminPortalService.reviewDiscussion(principal.getUserId(), discussionId, request);
     }
 
+    @DeleteMapping("/discussions/{discussionId}")
+    public void deleteDiscussion(@AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable Long discussionId) {
+        adminPortalService.deleteDiscussion(principal.getUserId(), discussionId);
+    }
+
     @GetMapping("/discussions/comments/pending")
     public java.util.List<DiscussionCommentResponse> listPendingComments() {
         return adminPortalService.listPendingDiscussionComments();
+    }
+
+    @GetMapping("/discussions/comments")
+    public java.util.List<DiscussionCommentResponse> listComments(
+            @RequestParam(required = false) String status) {
+        return adminPortalService.listDiscussionComments(status);
     }
 
     @PostMapping("/discussions/comments/{commentId}/review")

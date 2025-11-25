@@ -5,7 +5,7 @@
       <button class="outline" @click="loadDiscussions">刷新</button>
     </div>
 
-    <form class="form-grid" @submit.prevent="createDiscussion">
+    <form class="form-grid" @submit.prevent="submitDiscussion">
       <label class="full">
         讨论主题
         <input v-model="discussionForm.title" required maxlength="100" />
@@ -15,7 +15,9 @@
         <textarea v-model="discussionForm.content" required maxlength="1000"></textarea>
       </label>
       <div class="full actions">
-        <button class="primary" type="submit">提交审核</button>
+        <button class="primary" type="submit">
+          {{ editingPostId ? '保存修改' : '提交审核' }}
+        </button>
         <button class="outline" type="button" @click="resetDiscussionForm">清空</button>
       </div>
     </form>
@@ -29,6 +31,10 @@
           </p>
           <p>{{ post.sanitizedContent || post.content }}</p>
           <p v-if="post.reviewComment" class="muted">审核备注：{{ post.reviewComment }}</p>
+          <div v-if="isOwnPost(post)" class="post-actions">
+            <button class="outline" type="button" @click="startEditPost(post)">编辑帖子</button>
+            <button class="outline" type="button" @click="deletePost(post)">删除帖子</button>
+          </div>
         </div>
 
         <div class="comments">
@@ -47,24 +53,30 @@
                     :level="0"
                     :format-date="formatDate"
                     @reply="startReply(post, $event)"
+                    @edit="startEditComment(post, $event)"
+                    @delete="deleteComment(post, $event)"
                   />
                 </li>
               </ul>
-              <p v-else class="muted">暂无评论，欢迎与学生交流～</p>
+              <p v-else class="muted">暂无评论，欢迎与学生交流。</p>
 
               <div class="comments__editor">
                 <input
                   v-model="post._newComment"
-                  :placeholder="post._replyTo ? `回复 @${post._replyTo.authorUsername}` : '发表你的看法...'"
+                  :placeholder="
+                    post._replyTo
+                      ? `回复 @${post._replyTo.authorUsername}`
+                      : '发表你的看法...'
+                  "
                 />
-                <button class="primary" type="button" @click="submitComment(post)">发送</button>
+                <button class="primary" type="button" @click="submitComment(post)">发表</button>
                 <button
-                  v-if="post._replyTo"
+                  v-if="post._replyTo || post._editTarget"
                   class="outline"
                   type="button"
                   @click="cancelReply(post)"
                 >
-                  取消回复
+                  取消
                 </button>
               </div>
 
@@ -81,56 +93,77 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
-import { get, post as httpPost } from '../../api/http';
+import { inject, onMounted, reactive, ref } from 'vue';
+import {
+  get,
+  post as httpPost,
+  patch as httpPatch,
+  del as httpDelete,
+  put as httpPut
+} from '../../api/http';
 import { useToast } from '../../ui/toast';
 import CommentNode from '../student/StudentDiscussionsViewNode.vue';
 
 const discussions = ref([]);
 const discussionForm = reactive({ title: '', content: '' });
 const toast = useToast();
+const authInfo = inject('authInfo', null);
+const editingPostId = ref(null);
 
 onMounted(loadDiscussions);
 
 async function loadDiscussions() {
   try {
     const data = await get('/portal/company/discussions');
-    discussions.value = data.map(post => ({
-      ...post,
-      _showComments: false,
-      _loadingComments: false,
-      _comments: [],
-      _commentTree: [],
-      _newComment: '',
-      _feedback: '',
-      _feedbackType: 'info',
-      _replyTo: null
-    }));
+    discussions.value = data
+      .filter(post => (post.status || '').toLowerCase() !== 'deleted')
+      .map(post => ({
+        ...post,
+        _showComments: false,
+        _loadingComments: false,
+        _comments: [],
+        _commentTree: [],
+        _newComment: '',
+        _feedback: '',
+        _feedbackType: 'info',
+        _replyTo: null,
+        _editTarget: null
+      }));
   } catch (error) {
     toast.error(error.message ?? '加载讨论内容失败');
   }
 }
 
-async function createDiscussion() {
+async function submitDiscussion() {
   if (!discussionForm.title || !discussionForm.content) {
     toast.error('请填写讨论主题和内容');
     return;
   }
   try {
-    const created = await httpPost('/portal/company/discussions', discussionForm);
-    discussions.value.unshift({
-      ...created,
-      _showComments: false,
-      _loadingComments: false,
-      _comments: [],
-      _commentTree: [],
-      _newComment: '',
-      _feedback: '',
-      _feedbackType: 'info',
-      _replyTo: null
-    });
-    toast.success('讨论已提交审核');
+    if (editingPostId.value) {
+      await httpPut(`/portal/company/discussions/${editingPostId.value}`, {
+        title: discussionForm.title,
+        content: discussionForm.content,
+        companyId: null
+      });
+      toast.success('帖子已更新');
+    } else {
+      const created = await httpPost('/portal/company/discussions', discussionForm);
+      if (
+        created?.status?.toLowerCase?.() === 'pending' &&
+        typeof created?.reviewComment === 'string' &&
+        created.reviewComment.includes('敏感词')
+      ) {
+        toast.error(
+          '发布内容包含敏感词，系统已自动将敏感词替换为“*”，并标记为违规，待管理员审核。'
+        );
+      } else {
+        toast.success('讨论已提交审核');
+      }
+    }
     resetDiscussionForm();
+    editingPostId.value = null;
+    await loadDiscussions();
   } catch (error) {
     toast.error(error.message ?? '提交讨论失败');
   }
@@ -139,6 +172,7 @@ async function createDiscussion() {
 function resetDiscussionForm() {
   discussionForm.title = '';
   discussionForm.content = '';
+  editingPostId.value = null;
 }
 
 function translateStatus(status) {
@@ -149,6 +183,8 @@ function translateStatus(status) {
       return '已驳回';
     case 'pending':
       return '待审核';
+    case 'deleted':
+      return '已删除';
     default:
       return status || '-';
   }
@@ -167,6 +203,7 @@ async function toggleComments(post) {
   post._feedback = '';
   post._feedbackType = 'info';
   post._replyTo = null;
+  post._editTarget = null;
   if (post._comments && post._comments.length) {
     return;
   }
@@ -185,6 +222,37 @@ async function toggleComments(post) {
 
 async function submitComment(post) {
   if (!post._newComment || !post.id) return;
+
+  // 编辑已有评论
+  if (post._editTarget) {
+    const baseEdit = post._newComment.trim();
+    if (!baseEdit) return;
+    try {
+      await httpPatch(`/portal/company/discussions/${post.id}/comments/${post._editTarget.id}`, {
+        postId: post.id,
+        content: baseEdit,
+        parentCommentId: post._editTarget.parentCommentId ?? null
+      });
+      post._newComment = '';
+      post._replyTo = null;
+      post._editTarget = null;
+      post._feedback =
+        '评论已更新，如包含敏感词系统会自动替换为“*”，并标记为违规等待管理员审核。';
+      post._feedbackType = 'success';
+      try {
+        const flatAfterEdit = await get(`/public/discussions/${post.id}/comments`);
+        post._comments = flatAfterEdit;
+        post._commentTree = buildCommentTree(flatAfterEdit);
+      } catch {
+        // ignore
+      }
+    } catch (error) {
+      post._feedback = error.message ?? '更新评论失败';
+      post._feedbackType = 'error';
+    }
+    return;
+  }
+
   const base = post._newComment.trim();
   if (!base) return;
 
@@ -194,15 +262,24 @@ async function submitComment(post) {
       : base;
 
   try {
-    await httpPost(`/portal/company/discussions/${post.id}/comments`, {
+    const created = await httpPost(`/portal/company/discussions/${post.id}/comments`, {
       postId: post.id,
       content,
       parentCommentId: post._replyTo ? post._replyTo.id : null
     });
     post._newComment = '';
     post._replyTo = null;
-    post._feedback = '已提交评论，待审核通过后可见';
+    post._feedback = '已提交评论，待审核通过后可见。';
     post._feedbackType = 'success';
+    if (
+      created?.status?.toLowerCase?.() === 'pending' &&
+      typeof created?.reviewComment === 'string' &&
+      created.reviewComment.includes('敏感词')
+    ) {
+      post._feedback =
+        '评论包含敏感词，系统已自动将敏感词替换为“*”，并标记为违规，待管理员审核。';
+      post._feedbackType = 'error';
+    }
     try {
       const flat = await get(`/public/discussions/${post.id}/comments`);
       post._comments = flat;
@@ -218,6 +295,7 @@ async function submitComment(post) {
 
 function startReply(post, comment) {
   post._replyTo = comment;
+  post._editTarget = null;
   post._newComment = '';
   post._feedback = '';
 }
@@ -225,6 +303,34 @@ function startReply(post, comment) {
 function cancelReply(post) {
   post._replyTo = null;
   post._newComment = '';
+  post._editTarget = null;
+}
+
+function startEditComment(post, comment) {
+  post._editTarget = comment;
+  post._replyTo = null;
+  post._newComment = comment.content || '';
+  post._feedback = '';
+}
+
+async function deleteComment(post, comment) {
+  if (!comment || !comment.id) return;
+  if (!confirm('确定要删除该评论吗？')) return;
+  try {
+    await httpDelete(`/portal/company/discussions/${post.id}/comments/${comment.id}`);
+    post._feedback = '评论已删除。';
+    post._feedbackType = 'success';
+    try {
+      const flat = await get(`/public/discussions/${post.id}/comments`);
+      post._comments = flat;
+      post._commentTree = buildCommentTree(flat);
+    } catch {
+      // ignore refresh error
+    }
+  } catch (error) {
+    post._feedback = error.message ?? '删除评论失败';
+    post._feedbackType = 'error';
+  }
 }
 
 function buildCommentTree(list) {
@@ -249,6 +355,32 @@ function buildCommentTree(list) {
   });
   return roots;
 }
+
+function isOwnPost(post) {
+  return authInfo && post && post.authorId && authInfo.userId === post.authorId;
+}
+
+function startEditPost(post) {
+  if (!isOwnPost(post)) return;
+  editingPostId.value = post.id;
+  discussionForm.title = post.title || '';
+  discussionForm.content = post.content || '';
+}
+
+async function deletePost(post) {
+  if (!isOwnPost(post)) return;
+  if (!confirm('确定要删除该帖子吗？')) return;
+  try {
+    await httpDelete(`/portal/company/discussions/${post.id}`);
+    toast.success('帖子已删除');
+    if (editingPostId.value === post.id) {
+      resetDiscussionForm();
+    }
+    await loadDiscussions();
+  } catch (error) {
+    toast.error(error.message ?? '删除帖子失败');
+  }
+}
 </script>
 
 <style scoped>
@@ -271,6 +403,12 @@ function buildCommentTree(list) {
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   background: #fff;
+}
+
+.post-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
 }
 
 .comments {
@@ -312,3 +450,4 @@ function buildCommentTree(list) {
   flex: 1;
 }
 </style>
+

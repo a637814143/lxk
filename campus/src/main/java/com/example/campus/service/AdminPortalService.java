@@ -169,14 +169,30 @@ public class AdminPortalService {
         return discussionService.findPending();
     }
 
+    @Transactional(readOnly = true)
+    public List<DiscussionResponse> listDiscussions(String status) {
+        return discussionService.findByStatusForAdmin(status);
+    }
+
     @Transactional
     public DiscussionResponse reviewDiscussion(Long adminUserId, Long discussionId, DiscussionReviewRequest request) {
         return discussionService.review(adminUserId, discussionId, request);
     }
 
+    @Transactional
+    public void deleteDiscussion(Long adminUserId, Long discussionId) {
+        discussionService.adminDeletePost(adminUserId, discussionId);
+    }
+
     @Transactional(readOnly = true)
     public java.util.List<com.example.campus.dto.discussion.DiscussionCommentResponse> listPendingDiscussionComments() {
         return discussionService.findPendingComments();
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<com.example.campus.dto.discussion.DiscussionCommentResponse> listDiscussionComments(
+            String status) {
+        return discussionService.findCommentsByStatus(status);
     }
 
     @Transactional

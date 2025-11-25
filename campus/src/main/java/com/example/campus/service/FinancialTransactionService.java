@@ -5,6 +5,7 @@ import com.example.campus.dto.finance.FinancialTransactionResponse;
 import com.example.campus.dto.finance.FinancialTransactionStatusRequest;
 import com.example.campus.dto.portal.company.CompanySubscriptionRequest;
 import com.example.campus.dto.portal.company.CompanyTransactionRequest;
+import com.example.campus.dto.portal.company.CompanyRechargeRequest;
 import com.example.campus.entity.TsukiAdmin;
 import com.example.campus.entity.TsukiCompany;
 import com.example.campus.entity.TsukiFinancialTransaction;
@@ -126,6 +127,31 @@ public class FinancialTransactionService {
                 .status("completed")
                 .reference(request.reference())
                 .notes(notes)
+                .build();
+        transaction = transactionRepository.save(transaction);
+        applyWalletAdjustment(transaction);
+        return toResponse(transaction);
+    }
+
+    /**
+     * 企业虚拟充值：直接将指定金额划入企业钱包，用于测试/演示。
+     */
+    @Transactional
+    public FinancialTransactionResponse rechargeByCompany(Long companyUserId, CompanyRechargeRequest request) {
+        TsukiCompany company = companyRepository.findByUser_Id(companyUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("请先完善企业资料"));
+        BigDecimal amount = request.amount();
+        if (amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException("充值金额必须大于0");
+        }
+        TsukiFinancialTransaction transaction = TsukiFinancialTransaction.builder()
+                .company(company)
+                .amount(amount.setScale(2, RoundingMode.HALF_UP))
+                .currency(resolveCurrency(request.currency()))
+                .type("recharge")
+                .status("completed")
+                .reference(request.reference())
+                .notes(request.note())
                 .build();
         transaction = transactionRepository.save(transaction);
         applyWalletAdjustment(transaction);

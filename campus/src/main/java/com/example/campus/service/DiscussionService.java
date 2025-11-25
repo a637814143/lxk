@@ -93,6 +93,24 @@ public class DiscussionService {
                 .toList();
     }
 
+    /**
+     * 管理员查看帖子列表：
+     * - status 为空或 all：返回全部帖子；
+     * - 否则按状态精确过滤（例如 approved / pending / rejected / deleted）。
+     */
+    @Transactional(readOnly = true)
+    public List<DiscussionResponse> findByStatusForAdmin(String status) {
+        List<TsukiDiscussionPost> posts;
+        if (!StringUtils.hasText(status) || "all".equalsIgnoreCase(status)) {
+            posts = discussionRepository.findAll();
+        } else {
+            posts = discussionRepository.findByStatus(status);
+        }
+        return posts.stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     @Transactional
     public DiscussionResponse review(Long adminUserId, Long discussionId, DiscussionReviewRequest request) {
         TsukiAdmin admin = adminRepository.findByUser_Id(adminUserId)
@@ -105,6 +123,77 @@ public class DiscussionService {
         post.setReviewComment(request.comment());
         post.setReviewTime(LocalDateTime.now());
         return toResponse(discussionRepository.save(post));
+    }
+
+    /**
+     * 用户编辑自己的帖子：
+     * - 只允许作者本人操作；
+     * - 再次走敏感词过滤逻辑；
+     * - 命中敏感词：pending + 审核说明；未命中：直接 approved。
+     */
+    @Transactional
+    public DiscussionResponse updatePost(Long authorUserId, Long discussionId, DiscussionCreateRequest request) {
+        TsukiDiscussionPost post = discussionRepository.findById(discussionId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到讨论内容"));
+        if (post.getAuthor() == null || !post.getAuthor().getId().equals(authorUserId)) {
+            throw new IllegalArgumentException("只能修改自己的帖子");
+        }
+
+        SensitiveWordFilter.Result contentResult = sensitiveWordFilter.sanitize(request.content());
+        boolean flagged = contentResult.flagged();
+        String status = flagged ? "pending" : "approved";
+        String reviewComment = flagged ? "检测到敏感词，待审核" : null;
+
+        post.setTitle(request.title());
+        post.setContent(request.content());
+        post.setSanitizedContent(contentResult.content());
+        post.setStatus(status);
+        post.setReviewer(null);
+        post.setReviewComment(reviewComment);
+        post.setReviewTime(flagged ? null : LocalDateTime.now());
+
+        return toResponse(discussionRepository.save(post));
+    }
+
+    /**
+     * 用户删除自己的帖子：采用软删除，状态标记为 deleted，内容替换为提示语。
+     */
+    @Transactional
+    public void deletePost(Long authorUserId, Long discussionId) {
+        TsukiDiscussionPost post = discussionRepository.findById(discussionId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到讨论内容"));
+        if (post.getAuthor() == null || !post.getAuthor().getId().equals(authorUserId)) {
+            throw new IllegalArgumentException("只能删除自己的帖子");
+        }
+        String placeholder = "[该讨论已被作者删除]";
+        post.setTitle(placeholder);
+        post.setContent(placeholder);
+        post.setSanitizedContent(placeholder);
+        post.setStatus("deleted");
+        post.setReviewer(null);
+        post.setReviewComment(null);
+        post.setReviewTime(LocalDateTime.now());
+        discussionRepository.save(post);
+    }
+
+    /**
+     * 管理员删除帖子：不校验作者，直接做软删除并记录审核人。
+     */
+    @Transactional
+    public void adminDeletePost(Long adminUserId, Long discussionId) {
+        TsukiAdmin admin = adminRepository.findByUser_Id(adminUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("当前账号不是系统管理员"));
+        TsukiDiscussionPost post = discussionRepository.findById(discussionId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到讨论内容"));
+        String placeholder = "[该讨论已被管理员删除]";
+        post.setTitle(placeholder);
+        post.setContent(placeholder);
+        post.setSanitizedContent(placeholder);
+        post.setStatus("deleted");
+        post.setReviewer(admin);
+        post.setReviewComment(null);
+        post.setReviewTime(LocalDateTime.now());
+        discussionRepository.save(post);
     }
 
     @Transactional(readOnly = true)
@@ -161,9 +250,83 @@ public class DiscussionService {
         return toCommentResponse(commentRepository.save(comment));
     }
 
+    /**
+     * 用户编辑自己的评论：
+     * - 只允许作者本人操作；
+     * - 再次走敏感词过滤逻辑；
+     * - 命中敏感词：pending + 审核说明；未命中：直接 approved。
+     */
+    @Transactional
+    public DiscussionCommentResponse updateComment(Long authorUserId, Long commentId,
+            DiscussionCommentCreateRequest request) {
+        TsukiDiscussionComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到评论内容"));
+        if (comment.getAuthor() == null || !comment.getAuthor().getId().equals(authorUserId)) {
+            throw new IllegalArgumentException("只能修改自己的评论");
+        }
+        // 校验评论是否属于指定帖子（如有传入）
+        if (request.postId() != null && comment.getPost() != null
+                && !comment.getPost().getId().equals(request.postId())) {
+            throw new IllegalArgumentException("评论不属于指定讨论");
+        }
+
+        SensitiveWordFilter.Result contentResult = sensitiveWordFilter.sanitize(request.content());
+        boolean flagged = contentResult.flagged();
+        String status = flagged ? "pending" : "approved";
+        String reviewComment = flagged ? "检测到敏感词，待审核" : null;
+
+        comment.setContent(request.content());
+        comment.setSanitizedContent(contentResult.content());
+        comment.setStatus(status);
+        comment.setReviewer(null);
+        comment.setReviewComment(reviewComment);
+        comment.setReviewTime(flagged ? null : LocalDateTime.now());
+
+        return toCommentResponse(commentRepository.save(comment));
+    }
+
+    /**
+     * 用户删除自己的评论：
+     * - 采用软删除：内容替换为提示语，状态标记为 deleted；
+     * - 已删除评论不再出现在公开列表（仅查询 approved 时不会返回）。
+     */
+    @Transactional
+    public void deleteComment(Long authorUserId, Long commentId) {
+        TsukiDiscussionComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到评论内容"));
+        if (comment.getAuthor() == null || !comment.getAuthor().getId().equals(authorUserId)) {
+            throw new IllegalArgumentException("只能删除自己的评论");
+        }
+        comment.setContent("[该评论已被作者删除]");
+        comment.setSanitizedContent("[该评论已被作者删除]");
+        comment.setStatus("deleted");
+        comment.setReviewer(null);
+        comment.setReviewComment(null);
+        comment.setReviewTime(LocalDateTime.now());
+        commentRepository.save(comment);
+    }
+
     @Transactional(readOnly = true)
     public List<DiscussionCommentResponse> findPendingComments() {
         return commentRepository.findByStatus("pending").stream()
+                .map(this::toCommentResponse)
+                .toList();
+    }
+
+    /**
+     * 管理员查看评论列表：
+     * - status 为空或 all：返回全部评论；
+     * - 否则按状态精确过滤（例如 approved / pending / rejected / deleted）。
+     */
+    @Transactional(readOnly = true)
+    public List<DiscussionCommentResponse> findCommentsByStatus(String status) {
+        List<TsukiDiscussionComment> list;
+        if (!StringUtils.hasText(status) || "all".equalsIgnoreCase(status)) {
+            list = commentRepository.findAll();
+        } else {
+            list = commentRepository.findByStatus(status);
+        }
+        return list.stream()
                 .map(this::toCommentResponse)
                 .toList();
     }
@@ -232,4 +395,3 @@ public class DiscussionService {
                 c.getUpdatedAt());
     }
 }
-

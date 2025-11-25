@@ -22,6 +22,7 @@ import com.example.campus.dto.portal.company.JobStatusUpdateRequest;
 import com.example.campus.dto.company.CompanyCreateRequest;
 import com.example.campus.dto.portal.company.CompanySubscriptionRequest;
 import com.example.campus.dto.portal.company.CompanyTransactionRequest;
+import com.example.campus.dto.portal.company.CompanyRechargeRequest;
 import com.example.campus.dto.wallet.WalletSummaryResponse;
 import com.example.campus.entity.TsukiApplication;
 import com.example.campus.entity.TsukiCompany;
@@ -152,6 +153,16 @@ public class CompanyPortalService {
                 wallet.getUpdatedAt());
     }
 
+    /**
+     * 企业虚拟充值：直接增加钱包余额，仅用于平台内测试/演示。
+     */
+    @Transactional
+    public FinancialTransactionResponse rechargeWallet(Long userId, CompanyRechargeRequest request) {
+        FinancialTransactionResponse response = financialTransactionService.rechargeByCompany(userId, request);
+        loadWallet(userId);
+        return response;
+    }
+
     @Transactional
     public FinancialTransactionResponse purchaseSubscription(Long userId, CompanySubscriptionRequest request) {
         FinancialTransactionResponse response = financialTransactionService.purchaseSubscription(userId, request);
@@ -172,9 +183,34 @@ public class CompanyPortalService {
     }
 
     @Transactional
+    public DiscussionResponse updateDiscussion(Long userId, Long discussionId, DiscussionCreateRequest request) {
+        requireApprovedAndActivatedCompany(userId);
+        return discussionService.updatePost(userId, discussionId, request);
+    }
+
+    @Transactional
+    public void deleteDiscussion(Long userId, Long discussionId) {
+        requireApprovedAndActivatedCompany(userId);
+        discussionService.deletePost(userId, discussionId);
+    }
+
+    @Transactional
     public DiscussionCommentResponse createDiscussionComment(Long userId, DiscussionCommentCreateRequest request) {
         requireApprovedAndActivatedCompany(userId);
         return discussionService.createComment(userId, request);
+    }
+
+    @Transactional
+    public DiscussionCommentResponse updateDiscussionComment(Long userId, Long commentId,
+            DiscussionCommentCreateRequest request) {
+        requireApprovedAndActivatedCompany(userId);
+        return discussionService.updateComment(userId, commentId, request);
+    }
+
+    @Transactional
+    public void deleteDiscussionComment(Long userId, Long commentId) {
+        requireApprovedAndActivatedCompany(userId);
+        discussionService.deleteComment(userId, commentId);
     }
 
     @Transactional(readOnly = true)

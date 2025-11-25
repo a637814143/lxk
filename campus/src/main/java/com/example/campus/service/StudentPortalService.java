@@ -191,9 +191,31 @@ public class StudentPortalService {
     }
 
     @Transactional
+    public com.example.campus.dto.discussion.DiscussionResponse updateDiscussion(Long userId, Long discussionId,
+            com.example.campus.dto.discussion.DiscussionCreateRequest request) {
+        return discussionService.updatePost(userId, discussionId, request);
+    }
+
+    @Transactional
+    public void deleteDiscussion(Long userId, Long discussionId) {
+        discussionService.deletePost(userId, discussionId);
+    }
+
+    @Transactional
     public com.example.campus.dto.discussion.DiscussionCommentResponse createComment(Long userId,
             com.example.campus.dto.discussion.DiscussionCommentCreateRequest request) {
         return discussionService.createComment(userId, request);
+    }
+
+    @Transactional
+    public com.example.campus.dto.discussion.DiscussionCommentResponse updateComment(Long userId, Long commentId,
+            com.example.campus.dto.discussion.DiscussionCommentCreateRequest request) {
+        return discussionService.updateComment(userId, commentId, request);
+    }
+
+    @Transactional
+    public void deleteComment(Long userId, Long commentId) {
+        discussionService.deleteComment(userId, commentId);
     }
 
     private TsukiStudent requireStudent(Long userId) {

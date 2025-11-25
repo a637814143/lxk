@@ -38,7 +38,7 @@
         <input v-model="form.title" placeholder="讨论标题" required />
         <textarea v-model="form.content" placeholder="讨论内容" required></textarea>
         <div class="actions">
-          <button class="primary" type="submit">发布</button>
+          <button class="primary" type="submit">{{ editingPostId ? '保存修改' : '发布' }}</button>
           <button class="outline" type="button" @click="resetForm">重置</button>
         </div>
       </form>
@@ -63,6 +63,10 @@
               <p v-if="post.reviewComment" class="muted">
                 审核备注：{{ post.reviewComment }}
               </p>
+              <div v-if="isOwnPost(post)" class="post-actions">
+                <button class="outline" type="button" @click="startEditPost(post)">编辑帖子</button>
+                <button class="outline" type="button" @click="deletePost(post)">删除帖子</button>
+              </div>
             </div>
 
             <div class="comments">
@@ -85,6 +89,8 @@
                         :level="0"
                         :format-date="formatDate"
                         @reply="startReply(post, $event)"
+                        @edit="startEditComment(post, $event)"
+                        @delete="deleteComment(post, $event)"
                       />
                     </li>
                   </ul>
@@ -125,9 +131,9 @@
 
 <script setup>
 import CommentNode from './StudentDiscussionsViewNode.vue';
-import { reactive, ref, watch } from 'vue';
+import { inject, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { get, post as httpPost } from '../../api/http';
+import { get, post as httpPost, patch as httpPatch, del as httpDelete, put as httpPut } from '../../api/http';
 
 const route = useRoute();
 const router = useRouter();
@@ -140,6 +146,8 @@ const manualCompanyId = ref('');
 const searchKeyword = ref('');
 const companySearchResults = ref([]);
 const form = reactive({ title: '', content: '' });
+const authInfo = inject('authInfo', null);
+const editingPostId = ref(null);
 
 async function loadDiscussions(companyId, companyName = '') {
   if (!companyId) {
@@ -159,17 +167,20 @@ async function loadDiscussions(companyId, companyName = '') {
   feedback.message = '';
   try {
     const data = await get(`/public/discussions/company/${companyId}`);
-    discussions.value = data;
-    discussions.value.forEach(post => {
-      post._showComments = false;
-      post._loadingComments = false;
-      post._comments = [];
-      post._commentTree = [];
-      post._newComment = '';
-      post._feedback = '';
-      post._feedbackType = 'info';
-      post._replyTo = null;
-    });
+    discussions.value = data
+      .filter(post => (post.status || '').toLowerCase() !== 'deleted')
+      .map(post => {
+        post._showComments = false;
+        post._loadingComments = false;
+        post._comments = [];
+        post._commentTree = [];
+        post._newComment = '';
+        post._feedback = '';
+        post._feedbackType = 'info';
+        post._replyTo = null;
+        post._editTarget = null;
+        return post;
+      });
     if (!data.length) {
       feedback.message = '暂无公开讨论记录';
       feedback.type = 'info';
@@ -230,7 +241,7 @@ async function submitDiscussion() {
   if (!currentCompany.id) return;
   if (!form.title || !form.content) return;
   try {
-    await httpPost('/portal/student/discussions', {
+    const created = await httpPost('/portal/student/discussions', {
       companyId: currentCompany.id,
       title: form.title,
       content: form.content
@@ -240,6 +251,15 @@ async function submitDiscussion() {
     await loadDiscussions(currentCompany.id, currentCompany.name);
     feedback.message = '提交成功，待管理员审核通过后对外展示';
     feedback.type = 'success';
+    if (
+      created?.status?.toLowerCase?.() === 'pending' &&
+      typeof created?.reviewComment === 'string' &&
+      created.reviewComment.includes('敏感词')
+    ) {
+      feedback.message =
+        '发布内容包含敏感词，系统已自动将敏感词替换为“*”，并标记为违规，待管理员审核。';
+      feedback.type = 'error';
+    }
   } catch (error) {
     feedback.message = error.message ?? '提交失败';
     feedback.type = 'error';
@@ -257,6 +277,7 @@ async function toggleComments(post) {
   post._feedback = '';
   post._feedbackType = 'info';
   post._replyTo = null;
+  post._editTarget = null;
   if (post._comments && post._comments.length) return;
   try {
     post._loadingComments = true;
@@ -273,6 +294,35 @@ async function toggleComments(post) {
 
 async function submitComment(post) {
   if (!post._newComment || !post.id) return;
+  // 编辑已有评论
+  if (post._editTarget) {
+    try {
+      const baseEdit = post._newComment.trim();
+      if (!baseEdit) return;
+      await httpPatch(`/portal/student/discussions/${post.id}/comments/${post._editTarget.id}`, {
+        postId: post.id,
+        content: baseEdit,
+        parentCommentId: post._editTarget.parentCommentId ?? null
+      });
+      post._newComment = '';
+      post._replyTo = null;
+      post._editTarget = null;
+      post._feedback =
+        '评论已更新，如包含敏感词系统会自动替换为“*”，并标记为违规等待管理员审核。';
+      post._feedbackType = 'success';
+      try {
+        const flatAfterEdit = await get(`/public/discussions/${post.id}/comments`);
+        post._comments = flatAfterEdit;
+        post._commentTree = buildCommentTree(flatAfterEdit);
+      } catch {
+        // ignore
+      }
+    } catch (error) {
+      post._feedback = error.message ?? '更新评论失败';
+      post._feedbackType = 'error';
+    }
+    return;
+  }
   try {
     const base = post._newComment.trim();
     if (!base) return;
@@ -282,7 +332,7 @@ async function submitComment(post) {
         ? `回复 @${post._replyTo.authorUsername}: ${base}`
         : base;
 
-    await httpPost('/portal/student/discussions/' + post.id + '/comments', {
+    const created = await httpPost('/portal/student/discussions/' + post.id + '/comments', {
       postId: post.id,
       content,
       parentCommentId: post._replyTo ? post._replyTo.id : null
@@ -311,6 +361,34 @@ function startReply(post, comment) {
 function cancelReply(post) {
   post._replyTo = null;
   post._newComment = '';
+  post._editTarget = null;
+}
+
+function startEditComment(post, comment) {
+  post._editTarget = comment;
+  post._replyTo = null;
+  post._newComment = comment.content || '';
+  post._feedback = '';
+}
+
+async function deleteComment(post, comment) {
+  if (!comment || !comment.id) return;
+  if (!confirm('确定要删除该评论吗？')) return;
+  try {
+    await httpDelete(`/portal/student/discussions/${post.id}/comments/${comment.id}`);
+    post._feedback = '评论已删除。';
+    post._feedbackType = 'success';
+    try {
+      const flat = await get(`/public/discussions/${post.id}/comments`);
+      post._comments = flat;
+      post._commentTree = buildCommentTree(flat);
+    } catch {
+      // ignore
+    }
+  } catch (error) {
+    post._feedback = error.message ?? '删除评论失败';
+    post._feedbackType = 'error';
+  }
 }
 
 function buildCommentTree(list) {
@@ -334,6 +412,39 @@ function buildCommentTree(list) {
     }
   });
   return roots;
+}
+
+function isOwnPost(post) {
+  return authInfo && post && post.authorId && authInfo.userId === post.authorId;
+}
+
+function startEditPost(post) {
+  if (!isOwnPost(post)) return;
+  editingPostId.value = post.id;
+  form.title = post.title || '';
+  form.content = post.content || '';
+  feedback.message = '';
+}
+
+async function deletePost(post) {
+  if (!isOwnPost(post)) return;
+  if (!confirm('确定要删除该帖子吗？')) return;
+  try {
+    await httpDelete('/portal/student/discussions/' + post.id);
+    feedback.message = '帖子已删除';
+    feedback.type = 'success';
+    if (editingPostId.value === post.id) {
+      editingPostId.value = null;
+      form.title = '';
+      form.content = '';
+    }
+    if (currentCompany.id) {
+      await loadDiscussions(currentCompany.id, currentCompany.name);
+    }
+  } catch (error) {
+    feedback.message = error.message ?? '删除帖子失败';
+    feedback.type = 'error';
+  }
 }
 
 watch(
