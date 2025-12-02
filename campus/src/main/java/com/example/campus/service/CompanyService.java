@@ -152,6 +152,7 @@ public class CompanyService {
                 inviteActivated,
                 null,
                 null,
+                null,
                 null);
     }
 

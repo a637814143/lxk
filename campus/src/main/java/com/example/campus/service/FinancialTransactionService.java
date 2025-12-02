@@ -270,6 +270,41 @@ public class FinancialTransactionService {
                     .referenceId(transaction.getId())
                     .build());
         }
+
+        if (transaction.getAdmin() == null && signedAmount.signum() < 0) {
+            TsukiAdmin admin = adminRepository.findFirstByOrderByIdAsc()
+                    .orElseThrow(() -> new IllegalStateException("系统尚未配置管理员账户，无法记录扣款收入"));
+            String mirrorRef = "company-" + company.getId() + "-" + transaction.getType() + "-mirror";
+            String notes = transaction.getNotes() != null ? transaction.getNotes() : "";
+            TsukiFinancialTransaction adminRecord = TsukiFinancialTransaction.builder()
+                    .company(company)
+                    .admin(admin)
+                    .amount(transaction.getAmount())
+                    .currency(resolveCurrency(transaction.getCurrency()))
+                    .type(transaction.getType())
+                    .status(transaction.getStatus())
+                    .reference(mirrorRef)
+                    .notes("自动生成 · 企业扣款收入 · " + notes)
+                    .build();
+            adminRecord = transactionRepository.save(adminRecord);
+
+            TsukiWallet adminWallet = walletRepository.findByOwnerIdAndOwnerType(admin.getId(), "admin")
+                    .orElseGet(() -> walletRepository.save(TsukiWallet.builder()
+                            .ownerId(admin.getId())
+                            .ownerType("admin")
+                            .balance(BigDecimal.ZERO)
+                            .build()));
+            adminWallet.setBalance(adminWallet.getBalance().add(transaction.getAmount()));
+            walletRepository.save(adminWallet);
+
+            walletTransactionRepository.save(TsukiWalletTransaction.builder()
+                    .wallet(adminWallet)
+                    .amount(transaction.getAmount())
+                    .type("recharge")
+                    .description(adminRecord.getNotes())
+                    .referenceId(adminRecord.getId())
+                    .build());
+        }
     }
 
     private BigDecimal resolveSignedAmount(String transactionType, BigDecimal amount) {

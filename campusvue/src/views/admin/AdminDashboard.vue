@@ -59,8 +59,6 @@ const loadingWallet = ref(false);
 const navItems = [
   { route: 'admin-overview', label: '平台概览' },
   { route: 'admin-companies', label: '企业审核' },
-  // 职位审核入口已移除
-  { route: 'admin-discussions', label: '讨论审核' },
   { route: 'admin-users', label: '用户管理' },
   { route: 'admin-finance', label: '财务管理' },
   { route: 'admin-announcements', label: '公告管理' },

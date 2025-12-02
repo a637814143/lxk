@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <view class="index-page">
     <view class="bg-orb orb-one"></view>
     <view class="bg-orb orb-two"></view>
@@ -105,7 +105,7 @@
       <view class="section-header">
         <view>
           <text class="section-title">成长路径</text>
-          <text class="section-subtitle">跟随步骤，轻松完成校园求职</text>
+          <text class="section-subtitle">跟随步阶，轻松完成校园求职</text>
         </view>
         <view class="pill ghost">智能记录进度</view>
       </view>
@@ -146,12 +146,12 @@ export default {
         {
           title: '简历快速美化',
           desc: '导入模板，10 分钟打造亮眼简历',
-          icon: '✨',
+          icon: '📝',
           gradient: 'linear-gradient(135deg, #fbbf24, #f97316)',
           tip: 'AI 辅助'
         },
         {
-          title: '宣讲会日历',
+          title: '宣讲会日程',
           desc: '不错过每一次校园宣讲与笔试',
           icon: '📅',
           gradient: 'linear-gradient(135deg, #34d399, #059669)',
@@ -160,7 +160,7 @@ export default {
         {
           title: '投递进度追踪',
           desc: '实时掌握面试进展与反馈',
-          icon: '🛰️',
+          icon: '📊',
           gradient: 'linear-gradient(135deg, #a78bfa, #6d28d9)',
           tip: '秒级更新'
         }
@@ -168,13 +168,13 @@ export default {
       highlights: [
         { title: '热门岗位推荐', desc: '前端 / 数据 / 产品 3 个高匹配岗位', color: '#60a5fa' },
         { title: '宣讲会提醒', desc: '今晚 19:00 未来数据 · 秋招攻略', color: '#f59e0b' },
-        { title: '简历优化建议', desc: '技能关键词覆盖率 92%，可再提升', color: '#22c55e' }
+        { title: '简历优化建议', desc: '技能关键字覆盖率 92%，可再提升', color: '#22c55e' }
       ],
       opportunities: [
         {
           type: '实习',
           title: '前端开发实习生',
-          company: '星辰科技',
+          company: '星弈科技',
           location: '上海 · 混合办公',
           time: '每周 3 天'
         },
@@ -221,7 +221,6 @@ export default {
   }
 };
 </script>
-
 <style>
 .index-page {
   position: relative;
@@ -710,3 +709,4 @@ export default {
   }
 }
 </style>
+

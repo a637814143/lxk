@@ -38,18 +38,23 @@
     </section>
 
     <div class="focus-strip">
-      <div class="focus-item">
+      <button class="focus-item" type="button" @click="go('student-jobs')">
         <span class="label">快速入口</span>
-        <p>浏览职位 / 查看投递 / 消息中心</p>
-      </div>
-      <div class="focus-item">
+        <p>新职位 {{ jobs.length || 0 }} · 待处理 {{ stats.pendingApplications }}</p>
+        <span class="mini-chip">未读 {{ stats.unreadMessages }} · 投递 {{ stats.totalApplications }}</span>
+      </button>
+      <button class="focus-item" type="button" @click="reload" :disabled="loading">
         <span class="label">安全同步</span>
-        <p>登录后自动保存最新资料与简历</p>
-      </div>
-      <div class="focus-item">
+        <p>
+          {{ syncInfo.lastSyncedAt ? '上次同步 ' + formatRelative(syncInfo.lastSyncedAt) : '首次同步，点击更新' }}
+        </p>
+        <span class="mini-chip">{{ loading ? '同步中…' : '点击刷新数据' }}</span>
+      </button>
+      <button class="focus-item" type="button" @click="openFirstHighlight">
         <span class="label">每日亮点</span>
-        <p>平台公告与讨论区精选话题</p>
-      </div>
+        <p>{{ dailyHighlights[0]?.title || '暂无亮点，稍后再看' }}</p>
+        <span class="mini-chip">亮点 {{ dailyHighlights.length || 0 }} 条</span>
+      </button>
     </div>
 
     <div class="panel-grid">
@@ -61,11 +66,39 @@
           </button>
         </div>
         <div class="actions">
-          <button class="ghost" @click="go('student-jobs')">浏览职位</button>
-          <button class="ghost" @click="go('student-applications')">查看投递</button>
-          <button class="ghost" @click="go('student-messages')">消息中心</button>
-          <button class="ghost" @click="go('student-discussions')">企业讨论</button>
+          <button
+            v-for="item in quickShortcuts"
+            :key="item.title"
+            class="ghost action-btn"
+            type="button"
+            @click="go(item.route)"
+          >
+            <div class="action-header">
+              <span class="action-title">{{ item.title }}</span>
+              <span class="chip small">{{ item.badge }}</span>
+            </div>
+            <p class="action-desc">{{ item.desc }}</p>
+          </button>
         </div>
+      </section>
+
+      <section class="card gradient daily-highlights">
+        <div class="card__title">
+          <h3>每日亮点</h3>
+          <button class="outline" type="button" @click="reload" :disabled="loading">
+            {{ loading ? '同步中…' : '刷新亮点' }}
+          </button>
+        </div>
+        <ul class="list" v-if="dailyHighlights.length">
+          <li v-for="item in dailyHighlights" :key="item.title" class="list__item">
+            <div>
+              <h4>{{ item.title }}</h4>
+              <p class="muted">{{ item.desc }}</p>
+            </div>
+            <button class="outline ghost" type="button" @click="go(item.route)">查看</button>
+          </li>
+        </ul>
+        <p v-else class="muted">暂无亮点，点击刷新获取最新推荐。</p>
       </section>
 
       <section class="card profile-card">
@@ -184,7 +217,7 @@
 </template>
 
 <script setup>
-import { inject, onMounted, reactive, ref } from 'vue';
+import { computed, inject, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { get } from '../../api/http';
 
@@ -199,6 +232,9 @@ const stats = reactive({
   unreadMessages: 0,
   resumes: 0
 });
+const syncInfo = reactive({
+  lastSyncedAt: null
+});
 
 const profile = ref(null);
 const resumes = ref([]);
@@ -206,6 +242,34 @@ const applications = ref([]);
 const jobs = ref([]);
 const announcements = ref([]);
 const recentMessages = ref([]);
+const dailyHighlights = ref([]);
+
+const quickShortcuts = computed(() => [
+  {
+    title: '浏览职位',
+    desc: `${jobs.value.length || 0} 个最新岗位，随时查看匹配度`,
+    badge: '去看看',
+    route: 'student-jobs'
+  },
+  {
+    title: '查看投递',
+    desc: `${stats.pendingApplications} 个待处理，${stats.totalApplications} 条记录`,
+    badge: '跟进进度',
+    route: 'student-applications'
+  },
+  {
+    title: '消息中心',
+    desc: `未读 ${stats.unreadMessages} 条，及时查看反馈`,
+    badge: '立即查看',
+    route: 'student-messages'
+  },
+  {
+    title: '企业讨论',
+    desc: '浏览热帖，交流实习经验与面试心得',
+    badge: '参与讨论',
+    route: 'student-discussions'
+  }
+]);
 
 function go(routeName) {
   router.push({ name: routeName });
@@ -226,6 +290,20 @@ function goLectures() {
 function formatDate(value) {
   if (!value) return '';
   return new Date(value).toLocaleString();
+}
+
+function formatRelative(value) {
+  if (!value) return '';
+  const ts = typeof value === 'number' ? value : new Date(value).getTime();
+  if (Number.isNaN(ts)) return '';
+  const diff = Math.max(0, Date.now() - ts);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return '刚刚';
+  if (mins < 60) return `${mins} 分钟前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  const days = Math.floor(hours / 24);
+  return `${days} 天前`;
 }
 
 function statusClass(status) {
@@ -267,13 +345,49 @@ async function loadJobsAndAnnouncements() {
   announcements.value = annList.slice(0, 3);
 }
 
+function buildHighlights() {
+  const list = [];
+  if (announcements.value[0]) {
+    const first = announcements.value[0];
+    list.push({
+      title: `公告：${first.title}`,
+      desc: first.content || '查看公告详情',
+      route: 'student-announcements'
+    });
+  }
+  if (jobs.value[0]) {
+    const job = jobs.value[0];
+    list.push({
+      title: `岗位：${job.jobTitle}`,
+      desc: `${job.companyName} · ${job.location || '不限'} · ${job.salaryRange || '薪资面议'}`,
+      route: 'student-jobs'
+    });
+  }
+  if (recentMessages.value[0]) {
+    const msg = recentMessages.value[0];
+    list.push({
+      title: `消息：${msg.title}`,
+      desc: msg.content || '查看消息详情',
+      route: 'student-messages'
+    });
+  }
+  dailyHighlights.value = list;
+}
+
 async function reload() {
   try {
     loading.value = true;
     await Promise.all([loadStats(), loadJobsAndAnnouncements()]);
+    buildHighlights();
+    syncInfo.lastSyncedAt = Date.now();
   } finally {
     loading.value = false;
   }
+}
+
+function openFirstHighlight() {
+  const target = dailyHighlights.value[0]?.route || 'student-announcements';
+  go(target);
 }
 
 onMounted(() => {
@@ -405,6 +519,10 @@ onMounted(() => {
 
 .focus-item {
   padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  border: none;
+  background: transparent;
 }
 
 .focus-item .label {
@@ -423,6 +541,17 @@ onMounted(() => {
   margin: 8px 0 0;
   color: #475569;
   font-weight: 600;
+}
+
+.mini-chip {
+  display: inline-flex;
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .quick-actions .actions {
@@ -444,6 +573,37 @@ onMounted(() => {
   border-color: var(--color-primary);
   box-shadow: 0 12px 28px rgba(37, 99, 235, 0.16);
   transform: translateY(-1px);
+}
+
+.action-btn {
+  flex: 1;
+  min-width: 240px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.action-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.action-desc {
+  font-size: 14px;
+  color: #475569;
+}
+
+.chip.small {
+  padding: 4px 8px;
+  font-size: 12px;
 }
 
 .card.gradient {

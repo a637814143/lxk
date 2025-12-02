@@ -20,5 +20,6 @@ public record CompanyResponse(
         Boolean inviteActivated,
         String serviceStatus,
         LocalDateTime subscriptionExpiresAt,
-        LocalDateTime trialEndsAt) {
+        LocalDateTime trialEndsAt,
+        Long serviceRemainingSeconds) {
 }

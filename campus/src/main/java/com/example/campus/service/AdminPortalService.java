@@ -1,12 +1,15 @@
 package com.example.campus.service;
 
-import com.example.campus.dto.announcement.AnnouncementResponse;
 import com.example.campus.dto.announcement.AnnouncementCreateRequest;
+import com.example.campus.dto.announcement.AnnouncementResponse;
 import com.example.campus.dto.announcement.AnnouncementUpdateRequest;
+import com.example.campus.dto.backup.BackupCreateRequest;
+import com.example.campus.dto.backup.BackupResponse;
 import com.example.campus.dto.company.CompanyInviteCreateRequest;
 import com.example.campus.dto.company.CompanyInviteResponse;
 import com.example.campus.dto.company.CompanyInviteStatusRequest;
 import com.example.campus.dto.company.CompanyResponse;
+import com.example.campus.dto.discussion.DiscussionCommentResponse;
 import com.example.campus.dto.discussion.DiscussionResponse;
 import com.example.campus.dto.discussion.DiscussionReviewRequest;
 import com.example.campus.dto.finance.FinancialTransactionRequest;
@@ -28,23 +31,22 @@ import com.example.campus.exception.ResourceNotFoundException;
 import com.example.campus.repository.TsukiAdminRepository;
 import com.example.campus.repository.TsukiApplicationRepository;
 import com.example.campus.repository.TsukiCompanyRepository;
-import com.example.campus.repository.TsukiJobRepository;
-import com.example.campus.repository.TsukiDiscussionPostRepository;
 import com.example.campus.repository.TsukiDiscussionCommentRepository;
+import com.example.campus.repository.TsukiDiscussionPostRepository;
+import com.example.campus.repository.TsukiJobRepository;
 import com.example.campus.repository.TsukiMessageRepository;
 import com.example.campus.repository.TsukiUserRepository;
 import com.example.campus.repository.TsukiWalletRepository;
-import com.example.campus.dto.backup.BackupResponse;
-import com.example.campus.dto.backup.BackupCreateRequest;
 import java.math.BigDecimal;
-import java.util.Objects;
-import java.util.LinkedHashMap;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,7 +56,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminPortalService {
 
     private static final Set<String> COMPANY_AUDIT_STATUSES = Set.of("pending", "approved", "rejected");
-    // Job audit statuses constant removed — job review workflow is disabled
 
     private final TsukiAdminRepository adminRepository;
     private final TsukiUserRepository userRepository;
@@ -86,12 +87,14 @@ public class AdminPortalService {
         long totalJobs = jobRepository.count();
         long approvedJobs = jobRepository.countByStatus("approved");
         long totalApplications = applicationRepository.count();
+
         Map<String, Long> breakdown = new LinkedHashMap<>();
-        breakdown.put("待查看", applicationRepository.countByStatus("待查看"));
-        breakdown.put("已查看", applicationRepository.countByStatus("已查看"));
+        breakdown.put("待查阅", applicationRepository.countByStatus("待查阅"));
+        breakdown.put("已查阅", applicationRepository.countByStatus("已查阅"));
         breakdown.put("面试中", applicationRepository.countByStatus("面试中"));
         breakdown.put("录用", applicationRepository.countByStatus("录用"));
         breakdown.put("拒绝", applicationRepository.countByStatus("拒绝"));
+
         long unreadMessages = messageRepository.countByReceiver_IdAndIsRead(admin.getUser().getId(), Boolean.FALSE);
         long pendingDiscussions = discussionPostRepository.countByStatus("pending");
         long pendingComments = discussionCommentRepository.countByStatus("pending");
@@ -116,7 +119,7 @@ public class AdminPortalService {
     public CompanyResponse getCompanyDetail(Long adminUserId, Long companyId) {
         requireAdmin(adminUserId);
         TsukiCompany company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new ResourceNotFoundException("未找到企业信息"));
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
         return toEnrichedResponse(company);
     }
 
@@ -136,7 +139,7 @@ public class AdminPortalService {
         return financialTransactionService.updateStatus(adminUserId, transactionId, request);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public WalletSummaryResponse loadWallet(Long adminUserId) {
         TsukiAdmin admin = requireAdmin(adminUserId);
         TsukiWallet wallet = walletRepository.findByOwnerIdAndOwnerType(admin.getId(), "admin")
@@ -169,15 +172,16 @@ public class AdminPortalService {
     public CompanyResponse reviewCompany(Long adminUserId, Long companyId, CompanyAuditRequest request) {
         TsukiAdmin admin = requireAdmin(adminUserId);
         TsukiCompany company = companyRepository.findById(companyId)
-                .orElseThrow(() -> new ResourceNotFoundException("未找到企业信息"));
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found"));
         String status = normalizeStatus(request.status(), COMPANY_AUDIT_STATUSES);
         company.setAuditStatus(status);
         company.setAuditReason(request.reason());
         companyRepository.save(company);
+
         CompanyInviteResponse invite = null;
         if ("approved".equals(status) && !companyInviteService.isCompanyActivated(company.getCompanyName())) {
             invite = companyInviteService.create(adminUserId,
-                    new CompanyInviteCreateRequest("自动生成：" + Objects.toString(company.getCompanyName(), ""),
+                    new CompanyInviteCreateRequest("Auto: " + Objects.toString(company.getCompanyName(), ""),
                             company.getCompanyName()));
         }
         if (!"pending".equals(status)) {
@@ -201,15 +205,15 @@ public class AdminPortalService {
         return companyService.findById(company.getId());
     }
 
-    // listPendingJobs removed
-
     @Transactional(readOnly = true)
-    public List<DiscussionResponse> listPendingDiscussions() {
+    public List<DiscussionResponse> listPendingDiscussions(Long adminUserId) {
+        requireAdmin(adminUserId);
         return discussionService.findPending();
     }
 
     @Transactional(readOnly = true)
-    public List<DiscussionResponse> listDiscussions(String status) {
+    public List<DiscussionResponse> listDiscussions(Long adminUserId, String status) {
+        requireAdmin(adminUserId);
         return discussionService.findByStatusForAdmin(status);
     }
 
@@ -224,19 +228,20 @@ public class AdminPortalService {
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<com.example.campus.dto.discussion.DiscussionCommentResponse> listPendingDiscussionComments() {
+    public List<DiscussionCommentResponse> listPendingDiscussionComments(Long adminUserId) {
+        requireAdmin(adminUserId);
         return discussionService.findPendingComments();
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<com.example.campus.dto.discussion.DiscussionCommentResponse> listDiscussionComments(
-            String status) {
+    public List<DiscussionCommentResponse> listDiscussionComments(Long adminUserId, String status) {
+        requireAdmin(adminUserId);
         return discussionService.findCommentsByStatus(status);
     }
 
     @Transactional
-    public com.example.campus.dto.discussion.DiscussionCommentResponse reviewDiscussionComment(Long adminUserId,
-            Long commentId, DiscussionReviewRequest request) {
+    public DiscussionCommentResponse reviewDiscussionComment(Long adminUserId, Long commentId,
+            DiscussionReviewRequest request) {
         return discussionService.reviewComment(adminUserId, commentId, request);
     }
 
@@ -244,8 +249,6 @@ public class AdminPortalService {
     public void deleteDiscussionComment(Long adminUserId, Long commentId) {
         discussionService.adminDeleteComment(adminUserId, commentId);
     }
-
-    // reviewJob removed
 
     @Transactional(readOnly = true)
     public List<UserResponse> listUsers() {
@@ -329,6 +332,10 @@ public class AdminPortalService {
         } else {
             serviceStatus = "expired";
         }
+        LocalDateTime activeUntil = resolveActiveUntil(serviceStatus, trialEndsAt, subscriptionExpiresAt);
+        long remainingSeconds = activeUntil != null && activeUntil.isAfter(now)
+                ? Duration.between(now, activeUntil).getSeconds()
+                : 0L;
         return new CompanyResponse(
                 base.id(),
                 base.userId(),
@@ -346,7 +353,8 @@ public class AdminPortalService {
                 base.inviteActivated(),
                 serviceStatus,
                 subscriptionExpiresAt,
-                trialEndsAt);
+                trialEndsAt,
+                remainingSeconds);
     }
 
     private LocalDateTime resolveTrialEndsAt(TsukiCompany company) {
@@ -360,6 +368,15 @@ public class AdminPortalService {
         return createdAt.plusHours(24);
     }
 
+    private LocalDateTime resolveActiveUntil(String serviceStatus, LocalDateTime trialEndsAt,
+            LocalDateTime subscriptionExpiresAt) {
+        return switch (serviceStatus) {
+            case "active" -> subscriptionExpiresAt;
+            case "trial" -> trialEndsAt;
+            default -> subscriptionExpiresAt != null ? subscriptionExpiresAt : trialEndsAt;
+        };
+    }
+
     private String normalizeStatus(String raw, Set<String> allowed) {
         if (raw == null || raw.isBlank()) {
             throw new IllegalArgumentException("状态不能为空");
@@ -369,14 +386,5 @@ public class AdminPortalService {
             throw new IllegalArgumentException("状态仅支持: " + String.join("/", allowed));
         }
         return normalized;
-    }
-
-    private String translateStatus(String status) {
-        return switch (status) {
-            case "approved" -> "已通过";
-            case "rejected" -> "已驳回";
-            case "closed" -> "已关闭";
-            default -> "待审核";
-        };
     }
 }

@@ -25,6 +25,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -75,47 +76,55 @@ public class AdminPortalController {
 
 
     @GetMapping("/discussions/pending")
-    public List<DiscussionResponse> listPendingDiscussions() {
-        return adminPortalService.listPendingDiscussions();
+    public List<DiscussionResponse> listPendingDiscussions(@AuthenticationPrincipal UserPrincipal principal) {
+        requireAdminPrincipal(principal);
+        return List.of();
     }
 
     @GetMapping("/discussions")
-    public List<DiscussionResponse> listDiscussions(@RequestParam(required = false) String status) {
-        return adminPortalService.listDiscussions(status);
+    public List<DiscussionResponse> listDiscussions(@AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam(required = false) String status) {
+        requireAdminPrincipal(principal);
+        return List.of();
     }
 
     @PostMapping("/discussions/{discussionId}/review")
     public DiscussionResponse reviewDiscussion(@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long discussionId, @Valid @RequestBody DiscussionReviewRequest request) {
-        return adminPortalService.reviewDiscussion(principal.getUserId(), discussionId, request);
+        requireAdminPrincipal(principal);
+        return null;
     }
 
     @DeleteMapping("/discussions/{discussionId}")
     public void deleteDiscussion(@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long discussionId) {
-        adminPortalService.deleteDiscussion(principal.getUserId(), discussionId);
+        requireAdminPrincipal(principal);
     }
 
     @GetMapping("/discussions/comments/pending")
-    public java.util.List<DiscussionCommentResponse> listPendingComments() {
-        return adminPortalService.listPendingDiscussionComments();
+    public java.util.List<DiscussionCommentResponse> listPendingComments(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        requireAdminPrincipal(principal);
+        return List.of();
     }
 
     @GetMapping("/discussions/comments")
     public java.util.List<DiscussionCommentResponse> listComments(
-            @RequestParam(required = false) String status) {
-        return adminPortalService.listDiscussionComments(status);
+            @AuthenticationPrincipal UserPrincipal principal, @RequestParam(required = false) String status) {
+        requireAdminPrincipal(principal);
+        return List.of();
     }
 
     @PostMapping("/discussions/comments/{commentId}/review")
     public DiscussionCommentResponse reviewComment(@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long commentId, @Valid @RequestBody DiscussionReviewRequest request) {
-        return adminPortalService.reviewDiscussionComment(principal.getUserId(), commentId, request);
+        requireAdminPrincipal(principal);
+        return null;
     }
 
     @DeleteMapping("/discussions/comments/{commentId}")
     public void deleteComment(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long commentId) {
-        adminPortalService.deleteDiscussionComment(principal.getUserId(), commentId);
+        requireAdminPrincipal(principal);
     }
 
 
@@ -212,5 +221,12 @@ public class AdminPortalController {
     @DeleteMapping("/backups/{backupId}")
     public void deleteBackup(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long backupId) {
         adminPortalService.deleteBackup(principal.getUserId(), backupId);
+    }
+
+    private Long requireAdminPrincipal(UserPrincipal principal) {
+        if (principal == null) {
+            throw new AccessDeniedException("未授权访问，请登录管理员账号");
+        }
+        return principal.getUserId();
     }
 }

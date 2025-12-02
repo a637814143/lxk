@@ -25,7 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ApplicationService {
 
-    private static final Set<String> ALLOWED_STATUSES = Set.of("待查看", "已查看", "面试中", "录用", "拒绝");
+    private static final Set<String> ALLOWED_STATUSES =
+            Set.of("待查阅", "已查阅", "面试中", "录用", "拒绝");
 
     private final TsukiApplicationRepository applicationRepository;
     private final TsukiStudentRepository studentRepository;
@@ -97,27 +98,27 @@ public class ApplicationService {
 
     private TsukiApplication getApplication(Long id) {
         return applicationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("未找到ID为" + id + "的投递记录"));
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found: " + id));
     }
 
     private TsukiStudent getStudent(Long id) {
         return studentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("未找到ID为" + id + "的学生"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found: " + id));
     }
 
     private TsukiResume getResume(Long id) {
         return resumeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("未找到ID为" + id + "的简历"));
+                .orElseThrow(() -> new ResourceNotFoundException("Resume not found: " + id));
     }
 
     private TsukiJob getJob(Long id) {
         return jobRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("未找到ID为" + id + "的职位"));
+                .orElseThrow(() -> new ResourceNotFoundException("Job not found: " + id));
     }
 
     private TsukiCompany getCompany(Long id) {
         return companyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("未找到ID为" + id + "的企业"));
+                .orElseThrow(() -> new ResourceNotFoundException("Company not found: " + id));
     }
 
     private ApplicationResponse toResponse(TsukiApplication application) {
@@ -135,7 +136,7 @@ public class ApplicationService {
 
     private String normalizeStatus(String status) {
         if (status == null || status.isBlank()) {
-            return "待查看";
+            return "待查阅";
         }
         if (!ALLOWED_STATUSES.contains(status)) {
             throw new IllegalArgumentException("投递状态仅支持: " + String.join("/", ALLOWED_STATUSES));
