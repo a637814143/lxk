@@ -1,5 +1,5 @@
 <template>
-  <div class="auth-page login-page">
+<div class="auth-page login-page">
     <div class="auth-wrapper">
       <section class="auth-hero">
         <p class="hero-badge">Tsuki 校园招聘</p>
@@ -149,6 +149,20 @@ async function handleSubmit() {
   align-items: center;
   justify-content: center;
   padding: 48px 18px 56px;
+  background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.15), transparent 32%),
+    radial-gradient(circle at 80% 0%, rgba(236, 72, 153, 0.12), transparent 32%),
+    linear-gradient(135deg, #f8fafc 0%, #eef2ff 30%, #fdf2f8 100%);
+  position: relative;
+}
+
+.auth-page::after {
+  content: '';
+  position: absolute;
+  inset: 40px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.45);
+  filter: blur(50px);
+  z-index: 0;
 }
 
 .auth-wrapper {
@@ -157,11 +171,14 @@ async function handleSubmit() {
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 22px;
   align-items: stretch;
+  position: relative;
+  z-index: 1;
 }
 
 .auth-hero {
   position: relative;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(79, 70, 229, 0.08));
+  background: linear-gradient(140deg, rgba(37, 99, 235, 0.12), rgba(59, 130, 246, 0.1)),
+    radial-gradient(circle at 80% 0%, rgba(236, 72, 153, 0.08), transparent 45%);
   border: 1px solid rgba(37, 99, 235, 0.2);
   border-radius: 22px;
   padding: 28px;

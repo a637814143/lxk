@@ -237,6 +237,20 @@ async function handleSubmit() {
   align-items: center;
   justify-content: center;
   padding: 48px 18px 56px;
+  background: radial-gradient(circle at 12% 18%, rgba(59, 130, 246, 0.12), transparent 30%),
+    radial-gradient(circle at 85% 0%, rgba(236, 72, 153, 0.12), transparent 30%),
+    linear-gradient(135deg, #f8fafc 0%, #eef2ff 30%, #fdf2f8 100%);
+  position: relative;
+}
+
+.auth-page::after {
+  content: '';
+  position: absolute;
+  inset: 36px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.45);
+  filter: blur(52px);
+  z-index: 0;
 }
 
 .auth-wrapper {
@@ -245,11 +259,14 @@ async function handleSubmit() {
   grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   gap: 24px;
   align-items: stretch;
+  position: relative;
+  z-index: 1;
 }
 
 .auth-hero {
   position: relative;
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(59, 130, 246, 0.1));
+  background: linear-gradient(140deg, rgba(37, 99, 235, 0.12), rgba(59, 130, 246, 0.1)),
+    radial-gradient(circle at 20% 0%, rgba(16, 185, 129, 0.08), transparent 45%);
   border: 1px solid rgba(59, 130, 246, 0.18);
   border-radius: 22px;
   padding: 28px;
