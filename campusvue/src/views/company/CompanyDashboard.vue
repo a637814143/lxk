@@ -30,6 +30,7 @@
             <span class="status-pill" :class="{ success: isActivated, warning: !isActivated }">
               {{ isActivated ? '邀请码已激活' : '待激活邀请码' }}
             </span>
+            <span class="status-pill ghost">企业中心</span>
           </div>
         </div>
         <div class="topbar__actions">
@@ -282,8 +283,8 @@ async function refreshUnreadCount() {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid var(--border-subtle);
+  background: linear-gradient(120deg, rgba(37, 99, 235, 0.08), rgba(59, 130, 246, 0.05));
+  border: 1px solid rgba(37, 99, 235, 0.12);
   border-radius: 20px;
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(10px);
@@ -323,9 +324,9 @@ async function refreshUnreadCount() {
   gap: 12px;
   padding: 10px 16px;
   border-radius: 14px;
-  background: var(--color-primary-soft);
-  border: 1px solid var(--color-primary-border);
-  color: var(--color-primary-strong);
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
 }
 
 .wallet strong {
@@ -362,6 +363,12 @@ async function refreshUnreadCount() {
   background: #fef3c7;
   border-color: rgba(251, 191, 36, 0.4);
   color: #b45309;
+}
+
+.status-pill.ghost {
+  background: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.6);
+  color: #0f172a;
 }
 
 .status-pill.danger {

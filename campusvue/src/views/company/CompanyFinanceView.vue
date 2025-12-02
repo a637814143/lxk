@@ -473,8 +473,8 @@ function formatStatus(value) {
 .form-card textarea {
   border-radius: 10px;
   border: 1px solid #d1d5db;
-  padding: 8px 10px;
-  font-size: 13px;
+  padding: 10px 12px;
+  font-size: 14px;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }

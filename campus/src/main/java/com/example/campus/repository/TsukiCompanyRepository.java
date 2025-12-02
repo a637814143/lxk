@@ -12,4 +12,6 @@ public interface TsukiCompanyRepository extends JpaRepository<TsukiCompany, Long
     List<TsukiCompany> findByAuditStatus(String auditStatus);
 
     long countByAuditStatus(String auditStatus);
+
+    List<TsukiCompany> findAllByOrderByIdAsc();
 }

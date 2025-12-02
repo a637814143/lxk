@@ -206,8 +206,8 @@ function formatMoney(value) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid var(--border-subtle);
+  background: linear-gradient(120deg, rgba(59, 130, 246, 0.08), rgba(14, 165, 233, 0.08));
+  border: 1px solid rgba(59, 130, 246, 0.18);
   border-radius: 20px;
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(10px);
@@ -247,9 +247,9 @@ function formatMoney(value) {
   gap: 12px;
   padding: 10px 16px;
   border-radius: 14px;
-  background: var(--color-primary-soft);
-  border: 1px solid var(--color-primary-border);
-  color: var(--color-primary-strong);
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
 }
 
 .content {

@@ -149,7 +149,10 @@ public class CompanyService {
                 company.getAuditStatus(),
                 company.getAuditReason(),
                 walletBalance,
-                inviteActivated);
+                inviteActivated,
+                null,
+                null,
+                null);
     }
 
     private String normalizeStatus(String status) {

@@ -1,6 +1,7 @@
 package com.example.campus.dto.company;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public record CompanyResponse(
         Long id,
@@ -16,5 +17,8 @@ public record CompanyResponse(
         String auditStatus,
         String auditReason,
         BigDecimal walletBalance,
-        Boolean inviteActivated) {
+        Boolean inviteActivated,
+        String serviceStatus,
+        LocalDateTime subscriptionExpiresAt,
+        LocalDateTime trialEndsAt) {
 }

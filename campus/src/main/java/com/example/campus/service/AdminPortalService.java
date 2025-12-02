@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -99,16 +100,24 @@ public class AdminPortalService {
     }
 
     @Transactional(readOnly = true)
-    public List<CompanyResponse> listPendingCompanies() {
-        return companyRepository.findByAuditStatus("pending").stream()
-                .map(company -> companyService.findById(company.getId()))
+    public List<CompanyResponse> listCompanies(String status) {
+        List<TsukiCompany> companies;
+        if (status == null || status.isBlank() || "all".equalsIgnoreCase(status)) {
+            companies = companyRepository.findAllByOrderByIdAsc();
+        } else {
+            companies = companyRepository.findByAuditStatus(status);
+        }
+        return companies.stream()
+                .map(this::toEnrichedResponse)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public CompanyResponse getCompanyDetail(Long adminUserId, Long companyId) {
         requireAdmin(adminUserId);
-        return companyService.findById(companyId);
+        TsukiCompany company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到企业信息"));
+        return toEnrichedResponse(company);
     }
 
     @Transactional(readOnly = true)
@@ -305,6 +314,50 @@ public class AdminPortalService {
     private TsukiAdmin requireAdmin(Long userId) {
         return adminRepository.findByUser_Id(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("当前账号不是系统管理员"));
+    }
+
+    private CompanyResponse toEnrichedResponse(TsukiCompany company) {
+        CompanyResponse base = companyService.findById(company.getId());
+        LocalDateTime subscriptionExpiresAt = financialTransactionService.calculateSubscriptionExpiry(company.getId());
+        LocalDateTime trialEndsAt = resolveTrialEndsAt(company);
+        LocalDateTime now = LocalDateTime.now();
+        String serviceStatus;
+        if (subscriptionExpiresAt != null && subscriptionExpiresAt.isAfter(now)) {
+            serviceStatus = "active";
+        } else if (trialEndsAt != null && trialEndsAt.isAfter(now)) {
+            serviceStatus = "trial";
+        } else {
+            serviceStatus = "expired";
+        }
+        return new CompanyResponse(
+                base.id(),
+                base.userId(),
+                base.companyName(),
+                base.licenseNumber(),
+                base.industry(),
+                base.address(),
+                base.website(),
+                base.description(),
+                base.logo(),
+                base.licenseDocument(),
+                base.auditStatus(),
+                base.auditReason(),
+                base.walletBalance(),
+                base.inviteActivated(),
+                serviceStatus,
+                subscriptionExpiresAt,
+                trialEndsAt);
+    }
+
+    private LocalDateTime resolveTrialEndsAt(TsukiCompany company) {
+        LocalDateTime createdAt = null;
+        if (company.getUser() != null) {
+            createdAt = company.getUser().getCreateTime();
+        }
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        return createdAt.plusHours(24);
     }
 
     private String normalizeStatus(String raw, Set<String> allowed) {

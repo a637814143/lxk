@@ -51,9 +51,9 @@ public class AdminPortalController {
         return adminPortalService.loadSummary(principal.getUserId());
     }
 
-    @GetMapping("/companies/pending")
-    public List<CompanyResponse> listPendingCompanies() {
-        return adminPortalService.listPendingCompanies();
+    @GetMapping("/companies")
+    public List<CompanyResponse> listCompanies(@RequestParam(required = false) String status) {
+        return adminPortalService.listCompanies(status);
     }
 
     @GetMapping("/companies/{companyId}")

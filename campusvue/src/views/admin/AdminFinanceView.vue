@@ -1,11 +1,8 @@
 <template>
   <section class="card">
     <div class="card__title">
-      <h2>财务记录管理</h2>
-      <div class="actions">
-        <button class="outline" @click="loadTransactions">刷新记录</button>
-        <button class="outline" @click="refreshAdminWallet">刷新钱包</button>
-      </div>
+      <h2>财务管理</h2>
+      <button class="outline" @click="resetForm">重置</button>
     </div>
 
     <form class="form-grid" @submit.prevent="createTransaction">
@@ -14,113 +11,84 @@
       <label>币种<input v-model="transactionForm.currency" placeholder="默认 CNY" /></label>
       <label class="full">费用用途<input v-model="transactionForm.type" required maxlength="50" placeholder="例如：平台服务费" /></label>
       <label class="full">业务编号<input v-model="transactionForm.reference" maxlength="100" placeholder="可选的内部参考编号" /></label>
-      <label class="full">备注<textarea v-model="transactionForm.notes" maxlength="255" placeholder="补充说明（可选）"></textarea></label>
+      <label class="full">备注<textarea v-model="transactionForm.notes" maxlength="255"></textarea></label>
       <div class="full actions">
-        <button class="primary" type="submit">创建记录</button>
-        <button class="outline" type="button" @click="resetTransactionForm">重置</button>
+        <button class="primary" type="submit">创建交易</button>
       </div>
     </form>
 
-    <table v-if="transactions.length" class="table">
-      <thead><tr><th>ID</th><th>企业ID</th><th>用途</th><th>金额</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead>
-      <tbody>
-        <tr v-for="item in transactions" :key="item.id">
-          <td>{{ item.id }}</td>
-          <td>{{ item.companyId }}</td>
-          <td>{{ item.type }}</td>
-          <td>{{ formatMoney(item.amount) }} {{ item.currency || 'CNY' }}</td>
-          <td>{{ item.status }}</td>
-          <td>{{ formatDate(item.updatedAt || item.createdAt) }}</td>
-          <td class="actions">
-            <select v-model="item.status" @change="updateTransactionStatus(item)">
-              <option value="pending">待处理</option>
-              <option value="completed">已完成</option>
-              <option value="cancelled">已取消</option>
-            </select>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <p v-else class="muted">暂无财务记录</p>
+    <p class="muted">创建后可在交易列表查看并进一步操作。</p>
   </section>
 </template>
 
 <script setup>
-import { inject, onMounted, reactive, ref } from 'vue';
-import { get, patch, post } from '../../api/http';
+import { reactive } from 'vue';
+import { post } from '../../api/http';
 import { useToast } from '../../ui/toast';
 
-const refreshAdminWallet = inject('refreshWallet', () => {});
-
-const transactions = ref([]);
 const toast = useToast();
 
 const transactionForm = reactive({
   companyId: null,
   amount: null,
-  currency: 'CNY',
+  currency: '',
   type: '',
   reference: '',
   notes: ''
 });
 
-onMounted(loadTransactions);
-
-async function loadTransactions() {
-  try {
-    transactions.value = await get('/portal/admin/transactions');
-  } catch (error) {
-    toast.error(error.message ?? '加载财务记录失败');
-  }
-}
-
 async function createTransaction() {
-  if (!transactionForm.companyId || !transactionForm.amount || !transactionForm.type) {
-    toast.error('请完整填写企业ID、金额和费用用途');
-    return;
-  }
   try {
-    await post('/portal/admin/transactions', transactionForm);
-    toast.success('财务记录已创建');
-    resetTransactionForm();
-    await loadTransactions();
-    refreshAdminWallet();
+    await post('/portal/admin/transactions', {
+      companyId: transactionForm.companyId,
+      amount: transactionForm.amount,
+      currency: transactionForm.currency || 'CNY',
+      type: transactionForm.type,
+      reference: transactionForm.reference,
+      notes: transactionForm.notes
+    });
+    toast.success('交易已创建');
+    resetForm();
   } catch (error) {
-    toast.error(error.message ?? '创建财务记录失败');
+    toast.error(error.message ?? '创建交易失败');
   }
 }
 
-async function updateTransactionStatus(item) {
-  try {
-    await patch(`/portal/admin/transactions/${item.id}`, { status: item.status, notes: item.notes });
-    toast.success('交易状态已更新');
-    await loadTransactions();
-    refreshAdminWallet();
-  } catch (error) {
-    toast.error(error.message ?? '更新交易状态失败');
-  }
-}
-
-function resetTransactionForm() {
+function resetForm() {
   transactionForm.companyId = null;
   transactionForm.amount = null;
-  transactionForm.currency = 'CNY';
+  transactionForm.currency = '';
   transactionForm.type = '';
   transactionForm.reference = '';
   transactionForm.notes = '';
 }
-
-function formatMoney(value) {
-  const amount = Number(value ?? 0);
-  return amount.toFixed(2);
-}
-
-function formatDate(value) {
-  if (!value) return '-';
-  return new Date(value).toLocaleString();
-}
 </script>
 
 <style scoped>
-.actions { display: flex; gap: 12px; }
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.form-grid input,
+.form-grid textarea {
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  padding: 10px 12px;
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-grid input:focus,
+.form-grid textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
+  outline: none;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
 </style>

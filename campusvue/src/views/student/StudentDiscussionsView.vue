@@ -1,26 +1,31 @@
 <template>
   <section class="section">
-    <header class="section__header">
-      <div>
+    <header class="hero">
+      <div class="hero__text">
+        <p class="eyebrow">社区交流</p>
         <h2>企业讨论区</h2>
         <p class="muted">
-          查看企业的公开讨论记录，可通过职位列表的「查看企业讨论」快速跳转。
+          查看企业的公开讨论记录，或快速发表你的看法。支持按企业 ID/名称定位。
         </p>
       </div>
-      <div class="actions">
-        <input v-model="manualCompanyId" placeholder="输入企业 ID" />
-        <button class="outline" type="button" @click="loadByManualId" :disabled="loading">
-          加载讨论
-        </button>
-        <input v-model="searchKeyword" placeholder="按企业名称搜索" />
-        <button class="outline" type="button" @click="searchCompanies" :disabled="loading">
-          搜索企业
-        </button>
+      <div class="hero__actions">
+        <div class="input-group">
+          <input v-model="manualCompanyId" placeholder="输入企业 ID" />
+          <button class="primary ghost" type="button" @click="loadByManualId" :disabled="loading || !manualCompanyId">
+            加载讨论
+          </button>
+        </div>
+        <div class="input-group">
+          <input v-model="searchKeyword" placeholder="按企业名称搜索" />
+          <button class="outline" type="button" @click="searchCompanies" :disabled="loading || !searchKeyword">
+            搜索企业
+          </button>
+        </div>
         <button class="outline" type="button" @click="goBackToJobs">返回职位</button>
       </div>
       <ul v-if="companySearchResults.length" class="companies">
         <li v-for="c in companySearchResults" :key="c.id">
-          <button class="outline" type="button" @click="selectCompany(c)">
+          <button class="pill-btn" type="button" @click="selectCompany(c)">
             {{ c.companyName }} · #{{ c.id }}
           </button>
         </li>
@@ -28,8 +33,12 @@
     </header>
 
     <div v-if="currentCompany.id" class="current-company">
-      <h3>{{ currentCompany.name }}</h3>
-      <p class="muted">企业 ID：{{ currentCompany.id }}</p>
+      <div>
+        <p class="muted">当前企业</p>
+        <h3>{{ currentCompany.name }}</h3>
+        <p class="muted">ID：{{ currentCompany.id }}</p>
+      </div>
+      <div class="pill current-pill">已选</div>
     </div>
 
     <section v-if="currentCompany.id" class="compose card">
@@ -38,7 +47,9 @@
         <input v-model="form.title" placeholder="讨论标题" required />
         <textarea v-model="form.content" placeholder="讨论内容" required></textarea>
         <div class="actions">
-          <button class="primary" type="submit">{{ editingPostId ? '保存修改' : '发布' }}</button>
+          <button class="primary" type="submit" :disabled="!form.title || !form.content">
+            {{ editingPostId ? '保存修改' : '发布' }}
+          </button>
           <button class="outline" type="button" @click="resetForm">重置</button>
         </div>
       </form>
@@ -55,18 +66,21 @@
         </p>
 
         <ul class="list" v-if="discussions.length">
-          <li v-for="post in discussions" :key="post.id" class="list__item">
-            <div>
-              <h3>{{ post.title }}</h3>
-              <p class="muted">发布时间：{{ formatDate(post.createdAt) }}</p>
-              <p>{{ post.sanitizedContent || post.content }}</p>
-              <p v-if="post.reviewComment" class="muted">
-                审核备注：{{ post.reviewComment }}
-              </p>
-              <div v-if="isOwnPost(post)" class="post-actions">
-                <button class="outline" type="button" @click="startEditPost(post)">编辑帖子</button>
-                <button class="outline" type="button" @click="deletePost(post)">删除帖子</button>
+          <li v-for="post in discussions" :key="post.id" class="list__item post-card">
+            <div class="post-header">
+              <div>
+                <p class="muted tiny">发布时间：{{ formatDate(post.createdAt) }}</p>
+                <h3>{{ post.title }}</h3>
               </div>
+              <div class="tag" v-if="post.status">{{ post.status }}</div>
+            </div>
+            <p class="post-content">{{ post.sanitizedContent || post.content }}</p>
+            <p v-if="post.reviewComment" class="muted badge muted-badge">
+              审核备注：{{ post.reviewComment }}
+            </p>
+            <div v-if="isOwnPost(post)" class="post-actions">
+              <button class="outline" type="button" @click="startEditPost(post)">编辑帖子</button>
+              <button class="outline danger" type="button" @click="deletePost(post)">删除帖子</button>
             </div>
 
             <div class="comments">
@@ -477,6 +491,41 @@ watch(
   flex-wrap: wrap;
 }
 
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: linear-gradient(120deg, #e0f2fe, #f5f3ff);
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.hero__text h2 {
+  margin: 2px 0;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-group input {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-width: 180px;
+}
+
 .actions {
   display: flex;
   gap: 12px;
@@ -505,11 +554,16 @@ watch(
 
 .current-company {
   background: var(--color-primary-soft);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 14px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  border: 1px solid var(--color-primary-border);
+  box-shadow: var(--shadow-soft);
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .compose {
@@ -530,6 +584,69 @@ watch(
   border: 1px solid #d1d5db;
   border-radius: 10px;
   padding: 10px;
+}
+
+.post-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.post-content {
+  margin: 6px 0 0;
+  line-height: 1.6;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.muted-badge {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.tag {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 12px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0ea5e9;
+  border: 1px solid #bae6fd;
+  font-size: 12px;
+}
+
+.pill-btn {
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.pill-btn:hover {
+  border-color: #bfdbfe;
 }
 
 .comments {

@@ -134,6 +134,20 @@ public class FinancialTransactionService {
                 .build();
         transaction = transactionRepository.save(transaction);
         applyWalletAdjustment(transaction);
+
+        // 给管理员记录一条对应的收入交易，方便财务对账
+        TsukiFinancialTransaction adminRecord = TsukiFinancialTransaction.builder()
+                .company(company)
+                .admin(admin)
+                .amount(totalAmount)
+                .currency("CNY")
+                .type("subscription")
+                .status("completed")
+                .reference("company-" + company.getId() + "-subscription")
+                .notes("企业订阅收入 · " + notes)
+                .build();
+        transactionRepository.save(adminRecord);
+
         return toResponse(transaction);
     }
 

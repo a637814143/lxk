@@ -5,11 +5,17 @@
         <p class="eyebrow">欢迎回来，{{ authInfo?.username || '同学' }}</p>
         <h2>开启你的求职旅程</h2>
         <p class="muted">
-          快速完善简历、查看投递进度，捕捉最新岗位与平台公告。
+          完善简历、查看投递进度，及时获取最新职位与平台公告。
         </p>
         <div class="hero__actions">
           <button class="primary" type="button" @click="go('student-jobs')">去找职位</button>
           <button class="outline" type="button" @click="go('student-resumes')">管理简历</button>
+          <button class="outline ghost" type="button" @click="go('student-discussions')">企业讨论</button>
+        </div>
+        <div class="hero__chips">
+          <button class="chip" type="button" @click="goRecommendations">智能推荐</button>
+          <button class="chip ghost" type="button" @click="goProgress">进度提醒</button>
+          <button class="chip ghost" type="button" @click="goLectures">宣讲订阅</button>
         </div>
       </div>
       <div class="hero__stats">
@@ -31,10 +37,25 @@
       </div>
     </section>
 
+    <div class="focus-strip">
+      <div class="focus-item">
+        <span class="label">快速入口</span>
+        <p>浏览职位 / 查看投递 / 消息中心</p>
+      </div>
+      <div class="focus-item">
+        <span class="label">安全同步</span>
+        <p>登录后自动保存最新资料与简历</p>
+      </div>
+      <div class="focus-item">
+        <span class="label">每日亮点</span>
+        <p>平台公告与讨论区精选话题</p>
+      </div>
+    </div>
+
     <div class="panel-grid">
       <section class="card quick-actions">
         <div class="card__title">
-          <h3>快捷操作</h3>
+          <h3>快速操作</h3>
           <button class="outline" type="button" @click="reload" :disabled="loading">
             {{ loading ? '刷新中...' : '刷新' }}
           </button>
@@ -50,7 +71,10 @@
       <section class="card profile-card">
         <div class="card__title">
           <h3>我的资料</h3>
-          <button class="outline" type="button" @click="go('student-profile')">完善资料</button>
+          <div class="actions">
+            <button class="outline" type="button" @click="go('student-profile')">完善资料</button>
+            <button class="outline ghost" type="button" @click="go('student-resumes')">管理简历</button>
+          </div>
         </div>
         <div v-if="profile" class="profile-grid">
           <div><strong>姓名：</strong>{{ profile.name || '未填写' }}</div>
@@ -61,7 +85,7 @@
         <p v-else class="muted">暂无资料，请前往完善。</p>
       </section>
 
-      <section class="card">
+      <section class="card gradient">
         <div class="card__title">
           <h3>我的简历</h3>
           <button class="outline" type="button" @click="go('student-resumes')">管理简历</button>
@@ -78,7 +102,7 @@
         <p v-else class="muted">暂无简历，去创建一份吧。</p>
       </section>
 
-      <section class="card">
+      <section class="card gradient-soft">
         <div class="card__title">
           <h3>近期投递</h3>
           <button class="outline" type="button" @click="go('student-applications')">查看全部</button>
@@ -87,7 +111,7 @@
           <li v-for="app in applications" :key="app.id" class="list__item">
             <div>
               <h4>职位 #{{ app.jobId }}</h4>
-              <p class="muted">状态：{{ app.status }} · 投递时间 {{ formatDate(app.applyTime) }}</p>
+              <p class="muted">状态：{{ app.status }} · 投递时间：{{ formatDate(app.applyTime) }}</p>
               <p class="muted">备注：{{ app.decisionNote || '—' }}</p>
             </div>
             <span :class="['pill', statusClass(app.status)]">{{ app.status }}</span>
@@ -96,7 +120,7 @@
         <p v-else class="muted">暂无投递记录。</p>
       </section>
 
-      <section class="card">
+      <section class="card gradient">
         <div class="card__title">
           <h3>最新职位</h3>
           <button class="outline" type="button" @click="go('student-jobs')">更多</button>
@@ -109,16 +133,19 @@
                 {{ job.companyName }} · {{ job.location || '不限' }} · {{ job.salaryRange || '薪资面议' }}
               </p>
             </div>
-            <button class="outline" type="button" @click="go('student-jobs')">查看</button>
+            <button class="outline ghost" type="button" @click="go('student-jobs')">查看</button>
           </li>
         </ul>
         <p v-else class="muted">暂无职位，稍后再来看看。</p>
       </section>
 
-      <section class="card">
+      <section class="card gradient-soft">
         <div class="card__title">
           <h3>最新公告</h3>
-          <span class="muted">更多公告请前往公告页查看</span>
+          <div class="actions">
+            <span class="muted">更多公告请前往公告页查看</span>
+            <button class="outline" type="button" @click="go('student-announcements')">查看公告</button>
+          </div>
         </div>
         <ul class="list" v-if="announcements.length">
           <li v-for="item in announcements" :key="item.id" class="list__item">
@@ -127,12 +154,13 @@
               <p class="muted">{{ formatDate(item.publishTime) }}</p>
               <p class="muted content">{{ item.content }}</p>
             </div>
+            <button class="outline ghost" type="button" @click="go('student-announcements')">查看</button>
           </li>
         </ul>
         <p v-else class="muted">暂无公告。</p>
       </section>
 
-      <section class="card">
+      <section class="card gradient">
         <div class="card__title">
           <h3>最近消息</h3>
           <button class="outline" type="button" @click="go('student-messages')">前往消息中心</button>
@@ -183,6 +211,18 @@ function go(routeName) {
   router.push({ name: routeName });
 }
 
+function goRecommendations() {
+  go('student-jobs');
+}
+
+function goProgress() {
+  go('student-applications');
+}
+
+function goLectures() {
+  go('student-announcements');
+}
+
 function formatDate(value) {
   if (!value) return '';
   return new Date(value).toLocaleString();
@@ -190,8 +230,8 @@ function formatDate(value) {
 
 function statusClass(status) {
   const s = (status || '').toLowerCase();
-  if (s.includes('待') || s.includes('pending')) return 'warning';
-  if (s.includes('通') || s.includes('pass') || s.includes('approved')) return 'success';
+  if (s.includes('待') || s.includes('pend')) return 'warning';
+  if (s.includes('已') || s.includes('pass') || s.includes('approved')) return 'success';
   if (s.includes('拒') || s.includes('fail') || s.includes('reject')) return 'danger';
   return '';
 }
@@ -249,7 +289,10 @@ onMounted(() => {
 }
 
 .hero-card {
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(37, 99, 235, 0.1));
+  position: relative;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(37, 99, 235, 0.08)),
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.25), transparent 40%),
+    radial-gradient(circle at 90% 10%, rgba(79, 70, 229, 0.16), transparent 40%);
   border: 1px solid rgba(37, 99, 235, 0.16);
   border-radius: 20px;
   padding: 22px 22px;
@@ -257,6 +300,15 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 16px;
   box-shadow: 0 18px 40px rgba(37, 99, 235, 0.16);
+  overflow: hidden;
+}
+
+.hero-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.32), transparent 55%);
+  pointer-events: none;
 }
 
 .hero__copy h2 {
@@ -283,6 +335,32 @@ onMounted(() => {
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 10px;
+}
+
+.hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chip.ghost {
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+  border-color: rgba(37, 99, 235, 0.2);
 }
 
 .hero__stats {
@@ -314,6 +392,39 @@ onMounted(() => {
   gap: 16px;
 }
 
+.focus-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-soft);
+}
+
+.focus-item {
+  padding: 8px 10px;
+}
+
+.focus-item .label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.focus-item p {
+  margin: 8px 0 0;
+  color: #475569;
+  font-weight: 600;
+}
+
 .quick-actions .actions {
   display: flex;
   flex-wrap: wrap;
@@ -335,6 +446,16 @@ onMounted(() => {
   transform: translateY(-1px);
 }
 
+.card.gradient {
+  background: linear-gradient(160deg, rgba(37, 99, 235, 0.08), rgba(59, 130, 246, 0.05));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.card.gradient-soft {
+  background: linear-gradient(160deg, rgba(236, 72, 153, 0.08), rgba(99, 102, 241, 0.06));
+  border: 1px solid rgba(236, 72, 153, 0.12);
+}
+
 .list {
   list-style: none;
   margin: 0;
@@ -347,9 +468,13 @@ onMounted(() => {
 .list__item {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 12px 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: var(--shadow-soft);
 }
 
 .pill {
