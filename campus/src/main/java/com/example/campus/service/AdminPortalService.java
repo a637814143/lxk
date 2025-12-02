@@ -267,6 +267,17 @@ public class AdminPortalService {
     }
 
     @Transactional
+    public BackupResponse restoreBackup(Long adminUserId, org.springframework.web.multipart.MultipartFile file,
+            String backupType, String message) {
+        return dataBackupService.restoreBackup(adminUserId, file, backupType, message);
+    }
+
+    @Transactional
+    public void deleteBackup(Long adminUserId, Long backupId) {
+        dataBackupService.deleteBackup(adminUserId, backupId);
+    }
+
+    @Transactional
     public AnnouncementResponse updateAnnouncement(Long adminUserId, Long announcementId,
             AnnouncementPublishRequest request) {
         requireAdmin(adminUserId);

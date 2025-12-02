@@ -21,20 +21,21 @@
       <div class="chart-card">
         <div class="card__title">
           <h3>投递状态分布</h3>
-          <span class="muted">查看当前投递审核与处理情况</span>
+          <span class="muted">审核与处理的实时占比</span>
         </div>
-        <div class="bar-chart">
-          <div
-            v-for="item in statusBars"
-            :key="item.key"
-            class="bar"
-            :style="{ height: item.height + '%'}"
-          >
-            <span class="bar-value">{{ item.value }}</span>
-            <span class="bar-label">{{ item.key }}</span>
+        <div v-if="statusBars.length" class="hbar-list">
+          <div v-for="item in statusBars" :key="item.key" class="hbar-row">
+            <div class="hbar-label">
+              <span class="dot" :style="{ background: item.color }"></span>
+              <span>{{ item.key }}</span>
+            </div>
+            <div class="hbar-track">
+              <div class="hbar-fill" :style="{ width: item.percent + '%', background: item.color }"></div>
+            </div>
+            <span class="hbar-value">{{ item.value }}</span>
           </div>
-          <p v-if="!statusBars.length" class="muted">暂无投递数据</p>
         </div>
+        <p v-else class="muted">暂无投递数据</p>
       </div>
 
       <div class="chart-card">
@@ -42,18 +43,19 @@
           <h3>平台核心指标</h3>
           <span class="muted">学生 / 企业 / 职位 / 投递实时对比</span>
         </div>
-        <div class="spark-grid">
-          <div v-for="item in sparkBars" :key="item.label" class="spark-row">
-            <div class="spark-label">
-              <span class="dot" :style="{ background: item.color }"></span>
-              <span>{{ item.label }}</span>
+        <div v-if="metricBars.length" class="hbar-list">
+          <div v-for="m in metricBars" :key="m.label" class="hbar-row">
+            <div class="hbar-label">
+              <span class="dot" :style="{ background: m.color }"></span>
+              <span>{{ m.label }}</span>
             </div>
-            <div class="spark-bar">
-              <div class="spark-bar__fill" :style="{ width: item.percent + '%' , background: item.color}"></div>
+            <div class="hbar-track">
+              <div class="hbar-fill" :style="{ width: m.percent + '%', background: m.color }"></div>
             </div>
-            <span class="spark-value">{{ item.value }}</span>
+            <span class="hbar-value">{{ m.value }}</span>
           </div>
         </div>
+        <p v-else class="muted">暂无指标数据</p>
       </div>
     </section>
 
@@ -98,15 +100,18 @@ const statusBars = computed(() => {
   if (!summary.value || !summary.value.statusBreakdown) return [];
   const entries = Object.entries(summary.value.statusBreakdown);
   const max = Math.max(...entries.map(([, v]) => Number(v) || 0), 1);
-  return entries.map(([key, value], idx) => ({
-    key,
-    value,
-    height: Math.round(((Number(value) || 0) / max) * 100),
-    color: barColors[idx % barColors.length]
-  }));
+  return entries.map(([key, value], idx) => {
+    const val = Number(value) || 0;
+    return {
+      key,
+      value: val,
+      percent: Math.max(6, Math.round((val / max) * 100)),
+      color: barColors[idx % barColors.length]
+    };
+  });
 });
 
-const sparkBars = computed(() => {
+const metricBars = computed(() => {
   if (!summary.value) return [];
   const metrics = [
     { label: '学生', value: Number(summary.value.totalStudents) || 0 },
@@ -115,11 +120,13 @@ const sparkBars = computed(() => {
     { label: '投递', value: Number(summary.value.totalApplications) || 0 }
   ];
   const max = Math.max(...metrics.map(m => m.value), 1);
-  return metrics.map((m, idx) => ({
-    ...m,
-    color: barColors[idx % barColors.length],
-    percent: Math.min(100, Math.round((m.value / max) * 100))
-  }));
+  return metrics.map((m, idx) => {
+    return {
+      ...m,
+      color: barColors[idx % barColors.length],
+      percent: Math.max(6, Math.round((m.value / max) * 100))
+    };
+  });
 });
 
 const barColors = ['#2563eb', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#0ea5e9'];
@@ -214,51 +221,20 @@ function showFeedback(message, type = 'info') {
   min-height: 180px;
 }
 
-.bar {
-  position: relative;
-  background: linear-gradient(180deg, rgba(37, 99, 235, 0.8), rgba(37, 99, 235, 0.4));
-  border-radius: 10px 10px 4px 4px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 6px;
-  transition: transform 0.15s ease;
-}
-
-.bar:hover {
-  transform: translateY(-4px);
-}
-
-.bar-value {
-  position: absolute;
-  top: -22px;
-  font-size: 12px;
-  color: #0f172a;
-}
-
-.bar-label {
-  position: absolute;
-  bottom: -20px;
-  font-size: 12px;
-  color: #475569;
-  text-align: center;
-  width: 100%;
-}
-
-.spark-grid {
+.hbar-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.spark-row {
+.hbar-row {
   display: grid;
-  grid-template-columns: 1fr 3fr auto;
+  grid-template-columns: 1fr 6fr auto;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
-.spark-label {
+.hbar-label {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -272,20 +248,20 @@ function showFeedback(message, type = 'info') {
   display: inline-block;
 }
 
-.spark-bar {
+.hbar-track {
   background: #e2e8f0;
   border-radius: 999px;
   overflow: hidden;
-  height: 10px;
+  height: 12px;
 }
 
-.spark-bar__fill {
+.hbar-fill {
   height: 100%;
   border-radius: 999px;
   transition: width 0.2s ease;
 }
 
-.spark-value {
+.hbar-value {
   font-variant-numeric: tabular-nums;
   color: #0f172a;
   font-weight: 600;

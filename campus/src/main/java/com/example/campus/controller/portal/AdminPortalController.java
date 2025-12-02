@@ -24,6 +24,7 @@ import com.example.campus.service.AdminPortalService;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,8 +34,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/portal/admin")
@@ -196,5 +199,18 @@ public class AdminPortalController {
     public BackupResponse createBackup(@AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody BackupCreateRequest request) {
         return adminPortalService.createBackup(principal.getUserId(), request);
+    }
+
+    @PostMapping(value = "/backups/restore", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public BackupResponse restoreBackup(@AuthenticationPrincipal UserPrincipal principal,
+            @RequestPart("file") MultipartFile file,
+            @RequestPart(value = "backupType", required = false) String backupType,
+            @RequestPart(value = "message", required = false) String message) {
+        return adminPortalService.restoreBackup(principal.getUserId(), file, backupType, message);
+    }
+
+    @DeleteMapping("/backups/{backupId}")
+    public void deleteBackup(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long backupId) {
+        adminPortalService.deleteBackup(principal.getUserId(), backupId);
     }
 }
