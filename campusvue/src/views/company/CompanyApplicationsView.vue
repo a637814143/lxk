@@ -14,7 +14,7 @@
           <td>{{ resolveJobTitle(app.jobId) }}</td>
           <td>{{ app.studentId }}</td>
           <td>
-            <button class="outline" type="button" @click="viewResume(app.resumeId)">查看简历</button>
+            <button class="outline" type="button" @click="viewResume(app)">查看简历</button>
           </td>
           <td>{{ app.status }}</td>
           <td>
@@ -25,7 +25,7 @@
             <select v-model="app.status" @change="updateStatus(app)">
               <option value="待查阅">待查阅</option>
               <option value="已查阅">已查阅</option>
-              <option value="面试">面试</option>
+              <option value="面试中">面试中</option>
               <option value="录用">录用</option>
               <option value="拒绝">拒绝</option>
             </select>
@@ -38,20 +38,59 @@
     <div v-if="showResume" class="modal-backdrop" @click.self="closeResume">
       <div class="modal">
         <header class="modal__header">
-          <h3>{{ activeResume?.title || '简历详情' }}</h3>
+          <div>
+            <h3>{{ activeResume?.title || '简历详情' }}</h3>
+            <p v-if="activeApplication" class="muted">当前投递状态：{{ activeApplication.status }}</p>
+          </div>
           <button class="outline" @click="closeResume">关闭</button>
         </header>
-        <div class="modal__body" v-if="!loadingResume && activeResume">
-          <p><strong>教育经历：</strong></p>
-          <p class="pre">{{ activeResume.educationExperience || '—' }}</p>
-          <p><strong>实习/工作经历：</strong></p>
-          <p class="pre">{{ activeResume.workExperience || '—' }}</p>
-          <p><strong>技能特长：</strong></p>
-          <p class="pre">{{ activeResume.skills || '—' }}</p>
-          <p><strong>自我评价：</strong></p>
-          <p class="pre">{{ activeResume.selfEvaluation || '—' }}</p>
-          <p v-if="activeResume.attachment"><strong>附件：</strong><a :href="activeResume.attachment" target="_blank" rel="noopener">点击查看附件</a></p>
-        </div>
+        <template v-if="!loadingResume && activeResume">
+          <div class="modal__body">
+            <p><strong>教育经历：</strong></p>
+            <p class="pre">{{ activeResume.educationExperience || '—' }}</p>
+            <p><strong>实习/工作经历：</strong></p>
+            <p class="pre">{{ activeResume.workExperience || '—' }}</p>
+            <p><strong>技能特长：</strong></p>
+            <p class="pre">{{ activeResume.skills || '—' }}</p>
+            <p><strong>自我评价：</strong></p>
+            <p class="pre">{{ activeResume.selfEvaluation || '—' }}</p>
+            <p v-if="activeResume.attachment"><strong>附件：</strong><a :href="activeResume.attachment" target="_blank" rel="noopener">点击查看附件</a></p>
+          </div>
+          <div class="modal__body reply-card" v-if="activeApplication">
+            <div class="reply-card__header">
+              <div>
+                <h4>回复投递者</h4>
+                <p class="muted">发送后将显示在学生消息中心，当前状态和备注会一并保存。</p>
+              </div>
+              <div class="pill">
+                <span>状态</span>
+                <strong>{{ activeApplication.status }}</strong>
+              </div>
+            </div>
+            <label class="form-label" for="reply-title">消息标题</label>
+            <input
+              id="reply-title"
+              v-model="replyTitle"
+              :disabled="sendingReply"
+              maxlength="100"
+              placeholder="例如：面试邀请 / 简历反馈"
+            />
+            <label class="form-label" for="reply-content">消息内容</label>
+            <textarea
+              id="reply-content"
+              v-model="replyContent"
+              :disabled="sendingReply"
+              rows="4"
+              placeholder="请输入要发送给投递者的回复"
+            ></textarea>
+            <div class="reply-actions">
+              <p class="muted">建议告知投递进度或提供面试安排。</p>
+              <button class="outline" type="button" @click="sendReply" :disabled="sendingReply">
+                {{ sendingReply ? '正在发送...' : '发送消息' }}
+              </button>
+            </div>
+          </div>
+        </template>
         <div class="modal__body" v-else>正在加载简历...</div>
       </div>
     </div>
@@ -68,8 +107,12 @@ const jobs = ref([]);
 const toast = useToast();
 
 const activeResume = ref(null);
+const activeApplication = ref(null);
 const showResume = ref(false);
 const loadingResume = ref(false);
+const replyTitle = ref('');
+const replyContent = ref('');
+const sendingReply = ref(false);
 
 const jobMap = computed(() => {
   const map = new Map();
@@ -111,11 +154,14 @@ async function updateStatus(app) {
 function resolveJobTitle(jobId) { return jobMap.value.get(jobId) || `职位 #${jobId}`; }
 function formatDate(value) { if (!value) return '-'; return new Date(value).toLocaleString(); }
 
-async function viewResume(resumeId) {
-  if (!resumeId) { toast.error('该投递未关联简历'); return; }
+async function viewResume(app) {
+  if (!app?.resumeId) { toast.error('该投递未关联简历'); return; }
+  activeApplication.value = app;
+  replyTitle.value = `关于${resolveJobTitle(app.jobId)}的反馈`;
+  replyContent.value = '';
   try {
     loadingResume.value = true;
-    activeResume.value = await get(`/resumes/${resumeId}`);
+    activeResume.value = await get(`/resumes/${app.resumeId}`);
     showResume.value = true;
   } catch (error) {
     activeResume.value = null;
@@ -125,7 +171,44 @@ async function viewResume(resumeId) {
   }
 }
 
-function closeResume() { showResume.value = false; activeResume.value = null; }
+async function sendReply() {
+  if (!activeApplication.value) { toast.error('请先打开要回复的投递'); return; }
+  const title = replyTitle.value.trim();
+  const content = replyContent.value.trim();
+  if (!title || !content) { toast.error('请输入完整的消息标题和内容'); return; }
+  if (!activeApplication.value.status) { toast.error('请先选择投递状态'); return; }
+
+  try {
+    sendingReply.value = true;
+    const updated = await patch(`/portal/company/applications/${activeApplication.value.id}`, {
+      status: activeApplication.value.status,
+      decisionNote: activeApplication.value.decisionNote,
+      messageTitle: title,
+      messageContent: content
+    });
+    const normalized = normalizeApplication(updated);
+    const target = applications.value.find(item => item.id === normalized.id);
+    if (target) {
+      Object.assign(target, normalized);
+    }
+    Object.assign(activeApplication.value, normalized);
+    toast.success('已发送回复并同步最新状态');
+    replyTitle.value = '';
+    replyContent.value = '';
+  } catch (error) {
+    toast.error(error.message ?? '发送消息失败');
+  } finally {
+    sendingReply.value = false;
+  }
+}
+
+function closeResume() {
+  showResume.value = false;
+  activeResume.value = null;
+  activeApplication.value = null;
+  replyTitle.value = '';
+  replyContent.value = '';
+}
 </script>
 
 <style scoped>
@@ -169,5 +252,50 @@ function closeResume() { showResume.value = false; activeResume.value = null; }
 .pre {
   white-space: pre-wrap;
 }
-</style>
 
+.reply-card {
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reply-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.form-label {
+  font-weight: 600;
+}
+
+.reply-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reply-actions button {
+  min-width: 140px;
+}
+
+.modal textarea {
+  resize: vertical;
+}
+</style>

@@ -53,6 +53,11 @@ public class AdminPortalController {
         return adminPortalService.listPendingCompanies();
     }
 
+    @GetMapping("/companies/{companyId}")
+    public CompanyResponse getCompany(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long companyId) {
+        return adminPortalService.getCompanyDetail(principal.getUserId(), companyId);
+    }
+
     @PatchMapping("/companies/{companyId}/review")
     public CompanyResponse reviewCompany(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long companyId,
             @Valid @RequestBody CompanyAuditRequest request) {
@@ -103,6 +108,11 @@ public class AdminPortalController {
     public DiscussionCommentResponse reviewComment(@AuthenticationPrincipal UserPrincipal principal,
             @PathVariable Long commentId, @Valid @RequestBody DiscussionReviewRequest request) {
         return adminPortalService.reviewDiscussionComment(principal.getUserId(), commentId, request);
+    }
+
+    @DeleteMapping("/discussions/comments/{commentId}")
+    public void deleteComment(@AuthenticationPrincipal UserPrincipal principal, @PathVariable Long commentId) {
+        adminPortalService.deleteDiscussionComment(principal.getUserId(), commentId);
     }
 
 

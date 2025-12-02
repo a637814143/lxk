@@ -2,6 +2,8 @@ package com.example.campus.service;
 
 import com.example.campus.config.ModerationProperties;
 import java.util.List;
+import java.util.Set;
+import java.util.LinkedHashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
@@ -18,10 +20,11 @@ public class SensitiveWordFilter {
 
     public Result sanitize(String text) {
         if (!StringUtils.hasText(text)) {
-            return new Result("", false);
+            return new Result("", false, List.of());
         }
         String sanitized = text;
         boolean flagged = false;
+        Set<String> matched = new LinkedHashSet<>();
         List<String> words = properties.getWords();
         if (words != null) {
             for (String raw : words) {
@@ -34,6 +37,7 @@ public class SensitiveWordFilter {
                 StringBuffer buffer = new StringBuffer();
                 while (matcher.find()) {
                     flagged = true;
+                    matched.add(raw.trim());
                     String replacement = mask(raw.length());
                     matcher.appendReplacement(buffer, replacement);
                 }
@@ -41,7 +45,7 @@ public class SensitiveWordFilter {
                 sanitized = buffer.toString();
             }
         }
-        return new Result(sanitized, flagged);
+        return new Result(sanitized, flagged, List.copyOf(matched));
     }
 
     private String mask(int length) {
@@ -49,6 +53,6 @@ public class SensitiveWordFilter {
         return "*".repeat(actual);
     }
 
-    public record Result(String content, boolean flagged) {
+    public record Result(String content, boolean flagged, List<String> matchedWords) {
     }
 }

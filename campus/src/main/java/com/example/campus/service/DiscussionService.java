@@ -61,13 +61,13 @@ public class DiscussionService {
         SensitiveWordFilter.Result contentResult = sensitiveWordFilter.sanitize(request.content());
         boolean flagged = contentResult.flagged();
         String status = flagged ? "pending" : "approved";
-        String reviewComment = flagged ? "检测到敏感词，待审核" : null;
+        String reviewComment = flagged ? buildViolationComment(contentResult) : null;
 
         TsukiDiscussionPost post = TsukiDiscussionPost.builder()
                 .author(author)
                 .company(company)
                 .title(request.title())
-                .content(request.content())
+                .content(contentResult.content())
                 .sanitizedContent(contentResult.content())
                 .status(status)
                 .reviewComment(reviewComment)
@@ -142,10 +142,10 @@ public class DiscussionService {
         SensitiveWordFilter.Result contentResult = sensitiveWordFilter.sanitize(request.content());
         boolean flagged = contentResult.flagged();
         String status = flagged ? "pending" : "approved";
-        String reviewComment = flagged ? "检测到敏感词，待审核" : null;
+        String reviewComment = flagged ? buildViolationComment(contentResult) : null;
 
         post.setTitle(request.title());
-        post.setContent(request.content());
+        post.setContent(contentResult.content());
         post.setSanitizedContent(contentResult.content());
         post.setStatus(status);
         post.setReviewer(null);
@@ -225,7 +225,7 @@ public class DiscussionService {
         SensitiveWordFilter.Result contentResult = sensitiveWordFilter.sanitize(request.content());
         boolean flagged = contentResult.flagged();
         String status = flagged ? "pending" : "approved";
-        String reviewComment = flagged ? "检测到敏感词，待审核" : null;
+        String reviewComment = flagged ? buildViolationComment(contentResult) : null;
 
         TsukiDiscussionComment parent = null;
         if (request.parentCommentId() != null) {
@@ -240,7 +240,7 @@ public class DiscussionService {
                 .post(post)
                 .author(author)
                 .parent(parent)
-                .content(request.content())
+                .content(contentResult.content())
                 .sanitizedContent(contentResult.content())
                 .status(status)
                 .reviewComment(reviewComment)
@@ -273,9 +273,9 @@ public class DiscussionService {
         SensitiveWordFilter.Result contentResult = sensitiveWordFilter.sanitize(request.content());
         boolean flagged = contentResult.flagged();
         String status = flagged ? "pending" : "approved";
-        String reviewComment = flagged ? "检测到敏感词，待审核" : null;
+        String reviewComment = flagged ? buildViolationComment(contentResult) : null;
 
-        comment.setContent(request.content());
+        comment.setContent(contentResult.content());
         comment.setSanitizedContent(contentResult.content());
         comment.setStatus(status);
         comment.setReviewer(null);
@@ -301,6 +301,25 @@ public class DiscussionService {
         comment.setSanitizedContent("[该评论已被作者删除]");
         comment.setStatus("deleted");
         comment.setReviewer(null);
+        comment.setReviewComment(null);
+        comment.setReviewTime(LocalDateTime.now());
+        commentRepository.save(comment);
+    }
+
+    /**
+     * 管理员删除评论：不校验作者身份，直接软删除并记录审核人。
+     */
+    @Transactional
+    public void adminDeleteComment(Long adminUserId, Long commentId) {
+        TsukiAdmin admin = adminRepository.findByUser_Id(adminUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("当前账号不是系统管理员"));
+        TsukiDiscussionComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("未找到评论内容"));
+        String placeholder = "[该评论已被管理员删除]";
+        comment.setContent(placeholder);
+        comment.setSanitizedContent(placeholder);
+        comment.setStatus("deleted");
+        comment.setReviewer(admin);
         comment.setReviewComment(null);
         comment.setReviewTime(LocalDateTime.now());
         commentRepository.save(comment);
@@ -343,6 +362,16 @@ public class DiscussionService {
         comment.setReviewComment(request.comment());
         comment.setReviewTime(LocalDateTime.now());
         return toCommentResponse(commentRepository.save(comment));
+    }
+
+    private String buildViolationComment(SensitiveWordFilter.Result result) {
+        if (result == null || !result.flagged()) {
+            return null;
+        }
+        if (result.matchedWords() != null && !result.matchedWords().isEmpty()) {
+            return "检测到敏感词（" + String.join("，", result.matchedWords()) + "），言语违规，已自动屏蔽并待审核";
+        }
+        return "检测到敏感词，言语违规，已自动屏蔽并待审核";
     }
 
     private String normalizeStatus(String raw) {

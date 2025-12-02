@@ -19,9 +19,12 @@ import com.example.campus.repository.TsukiWalletRepository;
 import com.example.campus.repository.TsukiWalletTransactionRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +37,7 @@ public class FinancialTransactionService {
     private static final Set<String> STATUSES = Set.of("pending", "completed", "cancelled");
     private static final Set<String> WALLET_TYPES = Set.of("recharge", "withdraw", "transfer", "payment", "refund");
     private static final BigDecimal DEFAULT_QUARTER_PRICE = new BigDecimal("1999.00");
+    private static final Pattern SUBSCRIPTION_NOTE_PATTERN = Pattern.compile("购买(\\d+)个季度");
 
     private final TsukiFinancialTransactionRepository transactionRepository;
     private final TsukiCompanyRepository companyRepository;
@@ -177,6 +181,25 @@ public class FinancialTransactionService {
         return toResponse(transactionRepository.save(transaction));
     }
 
+    @Transactional(readOnly = true)
+    public LocalDateTime calculateSubscriptionExpiry(Long companyId) {
+        List<TsukiFinancialTransaction> subscriptionTransactions =
+                transactionRepository.findByCompany_IdAndTypeAndStatusOrderByCreatedAtAsc(companyId, "subscription",
+                        "completed");
+        LocalDateTime expiry = null;
+        for (TsukiFinancialTransaction transaction : subscriptionTransactions) {
+            int quarters = extractSubscriptionQuarters(transaction);
+            if (quarters <= 0 || transaction.getCreatedAt() == null) {
+                continue;
+            }
+            LocalDateTime start = expiry != null && expiry.isAfter(transaction.getCreatedAt())
+                    ? expiry
+                    : transaction.getCreatedAt();
+            expiry = start.plusMonths(quarters * 3L);
+        }
+        return expiry;
+    }
+
     private String resolveCurrency(String currency) {
         if (!StringUtils.hasText(currency)) {
             return "CNY";
@@ -257,6 +280,32 @@ public class FinancialTransactionService {
             }
         }
         return signedAmount.signum() >= 0 ? "recharge" : "payment";
+    }
+
+    private int extractSubscriptionQuarters(TsukiFinancialTransaction transaction) {
+        if (transaction == null || !"subscription".equalsIgnoreCase(transaction.getType())) {
+            return 0;
+        }
+        String notes = transaction.getNotes();
+        if (StringUtils.hasText(notes)) {
+            Matcher matcher = SUBSCRIPTION_NOTE_PATTERN.matcher(notes);
+            if (matcher.find()) {
+                try {
+                    return Integer.parseInt(matcher.group(1));
+                } catch (NumberFormatException ignored) {
+                    // ignore parse errors, fall through to amount-based inference
+                }
+            }
+        }
+        BigDecimal amount = transaction.getAmount();
+        if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal[] divideAndRemainder = amount.divideAndRemainder(DEFAULT_QUARTER_PRICE);
+            if (divideAndRemainder[1].compareTo(BigDecimal.ZERO) == 0 && divideAndRemainder[0].intValue() > 0) {
+                return divideAndRemainder[0].intValue();
+            }
+            return 1;
+        }
+        return 0;
     }
 
     private String buildSubscriptionNote(int quarters, BigDecimal quarterPrice, String note) {

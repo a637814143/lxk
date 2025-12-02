@@ -7,5 +7,9 @@ public record WalletSummaryResponse(
         Long ownerId,
         String ownerType,
         BigDecimal balance,
-        LocalDateTime updatedAt) {
+        LocalDateTime updatedAt,
+        String serviceStatus,
+        LocalDateTime trialEndsAt,
+        LocalDateTime subscriptionExpiresAt,
+        Long remainingSeconds) {
 }

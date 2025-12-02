@@ -9,4 +9,7 @@ public interface TsukiFinancialTransactionRepository extends JpaRepository<Tsuki
     List<TsukiFinancialTransaction> findByCompany_Id(Long companyId);
 
     List<TsukiFinancialTransaction> findByStatus(String status);
+
+    List<TsukiFinancialTransaction> findByCompany_IdAndTypeAndStatusOrderByCreatedAtAsc(Long companyId, String type,
+            String status);
 }

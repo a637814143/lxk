@@ -3,20 +3,15 @@
     <header class="section__header">
       <div>
         <h2>消息中心</h2>
-        <p class="muted">查看并及时处理来自企业或系统的通知</p>
+        <p class="muted">查看平台相关通知</p>
       </div>
       <button class="outline" type="button" @click="loadMessages" :disabled="loading">
-        {{ loading ? '刷新中' : '刷新' }}
+        {{ loading ? '刷新中…' : '刷新' }}
       </button>
     </header>
 
     <ul class="list" v-if="messages.length">
-      <li
-        v-for="message in messages"
-        :key="message.id"
-        class="list__item clickable"
-        @click="openDetail(message)"
-      >
+      <li v-for="message in messages" :key="message.id" class="list__item clickable" @click="openDetail(message)">
         <div>
           <h3>{{ message.title }}</h3>
           <p class="muted">{{ formatDate(message.sendTime) }}</p>
@@ -41,9 +36,7 @@
         </div>
         <footer class="modal__footer">
           <button class="outline" @click="gotoTarget" :disabled="!detail.targetRoute">跳转相关功能</button>
-          <button class="primary" @click="markMessageRead(detail.message?.id)" :disabled="detail.message?.isRead">
-            标记已读
-          </button>
+          <button class="primary" @click="markRead(detail.message)" :disabled="detail.message?.isRead">标记已读</button>
         </footer>
       </div>
     </div>
@@ -53,49 +46,21 @@
 <script setup>
 import { inject, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { get, post } from '../../api/http';
+import { get, put } from '../../api/http';
 import { useToast } from '../../ui/toast';
+
+const authInfo = inject('authInfo', null);
+const router = useRouter();
+const toast = useToast();
 
 const messages = ref([]);
 const loading = ref(false);
-const marking = ref(false);
-const toast = useToast();
-const refreshUnreadCount = inject('refreshUnreadCount', () => {});
-const router = useRouter();
 
 const detail = reactive({
   visible: false,
   message: null,
   targetRoute: null
 });
-
-async function loadMessages() {
-  try {
-    loading.value = true;
-    messages.value = await get('/portal/student/messages');
-  } catch (error) {
-    toast.error(error.message);
-  } finally {
-    loading.value = false;
-  }
-}
-
-async function markMessageRead(messageId) {
-  if (!messageId) return;
-  try {
-    marking.value = true;
-    const updated = await post(`/portal/student/messages/${messageId}/read`);
-    messages.value = messages.value.map(msg => (msg.id === updated.id ? updated : msg));
-    if (detail.visible && detail.message && detail.message.id === updated.id) {
-      detail.message = updated;
-    }
-    try { refreshUnreadCount(); } catch {}
-  } catch (error) {
-    toast.error(error.message);
-  } finally {
-    marking.value = false;
-  }
-}
 
 function formatDate(value) {
   if (!value) return '';
@@ -104,10 +69,34 @@ function formatDate(value) {
 
 function resolveTargetRoute(message) {
   const text = (message?.title || '') + ' ' + (message?.content || '');
-  if (/投递|面试|录用|拒绝/.test(text)) return 'student-applications';
-  if (/简历/.test(text)) return 'student-resumes';
-  if (/职位|岗位/.test(text)) return 'student-jobs';
-  return null;
+  if (/企业|审核/.test(text)) return 'admin-companies';
+  if (/邀请/.test(text)) return 'admin-invites';
+  if (/公告/.test(text)) return 'admin-announcements';
+  if (/财务|钱包|充值/.test(text)) return 'admin-finance';
+  return 'admin-overview';
+}
+
+async function loadMessages() {
+  try {
+    loading.value = true;
+    const list = await get(`/messages/receiver/${authInfo?.userId}`);
+    messages.value = list;
+  } catch (error) {
+    toast.error(error.message ?? '加载消息失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function markRead(message) {
+  if (!message) return;
+  try {
+    const updated = await put(`/messages/${message.id}`, { isRead: true });
+    messages.value = messages.value.map(item => (item.id === message.id ? updated : item));
+    detail.message = updated;
+  } catch (error) {
+    toast.error(error.message ?? '标记已读失败');
+  }
 }
 
 function openDetail(message) {
@@ -115,7 +104,7 @@ function openDetail(message) {
   detail.targetRoute = resolveTargetRoute(message);
   detail.visible = true;
   if (!message.isRead) {
-    markMessageRead(message.id);
+    markRead(message);
   }
 }
 
@@ -137,15 +126,16 @@ onMounted(loadMessages);
 <style scoped>
 .clickable {
   cursor: pointer;
-  transition: background 0.12s ease;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 
 .clickable:hover {
-  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
 }
 
 .preview {
-  max-width: 520px;
+  max-width: 540px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -154,12 +144,6 @@ onMounted(loadMessages);
 .pill.unread {
   background: #fef3c7;
   color: #b45309;
-}
-
-.section {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
 }
 
 .modal-backdrop {
@@ -175,7 +159,7 @@ onMounted(loadMessages);
 .modal {
   background: #fff;
   border-radius: 16px;
-  width: min(760px, 92vw);
+  width: min(780px, 92vw);
   box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
   overflow: hidden;
 }

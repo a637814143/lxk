@@ -29,12 +29,15 @@ import com.example.campus.repository.TsukiAdminRepository;
 import com.example.campus.repository.TsukiApplicationRepository;
 import com.example.campus.repository.TsukiCompanyRepository;
 import com.example.campus.repository.TsukiJobRepository;
+import com.example.campus.repository.TsukiDiscussionPostRepository;
+import com.example.campus.repository.TsukiDiscussionCommentRepository;
 import com.example.campus.repository.TsukiMessageRepository;
 import com.example.campus.repository.TsukiUserRepository;
 import com.example.campus.repository.TsukiWalletRepository;
 import com.example.campus.dto.backup.BackupResponse;
 import com.example.campus.dto.backup.BackupCreateRequest;
 import java.math.BigDecimal;
+import java.util.Objects;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,6 +61,8 @@ public class AdminPortalService {
     private final TsukiJobRepository jobRepository;
     private final TsukiApplicationRepository applicationRepository;
     private final TsukiMessageRepository messageRepository;
+    private final TsukiDiscussionPostRepository discussionPostRepository;
+    private final TsukiDiscussionCommentRepository discussionCommentRepository;
 
     private final CompanyService companyService;
     private final JobService jobService;
@@ -69,6 +74,7 @@ public class AdminPortalService {
     private final DiscussionService discussionService;
     private final CompanyInviteService companyInviteService;
     private final TsukiWalletRepository walletRepository;
+    private final EmailService emailService;
 
     @Transactional(readOnly = true)
     public AdminDashboardSummary loadSummary(Long adminUserId) {
@@ -78,7 +84,6 @@ public class AdminPortalService {
         long pendingCompanies = companyRepository.countByAuditStatus("pending");
         long totalJobs = jobRepository.count();
         long approvedJobs = jobRepository.countByStatus("approved");
-        long pendingJobs = 0L;
         long totalApplications = applicationRepository.count();
         Map<String, Long> breakdown = new LinkedHashMap<>();
         breakdown.put("待查看", applicationRepository.countByStatus("待查看"));
@@ -87,8 +92,10 @@ public class AdminPortalService {
         breakdown.put("录用", applicationRepository.countByStatus("录用"));
         breakdown.put("拒绝", applicationRepository.countByStatus("拒绝"));
         long unreadMessages = messageRepository.countByReceiver_IdAndIsRead(admin.getUser().getId(), Boolean.FALSE);
+        long pendingDiscussions = discussionPostRepository.countByStatus("pending");
+        long pendingComments = discussionCommentRepository.countByStatus("pending");
         return new AdminDashboardSummary(totalStudents, totalCompanies, pendingCompanies, totalJobs, approvedJobs,
-                pendingJobs, totalApplications, breakdown, unreadMessages);
+                totalApplications, breakdown, unreadMessages, pendingDiscussions, pendingComments);
     }
 
     @Transactional(readOnly = true)
@@ -96,6 +103,12 @@ public class AdminPortalService {
         return companyRepository.findByAuditStatus("pending").stream()
                 .map(company -> companyService.findById(company.getId()))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public CompanyResponse getCompanyDetail(Long adminUserId, Long companyId) {
+        requireAdmin(adminUserId);
+        return companyService.findById(companyId);
     }
 
     @Transactional(readOnly = true)
@@ -124,7 +137,7 @@ public class AdminPortalService {
                         .balance(BigDecimal.ZERO)
                         .build()));
         return new WalletSummaryResponse(wallet.getOwnerId(), wallet.getOwnerType(), wallet.getBalance(),
-                wallet.getUpdatedAt());
+                wallet.getUpdatedAt(), null, null, null, 0L);
     }
 
     @Transactional(readOnly = true)
@@ -152,12 +165,29 @@ public class AdminPortalService {
         company.setAuditStatus(status);
         company.setAuditReason(request.reason());
         companyRepository.save(company);
+        CompanyInviteResponse invite = null;
+        if ("approved".equals(status) && !companyInviteService.isCompanyActivated(company.getCompanyName())) {
+            invite = companyInviteService.create(adminUserId,
+                    new CompanyInviteCreateRequest("自动生成：" + Objects.toString(company.getCompanyName(), ""),
+                            company.getCompanyName()));
+        }
         if (!"pending".equals(status)) {
             String title = "企业认证审核结果";
             String content = "您的企业认证审核结果为：" + ("approved".equals(status) ? "通过" : "未通过")
                     + (request.reason() != null && !request.reason().isBlank() ? "，备注：" + request.reason() : "");
+            if (invite != null) {
+                content += "\n邀请码：" + invite.code();
+            }
             messageService.create(new MessageCreateRequest(admin.getUser().getId(), company.getUser().getId(), title,
                     content, null));
+            if (invite != null && company.getUser() != null
+                    && org.springframework.util.StringUtils.hasText(company.getUser().getEmail())) {
+                String subject = "企业审核通过，邀请码已生成";
+                String body = "您的企业（" + company.getCompanyName() + "）已通过审核。\n"
+                        + "邀请码：" + invite.code() + "\n"
+                        + "请使用邀请码在企业中心完成激活。";
+                emailService.sendPlainText(company.getUser().getEmail(), subject, body);
+            }
         }
         return companyService.findById(company.getId());
     }
@@ -199,6 +229,11 @@ public class AdminPortalService {
     public com.example.campus.dto.discussion.DiscussionCommentResponse reviewDiscussionComment(Long adminUserId,
             Long commentId, DiscussionReviewRequest request) {
         return discussionService.reviewComment(adminUserId, commentId, request);
+    }
+
+    @Transactional
+    public void deleteDiscussionComment(Long adminUserId, Long commentId) {
+        discussionService.adminDeleteComment(adminUserId, commentId);
     }
 
     // reviewJob removed

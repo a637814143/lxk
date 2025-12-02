@@ -10,6 +10,18 @@
           <span class="wallet-label">钱包余额</span>
           <span class="wallet-amount">￥{{ formatMoney(walletBalance) }}</span>
         </div>
+        <div class="service-badge" :class="serviceStatusClass">
+          <div class="service-row">
+            <span class="service-label">服务状态</span>
+            <span class="service-chip">{{ serviceStatusText }}</span>
+          </div>
+          <div class="service-row">
+            <span class="service-label">剩余时长</span>
+            <span class="service-remaining">{{ remainingText }}</span>
+          </div>
+          <p class="service-deadline" v-if="deadlineText">到期：{{ deadlineText }}</p>
+          <p class="muted service-hint">{{ statusHint }}</p>
+        </div>
         <button class="outline" @click="refreshWallet">刷新余额</button>
         <button class="outline" @click="loadTransactions">刷新记录</button>
       </div>
@@ -62,7 +74,7 @@
       </form>
 
       <form class="form-grid form-card" @submit.prevent="rechargeWalletSubmit">
-        <h3 class="form-title">虚拟充值（测试用）</h3>
+        <h3 class="form-title">余额充值</h3>
         <label>
           充值金额（元）
           <input
@@ -94,7 +106,7 @@
           ></textarea>
         </label>
         <div class="full actions">
-          <button class="outline" type="submit">确认虚拟充值</button>
+          <button class="outline" type="submit">确认充值</button>
         </div>
         <p class="muted tip">仅用于演示 / 测试环境，不会发起真实支付。</p>
       </form>
@@ -158,6 +170,44 @@ const toast = useToast();
 
 const transactions = ref([]);
 const walletBalance = computed(() => Number(walletSummary.value?.balance ?? 0));
+const serviceStatus = computed(() => walletSummary.value?.serviceStatus || 'trial');
+const remainingSeconds = computed(() => Number(walletSummary.value?.remainingSeconds ?? 0));
+const activeDeadline = computed(() => {
+  if (!walletSummary.value) return null;
+  if (serviceStatus.value === 'active' && walletSummary.value.subscriptionExpiresAt) {
+    return walletSummary.value.subscriptionExpiresAt;
+  }
+  if (serviceStatus.value === 'trial' && walletSummary.value.trialEndsAt) {
+    return walletSummary.value.trialEndsAt;
+  }
+  return walletSummary.value.subscriptionExpiresAt || walletSummary.value.trialEndsAt || null;
+});
+const remainingText = computed(() => {
+  if (!walletSummary.value) return '加载中...';
+  return formatRemaining(remainingSeconds.value);
+});
+const deadlineText = computed(() => (activeDeadline.value ? formatDate(activeDeadline.value) : ''));
+const serviceStatusText = computed(() => {
+  if (!walletSummary.value) return '加载中';
+  if (serviceStatus.value === 'active') return '订阅中';
+  if (serviceStatus.value === 'trial') return '试用中';
+  return '已到期';
+});
+const serviceStatusClass = computed(() => ({
+  ...(walletSummary.value
+    ? {
+        'service-badge--active': serviceStatus.value === 'active',
+        'service-badge--trial': serviceStatus.value === 'trial',
+        'service-badge--expired': serviceStatus.value === 'expired'
+      }
+    : {})
+}));
+const statusHint = computed(() => {
+  if (!walletSummary.value) return '正在读取服务状态...';
+  if (serviceStatus.value === 'trial') return '未购买前自动开启24小时试用。';
+  if (serviceStatus.value === 'active') return '季度服务已开通，过期前可续订。';
+  return '服务已到期，请购买季度服务后继续使用。';
+});
 const subscriptionForm = reactive({ quarters: 1, quarterPrice: 1999, note: '', reference: '' });
 const rechargeForm = reactive({ amount: null, currency: 'CNY', reference: '', note: '' });
 
@@ -214,6 +264,21 @@ async function rechargeWalletSubmit() {
   } catch (error) {
     toast.error(error.message ?? '充值失败');
   }
+}
+
+function formatRemaining(seconds) {
+  const totalSeconds = Math.max(0, Math.floor(Number(seconds ?? 0)));
+  if (!totalSeconds) return '已到期';
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (days > 0) {
+    return `${days}天${hours > 0 ? `${hours}小时` : ''}`.trim();
+  }
+  if (hours > 0) {
+    return `${hours}小时${minutes > 0 ? `${minutes}分钟` : ''}`.trim();
+  }
+  return `${Math.max(1, minutes)}分钟`;
 }
 
 function formatMoney(value) {
@@ -281,10 +346,95 @@ function formatStatus(value) {
   color: #1d4ed8;
 }
 
+.service-badge {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #eef2ff, #ecfeff);
+  min-width: 240px;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.06);
+}
+
+.service-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.service-label {
+  font-size: 12px;
+  color: #475569;
+}
+
+.service-chip {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid #bae6fd;
+  background: #e0f2fe;
+  color: #0ea5e9;
+}
+
+.service-remaining {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.service-deadline {
+  margin: 0;
+  font-size: 12px;
+  color: #475569;
+}
+
+.service-hint {
+  margin: 0;
+  font-size: 12px;
+}
+
+.service-badge--active {
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #ecfdf3, #f0fdf4);
+}
+
+.service-badge--active .service-chip {
+  background: #dcfce7;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.service-badge--trial {
+  border-color: #facc15;
+  background: linear-gradient(135deg, #fffbeb, #fef9c3);
+}
+
+.service-badge--trial .service-chip {
+  background: #fef3c7;
+  border-color: #fde68a;
+  color: #b45309;
+}
+
+.service-badge--expired {
+  border-color: #e2e8f0;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+}
+
+.service-badge--expired .service-chip {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
 .actions {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .finance-grid {
@@ -424,4 +574,3 @@ function formatStatus(value) {
   }
 }
 </style>
-

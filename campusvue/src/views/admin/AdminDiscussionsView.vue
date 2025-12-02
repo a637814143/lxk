@@ -16,9 +16,12 @@
         <li v-for="item in pendingDiscussions" :key="item.id" class="list__item">
           <div>
             <h3>{{ item.title }} <small class="muted">企业 #{{ item.companyId }}</small></h3>
-            <p class="muted">提交时间：{{ formatDate(item.createdAt) }}</p>
+            <p class="muted">
+              提交时间：{{ formatDate(item.createdAt) }}
+              <span v-if="item.status" class="pill pill--ghost">状态：{{ item.status }}</span>
+            </p>
             <p>{{ item.sanitizedContent || item.content }}</p>
-            <p v-if="item.reviewComment" class="muted">备注：{{ item.reviewComment }}</p>
+            <p v-if="item.reviewComment" class="violation">提示：{{ item.reviewComment }}</p>
           </div>
           <div class="list__actions">
             <button class="primary" @click="review(item.id, 'approved')">通过</button>
@@ -43,7 +46,7 @@
               · 状态：{{ item.status || '-' }}
             </p>
             <p>{{ item.sanitizedContent || item.content }}</p>
-            <p v-if="item.reviewComment" class="muted">备注：{{ item.reviewComment }}</p>
+            <p v-if="item.reviewComment" class="violation">提示：{{ item.reviewComment }}</p>
             <div class="list__actions">
               <button class="outline" type="button" @click="deleteDiscussion(item.id)">删除</button>
             </div>
@@ -60,13 +63,17 @@
         <li v-for="c in pendingComments" :key="c.id" class="list__item">
           <div>
             <h3>评论 · 帖子 #{{ c.postId }}</h3>
-            <p class="muted">作者：{{ c.authorUsername }} · 时间：{{ formatDate(c.createdAt) }}</p>
+            <p class="muted">
+              作者：{{ c.authorUsername }} · 时间：{{ formatDate(c.createdAt) }}
+              <span v-if="c.status" class="pill pill--ghost">状态：{{ c.status }}</span>
+            </p>
             <p>{{ c.sanitizedContent || c.content }}</p>
-            <p v-if="c.reviewComment" class="muted">备注：{{ c.reviewComment }}</p>
+            <p v-if="c.reviewComment" class="violation">提示：{{ c.reviewComment }}</p>
           </div>
           <div class="list__actions">
             <button class="primary" @click="reviewComment(c.id, 'approved')">通过</button>
             <button class="outline" @click="openRejectCommentDialog(c)">驳回</button>
+            <button class="outline" type="button" @click="deleteComment(c.id)">删除</button>
           </div>
         </li>
       </ul>
@@ -81,7 +88,10 @@
               作者：{{ c.authorUsername || '-' }} · 时间：{{ formatDate(c.createdAt) }} · 状态：{{ c.status || '-' }}
             </p>
             <p>{{ c.sanitizedContent || c.content }}</p>
-            <p v-if="c.reviewComment" class="muted">备注：{{ c.reviewComment }}</p>
+            <p v-if="c.reviewComment" class="violation">提示：{{ c.reviewComment }}</p>
+            <div class="list__actions">
+              <button class="outline" type="button" @click="deleteComment(c.id)">删除</button>
+            </div>
           </div>
         </li>
       </ul>
@@ -269,6 +279,18 @@ async function reviewComment(commentId, status, reason = '') {
     // 错误统一由上层提示
   }
 }
+
+async function deleteComment(commentId) {
+  if (!commentId) return;
+  if (!confirm('确定要删除该评论吗？此操作不可撤销。')) return;
+  try {
+    await httpDelete(`/portal/admin/discussions/comments/${commentId}`);
+    await refresh();
+    toast.success('评论已删除');
+  } catch (error) {
+    toast.error(error.message ?? '删除评论失败');
+  }
+}
 </script>
 
 <style scoped>
@@ -309,5 +331,30 @@ async function reviewComment(commentId, status, reason = '') {
 
 .list__item--compact {
   padding: 12px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid #e5e7eb;
+  margin-left: 6px;
+}
+
+.pill--ghost {
+  background: #f8fafc;
+  color: #475569;
+}
+
+.violation {
+  margin: 6px 0 0;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecdd3;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 13px;
 }
 </style>

@@ -101,6 +101,7 @@
                       v-model="post._newComment"
                       :placeholder="post._replyTo ? `回复 @${post._replyTo.authorUsername}` : '发表你的看法...'"
                     />
+                    <p class="muted tiny-hint">系统会自动过滤敏感词，违规内容将被替换为“*”并进入审核。</p>
                     <button class="primary" type="button" @click="submitComment(post)">
                       发送
                     </button>
@@ -339,8 +340,17 @@ async function submitComment(post) {
     });
     post._newComment = '';
     post._replyTo = null;
-    post._feedback = '已提交评论，待审核通过后可见';
-    post._feedbackType = 'success';
+    if (
+      created?.status?.toLowerCase?.() === 'pending' &&
+      typeof created?.reviewComment === 'string' &&
+      created.reviewComment.includes('敏感词')
+    ) {
+      post._feedback = '评论包含敏感词，系统已自动将敏感词替换为“*”，并标记为违规待审核。';
+      post._feedbackType = 'error';
+    } else {
+      post._feedback = '已提交评论，待审核通过后可见';
+      post._feedbackType = 'success';
+    }
     try {
       const flat = await get(`/public/discussions/${post.id}/comments`);
       post._comments = flat;
@@ -569,11 +579,20 @@ watch(
 
 .comments__editor {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .comments__editor input {
   flex: 1;
+  min-width: 220px;
+}
+
+.tiny-hint {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #6b7280;
 }
 </style>

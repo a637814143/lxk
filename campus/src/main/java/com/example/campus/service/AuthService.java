@@ -111,9 +111,7 @@ public class AuthService {
             case COMPANY -> {
             }
             case ADMIN -> {
-                if (displayName == null || displayName.isEmpty()) {
-                    throw new IllegalArgumentException("管理员姓名不能为空");
-                }
+                throw new IllegalArgumentException("管理员账号仅限系统预置，禁止自行注册");
             }
             default -> {
             }
@@ -126,7 +124,8 @@ public class AuthService {
             case STUDENT -> createStudentProfile(userId, displayName);
             case COMPANY -> {
             }
-            case ADMIN -> createAdminProfile(userId, displayName);
+            case ADMIN -> {
+            }
             default -> {
             }
         }

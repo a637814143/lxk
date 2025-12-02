@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
 import StudentDashboard from '../views/student/StudentDashboard.vue';
+import StudentHomeView from '../views/student/StudentHomeView.vue';
 import StudentProfileView from '../views/student/StudentProfileView.vue';
 import StudentResumesView from '../views/student/StudentResumesView.vue';
 import StudentJobsView from '../views/student/StudentJobsView.vue';
@@ -14,6 +15,7 @@ import CompanyProfileView from '../views/company/CompanyProfileView.vue';
 import CompanyJobsView from '../views/company/CompanyJobsView.vue';
 import CompanyFinanceView from '../views/company/CompanyFinanceView.vue';
 import CompanyApplicationsView from '../views/company/CompanyApplicationsView.vue';
+import CompanyMessagesView from '../views/company/CompanyMessagesView.vue';
 import CompanyDiscussionsView from '../views/company/CompanyDiscussionsView.vue';
 import CompanyAnnouncementsView from '../views/company/CompanyAnnouncementsView.vue';
 import AdminDashboard from '../views/admin/AdminDashboard.vue';
@@ -25,6 +27,7 @@ import AdminFinanceView from '../views/admin/AdminFinanceView.vue';
 import AdminAnnouncementsView from '../views/admin/AdminAnnouncementsView.vue';
 import AdminInvitesView from '../views/admin/AdminInvitesView.vue';
 import AdminBackupsView from '../views/admin/AdminBackupsView.vue';
+import AdminMessagesView from '../views/admin/AdminMessagesView.vue';
 import { getAuthInfo } from '../api/http';
 
 const routes = [
@@ -45,8 +48,14 @@ const routes = [
     meta: {
       requiresRole: 'STUDENT'
     },
-    redirect: { name: 'student-profile' },
+    redirect: { name: 'student-home' },
     children: [
+      {
+        path: 'home',
+        name: 'student-home',
+        component: StudentHomeView,
+        meta: { requiresRole: 'STUDENT' }
+      },
       {
         path: 'profile',
         name: 'student-profile',
@@ -125,6 +134,12 @@ const routes = [
         meta: { requiresRole: 'COMPANY' }
       },
       {
+        path: 'messages',
+        name: 'company-messages',
+        component: CompanyMessagesView,
+        meta: { requiresRole: 'COMPANY' }
+      },
+      {
         path: 'discussions',
         name: 'company-discussions',
         component: CompanyDiscussionsView,
@@ -188,6 +203,12 @@ const routes = [
         path: 'invites',
         name: 'admin-invites',
         component: AdminInvitesView,
+        meta: { requiresRole: 'ADMIN' }
+      },
+      {
+        path: 'messages',
+        name: 'admin-messages',
+        component: AdminMessagesView,
         meta: { requiresRole: 'ADMIN' }
       },
       {

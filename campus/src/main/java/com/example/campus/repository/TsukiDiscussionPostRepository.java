@@ -11,4 +11,6 @@ public interface TsukiDiscussionPostRepository extends JpaRepository<TsukiDiscus
     List<TsukiDiscussionPost> findByStatus(String status);
 
     List<TsukiDiscussionPost> findByCompany_IdAndStatus(Long companyId, String status);
+
+    long countByStatus(String status);
 }

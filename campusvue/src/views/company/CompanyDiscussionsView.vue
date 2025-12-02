@@ -69,6 +69,7 @@
                       : '发表你的看法...'
                   "
                 />
+                <p class="muted tiny-hint">系统会自动过滤敏感词，违规内容将被替换为“*”并进入审核。</p>
                 <button class="primary" type="button" @click="submitComment(post)">发表</button>
                 <button
                   v-if="post._replyTo || post._editTarget"
@@ -442,12 +443,20 @@ async function deletePost(post) {
 
 .comments__editor {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .comments__editor input {
   flex: 1;
+  min-width: 220px;
+}
+
+.tiny-hint {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #6b7280;
 }
 </style>
-

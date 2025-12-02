@@ -35,6 +35,8 @@ import com.example.campus.repository.TsukiJobRepository;
 import com.example.campus.repository.TsukiMessageRepository;
 import com.example.campus.repository.TsukiWalletRepository;
 import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class CompanyPortalService {
+
+    private static final long TRIAL_HOURS = 24L;
 
     private final CompanyService companyService;
     private final CompanyInviteService companyInviteService;
@@ -60,6 +64,37 @@ public class CompanyPortalService {
     private final TsukiApplicationRepository applicationRepository;
     private final TsukiMessageRepository messageRepository;
     private final TsukiWalletRepository walletRepository;
+
+    private LocalDateTime resolveTrialEndsAt(TsukiCompany company) {
+        LocalDateTime createdAt = null;
+        if (company.getUser() != null) {
+            createdAt = company.getUser().getCreateTime();
+        }
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        return createdAt.plusHours(TRIAL_HOURS);
+    }
+
+    private String resolveServiceStatus(LocalDateTime now, LocalDateTime trialEndsAt,
+            LocalDateTime subscriptionExpiresAt) {
+        if (subscriptionExpiresAt != null && subscriptionExpiresAt.isAfter(now)) {
+            return "active";
+        }
+        if (trialEndsAt != null && trialEndsAt.isAfter(now)) {
+            return "trial";
+        }
+        return "expired";
+    }
+
+    private LocalDateTime resolveActiveUntil(String serviceStatus, LocalDateTime trialEndsAt,
+            LocalDateTime subscriptionExpiresAt) {
+        return switch (serviceStatus) {
+            case "active" -> subscriptionExpiresAt;
+            case "trial" -> trialEndsAt;
+            default -> subscriptionExpiresAt != null ? subscriptionExpiresAt : trialEndsAt;
+        };
+    }
 
     @Transactional(readOnly = true)
     public CompanyResponse loadProfile(Long userId) {
@@ -149,8 +184,16 @@ public class CompanyPortalService {
                         .build()));
         company.setWalletBalance(wallet.getBalance());
         companyRepository.save(company);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime trialEndsAt = resolveTrialEndsAt(company);
+        LocalDateTime subscriptionExpiresAt = financialTransactionService.calculateSubscriptionExpiry(company.getId());
+        String serviceStatus = resolveServiceStatus(now, trialEndsAt, subscriptionExpiresAt);
+        LocalDateTime activeUntil = resolveActiveUntil(serviceStatus, trialEndsAt, subscriptionExpiresAt);
+        long remainingSeconds = activeUntil != null && activeUntil.isAfter(now)
+                ? Duration.between(now, activeUntil).getSeconds()
+                : 0L;
         return new WalletSummaryResponse(wallet.getOwnerId(), wallet.getOwnerType(), wallet.getBalance(),
-                wallet.getUpdatedAt());
+                wallet.getUpdatedAt(), serviceStatus, trialEndsAt, subscriptionExpiresAt, remainingSeconds);
     }
 
     /**
