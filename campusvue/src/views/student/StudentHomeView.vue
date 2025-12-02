@@ -11,6 +11,11 @@
           <button class="primary" type="button" @click="go('student-jobs')">去找职位</button>
           <button class="outline" type="button" @click="go('student-resumes')">管理简历</button>
         </div>
+        <div class="hero__chips">
+          <span class="chip">智能推荐</span>
+          <span class="chip ghost">宣讲会订阅</span>
+          <span class="chip ghost">进度提醒</span>
+        </div>
       </div>
       <div class="hero__stats">
         <div class="stat-card">
@@ -30,6 +35,21 @@
         </div>
       </div>
     </section>
+
+    <div class="focus-strip">
+      <div class="focus-item">
+        <span class="label">快速入口</span>
+        <p>浏览职位 / 查看投递 / 消息中心</p>
+      </div>
+      <div class="focus-item">
+        <span class="label">安全同步</span>
+        <p>登录后自动保存最新资料与简历</p>
+      </div>
+      <div class="focus-item">
+        <span class="label">每日亮点</span>
+        <p>平台公告与讨论区精选话题</p>
+      </div>
+    </div>
 
     <div class="panel-grid">
       <section class="card quick-actions">
@@ -61,7 +81,7 @@
         <p v-else class="muted">暂无资料，请前往完善。</p>
       </section>
 
-      <section class="card">
+      <section class="card gradient">
         <div class="card__title">
           <h3>我的简历</h3>
           <button class="outline" type="button" @click="go('student-resumes')">管理简历</button>
@@ -78,7 +98,7 @@
         <p v-else class="muted">暂无简历，去创建一份吧。</p>
       </section>
 
-      <section class="card">
+      <section class="card gradient-soft">
         <div class="card__title">
           <h3>近期投递</h3>
           <button class="outline" type="button" @click="go('student-applications')">查看全部</button>
@@ -96,7 +116,7 @@
         <p v-else class="muted">暂无投递记录。</p>
       </section>
 
-      <section class="card">
+      <section class="card gradient">
         <div class="card__title">
           <h3>最新职位</h3>
           <button class="outline" type="button" @click="go('student-jobs')">更多</button>
@@ -115,7 +135,7 @@
         <p v-else class="muted">暂无职位，稍后再来看看。</p>
       </section>
 
-      <section class="card">
+      <section class="card gradient-soft">
         <div class="card__title">
           <h3>最新公告</h3>
           <span class="muted">更多公告请前往公告页查看</span>
@@ -132,7 +152,7 @@
         <p v-else class="muted">暂无公告。</p>
       </section>
 
-      <section class="card">
+      <section class="card gradient">
         <div class="card__title">
           <h3>最近消息</h3>
           <button class="outline" type="button" @click="go('student-messages')">前往消息中心</button>
@@ -249,7 +269,10 @@ onMounted(() => {
 }
 
 .hero-card {
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(37, 99, 235, 0.1));
+  position: relative;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(37, 99, 235, 0.08)),
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.25), transparent 40%),
+    radial-gradient(circle at 90% 10%, rgba(79, 70, 229, 0.16), transparent 40%);
   border: 1px solid rgba(37, 99, 235, 0.16);
   border-radius: 20px;
   padding: 22px 22px;
@@ -257,6 +280,15 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 16px;
   box-shadow: 0 18px 40px rgba(37, 99, 235, 0.16);
+  overflow: hidden;
+}
+
+.hero-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.32), transparent 55%);
+  pointer-events: none;
 }
 
 .hero__copy h2 {
@@ -283,6 +315,32 @@ onMounted(() => {
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 10px;
+}
+
+.hero__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chip.ghost {
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+  border-color: rgba(37, 99, 235, 0.2);
 }
 
 .hero__stats {
@@ -314,6 +372,39 @@ onMounted(() => {
   gap: 16px;
 }
 
+.focus-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-soft);
+}
+
+.focus-item {
+  padding: 8px 10px;
+}
+
+.focus-item .label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.focus-item p {
+  margin: 8px 0 0;
+  color: #475569;
+  font-weight: 600;
+}
+
 .quick-actions .actions {
   display: flex;
   flex-wrap: wrap;
@@ -333,6 +424,16 @@ onMounted(() => {
   border-color: var(--color-primary);
   box-shadow: 0 12px 28px rgba(37, 99, 235, 0.16);
   transform: translateY(-1px);
+}
+
+.card.gradient {
+  background: linear-gradient(160deg, rgba(37, 99, 235, 0.08), rgba(59, 130, 246, 0.05));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+}
+
+.card.gradient-soft {
+  background: linear-gradient(160deg, rgba(236, 72, 153, 0.08), rgba(99, 102, 241, 0.06));
+  border: 1px solid rgba(236, 72, 153, 0.12);
 }
 
 .list {
